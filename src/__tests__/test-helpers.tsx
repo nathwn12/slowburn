@@ -59,7 +59,6 @@ export function beforeEachSetup() {
     // Render the app
     const { app } = await import('../main.tsx');
     render(app, {
-      // biome-ignore lint/correctness/useUniqueElementIds: because.
       wrapper: ({ children }) => <div id="wrap">{children}</div>,
     });
   });

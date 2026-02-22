@@ -12,7 +12,7 @@ export function logAndNotifyError(
   isWarning = false,
   silent = false,
 ): void {
-  let message;
+  let message: string;
   if (err instanceof Error) message = err.message;
   else message = String(err);
 

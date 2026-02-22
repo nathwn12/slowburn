@@ -9,8 +9,8 @@ export function shuffleTracks(tracks: Track[], index: number): Track[] {
   const currentTrack = shuffledTracks.splice(index, 1)[0];
 
   let m = shuffledTracks.length;
-  let t;
-  let i;
+  let t: Track;
+  let i: number;
   while (m) {
     // Pick a remaining element…
     i = Math.floor(Math.random() * m--);

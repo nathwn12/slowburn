@@ -131,7 +131,7 @@ function ViewPlaylists() {
   }, [playlists, renamePlaylist, invalidate, t]);
 
   // Empty and List states
-  let playlistContent;
+  let playlistContent: React.ReactNode;
 
   if (playlists.length === 0) {
     playlistContent = (
