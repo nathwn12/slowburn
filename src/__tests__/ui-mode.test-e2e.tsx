@@ -96,16 +96,22 @@ async function playFirstTrack(): Promise<Player> {
   return p;
 }
 
-// AC1: a fresh install starts minimal.
-test('renders minimal by default: no ledger, no queue column', async () => {
-  // Drive the state where Full *would* show the queue column (the Queue view),
-  // so the absence asserted below is caused by the mode and not by the route.
+// AC1: a fresh install starts minimal. Minimal drops the ledger, and the Queue
+// becomes a route-level view rather than the full-mode column.
+test('renders minimal by default: no ledger, queue is a route not a column', async () => {
+  // The Queue route must lead somewhere real in minimal (the fix for the blank
+  // `/queue` screen), so the heading is expected here.
   await switchView('Queue');
+  await expect
+    .element(page.getByRole('heading', { name: 'QUEUE' }))
+    .toBeVisible();
+  await expect.element(ledger()).not.toBeInTheDocument();
 
+  // It is a view, not the full-mode column: navigating away drops it.
+  await switchView('All tracks');
   await expect
     .element(page.getByRole('heading', { name: 'QUEUE' }))
     .not.toBeInTheDocument();
-  await expect.element(ledger()).not.toBeInTheDocument();
 
   // The player is never cut by the mode.
   await expect
