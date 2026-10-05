@@ -22,6 +22,9 @@ export default defineConfig({
           includeTaskLocation: true,
           browser: {
             enabled: true,
+            // Headless by default so the suite never throws a Chromium window
+            // over the desktop; `HEADED=1 vp test run --project e2e` opts in.
+            headless: process.env.HEADED == null,
             provider: playwright({
               launchOptions: {
                 // Silent verification: never emit audible sound, and allow

@@ -93,7 +93,10 @@ fn main() {
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(
-                    StateFlags::all() & !StateFlags::VISIBLE, // Slowburn manages its visible state by itself
+                    // Slowburn manages its visible state by itself, and the
+                    // declared `inner_size` (960×600) must win over any saved
+                    // geometry, so SIZE too is not restored.
+                    StateFlags::all() & !StateFlags::VISIBLE & !StateFlags::SIZE,
                 )
                 .build(),
         );
@@ -117,8 +120,8 @@ fn main() {
                     .title("Slowburn")
                     .visible(false)
                     .theme(get_theme_from_name(&conf.theme))
-                    .inner_size(900.0, 550.0)
-                    .min_inner_size(900.0, 550.0)
+                    .inner_size(960.0, 600.0)
+                    .min_inner_size(720.0, 480.0)
                     .fullscreen(false)
                     .resizable(true)
                     .zoom_hotkeys_enabled(true);

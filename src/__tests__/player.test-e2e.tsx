@@ -30,13 +30,12 @@ test('Double click on a track should play it and display its metadata', async ()
     .element(page.getByRole('button', { name: 'Pause' }))
     .toBeInTheDocument();
 
-  // Check the track info is there
-  await expect
-    .element(page.getByRole('banner').getByText('Whiskey Blues'))
-    .toBeVisible();
-  await expect
-    .element(page.getByRole('banner'))
-    .toHaveTextContent('Captain_Sleepy — Another Album');
+  // Check the track info is on the now-playing surface (the header no longer
+  // duplicates it).
+  const nowPlaying = page.getByRole('region', { name: 'Now playing' });
+  await expect.element(nowPlaying.getByText('Whiskey Blues')).toBeVisible();
+  await expect.element(nowPlaying).toHaveTextContent('Captain_Sleepy');
+  await expect.element(nowPlaying).toHaveTextContent('Another Album');
 
   // Click on another one
   await getTrackByName(/Romantic Blues/).dblClick();
@@ -48,12 +47,9 @@ test('Double click on a track should play it and display its metadata', async ()
     .toBeInTheDocument();
 
   // Check the new track info is there
-  await expect
-    .element(page.getByRole('banner').getByText('Romantic Blues'))
-    .toBeVisible();
-  await expect
-    .element(page.getByRole('banner'))
-    .toHaveTextContent('Jean-Paul-V — Pixabay');
+  await expect.element(nowPlaying.getByText('Romantic Blues')).toBeVisible();
+  await expect.element(nowPlaying).toHaveTextContent('Jean-Paul-V');
+  await expect.element(nowPlaying).toHaveTextContent('Pixabay');
 
   // Pause
   await page.getByRole('button', { name: 'Pause' }).click();

@@ -1,23 +1,22 @@
-import { Popover } from '@base-ui/react/popover';
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useRef } from 'react';
+import { Link } from '@tanstack/react-router';
 
-import ButtonIcon from '../elements/ButtonIcon';
-import { usePlayerState } from '../hooks/usePlayer';
-import usePlayingTrack from '../hooks/usePlayingTrack';
-import PlayerControls from './PlayerControls';
-import PlayingBar from './PlayingBar';
-import Queue from './Queue';
+import { version } from '../../package.json';
+import logoUrl from '../assets/logos/slowburn-48.png';
+import Icon from './Icon';
+import Navigation from './Navigation';
 import Search from './Search';
 
+/**
+ * The Dense header (design §1/§5): 40 px, fixed. EQ logo slot, brand + version,
+ * the breadcrumb that drives the right-column view stack, a pill search with
+ * the Ctrl K affordance and the settings control. The player bar / transport
+ * lives in the now-playing column, not here.
+ */
 export default function Header() {
-  const queue = usePlayerState((state) => state.queue);
-  const queueCursor = usePlayerState((state) => state.queueCursor);
-  const trackPlaying = usePlayingTrack();
   const { t } = useLingui();
   const platform = window.__MUSEEKS_PLATFORM;
-  const queueAnchorRef = useRef<HTMLDivElement>(null);
 
   return (
     <header
@@ -29,52 +28,41 @@ export default function Header() {
       )}
       data-tauri-drag-region
     >
-      <div
-        {...stylex.props(
-          styles.headerMainControls,
-          platform === 'macos' && styles.headerMainControlsMacos,
-        )}
-        data-tauri-drag-region
-      >
-        <PlayerControls />
+      <div {...stylex.props(styles.logoSlot)} data-tauri-drag-region>
+        <img
+          src={logoUrl}
+          alt={t`Slowburn logo`}
+          width={22}
+          height={22}
+          draggable={false}
+          {...stylex.props(styles.logo)}
+        />
       </div>
-      <div {...stylex.props(styles.headerPlayingBar)} data-tauri-drag-region>
-        {trackPlaying != null && (
-          <>
-            <PlayingBar trackPlaying={trackPlaying} />
-            <Popover.Root>
-              <div ref={queueAnchorRef} {...stylex.props(styles.queue)}>
-                <Popover.Trigger
-                  render={(triggerProps) => (
-                    <ButtonIcon
-                      {...triggerProps}
-                      icon="list"
-                      iconSize={20}
-                      label={t`Queue`}
-                      data-tauri-drag-region
-                    />
-                  )}
-                />
-              </div>
-              <Popover.Portal>
-                <Popover.Positioner
-                  side="bottom"
-                  alignOffset={-16}
-                  align="end"
-                  anchor={queueAnchorRef}
-                >
-                  <Popover.Popup {...stylex.props(styles.queueContainer)}>
-                    <Queue queue={queue} queueCursor={queueCursor} />
-                  </Popover.Popup>
-                </Popover.Positioner>
-              </Popover.Portal>
-            </Popover.Root>
-          </>
-        )}
+
+      <div {...stylex.props(styles.brand)} data-tauri-drag-region>
+        {t`Slowburn`}
+        <small {...stylex.props(styles.brandVersion)}>v{version}</small>
       </div>
-      <div {...stylex.props(styles.headerSearch)} data-tauri-drag-region>
+
+      <span {...stylex.props(styles.sep)} aria-hidden="true" />
+
+      <nav aria-label={t`Main navigation`} {...stylex.props(styles.nav)}>
+        <Navigation />
+
+        <span {...stylex.props(styles.spacer)} data-tauri-drag-region />
+
         <Search />
-      </div>
+
+        <Link
+          to="/settings"
+          aria-label={t`Settings`}
+          title={t`Settings`}
+          draggable={false}
+          {...stylex.props(styles.iconBtn)}
+        >
+          <Icon name="settings" size={16} />
+        </Link>
+      </nav>
     </header>
   );
 }
@@ -82,68 +70,97 @@ export default function Header() {
 const styles = stylex.create({
   header: {
     boxSizing: 'border-box',
-    borderBottomWidth: '1px',
-    borderBottomStyle: 'solid',
-    borderBottomColor: 'var(--border-color)',
-    backgroundColor: 'var(--header-bg)',
-    color: 'var(--header-color)',
-    paddingTop: 0,
-    paddingBottom: 0,
-    paddingLeft: '10px',
-    paddingRight: '10px',
-    display: 'flex',
-    alignItems: 'stretch',
-    justifyContent: 'space-between',
-    height: '50px',
+    height: '40px',
     flexGrow: 0,
     flexShrink: 0,
     flexBasis: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '10px',
+    paddingBlock: 0,
+    paddingInline: '10px',
+    backgroundColor: 'var(--header-bg)',
+    backgroundImage:
+      'linear-gradient(rgba(255,255,255,.04), rgba(0,0,0,.05))',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'var(--border)',
+    color: 'var(--text)',
   },
   headerBorderTop: {
     borderTopWidth: '1px',
     borderTopStyle: 'solid',
-    borderTopColor: 'var(--border-color)',
+    borderTopColor: 'var(--border)',
   },
-  headerMainControls: {
-    flexGrow: 0,
+  logoSlot: {
+    width: '26px',
+    height: '26px',
     flexShrink: 0,
-    flexBasis: 'auto',
+    borderWidth: '1px',
+    borderStyle: 'dashed',
+    borderColor: '#4a4a4a',
+    borderRadius: 'var(--radius-sm)',
+    display: 'grid',
+    placeItems: 'center',
+    backgroundColor: 'var(--accent-soft)',
+  },
+  logo: {
+    width: '20px',
+    height: '20px',
+    display: 'block',
+  },
+  brand: {
+    display: 'flex',
+    alignItems: 'baseline',
+    columnGap: '6px',
+    flexShrink: 0,
+    fontSize: '13px',
+    fontWeight: 700,
+    letterSpacing: '.02em',
+    color: 'var(--text-bright)',
+  },
+  brandVersion: {
+    fontSize: '9px',
+    fontWeight: 600,
+    letterSpacing: '.08em',
+    color: 'var(--text-faint)',
+  },
+  sep: {
+    width: '1px',
+    height: '18px',
+    flexShrink: 0,
+    backgroundColor: 'var(--border-soft)',
+  },
+  nav: {
     display: 'flex',
     alignItems: 'center',
-    paddingRight: '10px',
-    minWidth: '200px',
-    paddingLeft: '12px',
-  },
-  headerMainControlsMacos: {
-    paddingLeft: '72px',
-  },
-  headerSearch: {
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 'auto',
-    display: 'flex',
-    justifyContent: 'flex-end',
-  },
-  headerPlayingBar: {
+    columnGap: '8px',
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 'auto',
     minWidth: 0,
-    maxWidth: '600px',
-    display: 'flex',
+    height: '100%',
   },
-  queue: {
-    marginTop: 0,
-    marginBottom: 0,
-    marginLeft: '16px',
-    marginRight: '16px',
-    display: 'flex',
-    alignItems: 'center',
+  spacer: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: '0%',
+    minWidth: '8px',
+    alignSelf: 'stretch',
   },
-  queueContainer: {
-    zIndex: 1000,
-    display: {
-      ':is([data-open])': 'block',
+  iconBtn: {
+    width: '26px',
+    height: '26px',
+    flexShrink: 0,
+    borderRadius: 'var(--radius-sm)',
+    display: 'grid',
+    placeItems: 'center',
+    color: {
+      default: 'var(--text-dim)',
+      ':hover': 'var(--text-bright)',
+    },
+    backgroundColor: {
+      ':hover': 'var(--surface-hover)',
     },
   },
 });

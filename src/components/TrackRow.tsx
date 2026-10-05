@@ -1,10 +1,12 @@
 import { useSortable } from '@dnd-kit/sortable';
+import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 import type React from 'react';
 
 import type { Track } from '../generated/typings';
 import useFormattedDuration from '../hooks/useFormattedDuration';
 import PlayingIndicator from './PlayingIndicator';
+import { useIsSavedLoop } from './saved-loops';
 
 export type TrackRowEvents = {
   onTrackSelect: (
@@ -32,6 +34,12 @@ type Props = {
   style?: React.CSSProperties;
 } & TrackRowEvents;
 
+/**
+ * A Dense track row (design §5): 40 px, two lines — title on top, `artist ·
+ * album` beneath, the saved-loop `◆` pin and the duration on the right. The
+ * cursor selection is `--info` blue, the playing row is magenta: two different
+ * facts, never colour-alone (position + pin + indicator carry them too).
+ */
 export default function TrackRow(props: Props) {
   const {
     track,
@@ -42,8 +50,10 @@ export default function TrackRow(props: Props) {
     onContextMenu,
     onPlaybackStart,
   } = props;
+  const { t } = useLingui();
 
   const duration = useFormattedDuration(track.duration);
+  const savedLoop = useIsSavedLoop(track.id);
 
   // Drag-and-Drop for playlists
   const {
@@ -63,9 +73,6 @@ export default function TrackRow(props: Props) {
     },
   });
 
-  const isEvenRow = index % 2 === 0;
-  const isSelectedWithSelectedAbove =
-    selected && props.hasSelectedAbove === true;
   const isDropIndicatorVisible = isOver && !isDragging;
   const isDropAbove = isOver && overIndex < activeIndex;
   const isDropBelow = isOver && overIndex > activeIndex;
@@ -90,9 +97,8 @@ export default function TrackRow(props: Props) {
       // styles
       {...stylex.props(
         trackStyles.track,
-        isEvenRow && trackStyles.trackEvenRow,
         selected && trackStyles.trackSelected,
-        isSelectedWithSelectedAbove && trackStyles.selectedWithSelectedAbove,
+        props.isPlaying === true && trackStyles.trackPlaying,
         isDragging && trackStyles.isDragging,
         isDropIndicatorVisible && trackStyles.isDraggedOver,
         isDropAbove && trackStyles.isDraggedOverAbove,
@@ -100,40 +106,42 @@ export default function TrackRow(props: Props) {
       )}
       style={props.style}
     >
-      <div {...stylex.props(cellStyles.cell, cellStyles.trackPlaying)}>
-        {props.isPlaying ? <PlayingIndicator /> : null}
-      </div>
-      <div {...stylex.props(cellStyles.cell, cellStyles.title)}>
-        <span {...stylex.props(cellStyles.titleText)}>{track.title}</span>
-        {props.showArtistInTitle === true && track.artists.length > 0 && (
-          <span {...stylex.props(cellStyles.artistInTitle)}>
-            {'— '}
-            {track.artists.join(', ')}
+      <span {...stylex.props(cellStyles.index)}>
+        {props.isPlaying === true ? <PlayingIndicator /> : (index + 1)}
+      </span>
+
+      <span {...stylex.props(cellStyles.meta)}>
+        <span
+          {...stylex.props(
+            cellStyles.title,
+            props.isPlaying === true && cellStyles.titlePlaying,
+          )}
+        >
+          {track.title}
+          {props.showArtistInTitle === true && track.artists.length > 0 && (
+            <span {...stylex.props(cellStyles.artistInTitle)}>
+              {' — '}
+              {track.artists.join(', ')}
+            </span>
+          )}
+        </span>
+        <span {...stylex.props(cellStyles.subtitle)}>
+          {track.artists.join(', ')} · {track.album}
+        </span>
+      </span>
+
+      <span {...stylex.props(cellStyles.right)}>
+        {savedLoop && (
+          <span
+            {...stylex.props(cellStyles.loopPin)}
+            title={t`Saved A-B loop`}
+            aria-label={t`Saved A-B loop`}
+          >
+            ◆
           </span>
         )}
-      </div>
-      <div
-        {...stylex.props(
-          cellStyles.cell,
-          cellStyles.duration,
-          props.simplified === true && cellStyles.rightAligned,
-        )}
-      >
-        {duration}
-      </div>
-      {props.simplified !== true && (
-        <>
-          <div {...stylex.props(cellStyles.cell, cellStyles.artist)}>
-            {track.artists.join(', ')}
-          </div>
-          <div {...stylex.props(cellStyles.cell, cellStyles.album)}>
-            {track.album}
-          </div>
-          <div {...stylex.props(cellStyles.cell, cellStyles.genre)}>
-            {track.genres.join(', ')}
-          </div>
-        </>
-      )}
+        <span {...stylex.props(cellStyles.duration)}>{duration}</span>
+      </span>
     </li>
   );
 }
@@ -142,25 +150,26 @@ const trackStyles = stylex.create({
   track: {
     position: 'relative',
     display: 'flex',
-    borderTopWidth: '1px',
-    borderTopStyle: 'solid',
-    borderTopColor: 'transparent',
-    borderBottomWidth: '1px',
-    borderBottomStyle: 'solid',
-    borderBottomColor: 'transparent',
-    backgroundColor: 'var(--tracks-bg-even)',
     alignItems: 'center',
+    columnGap: '8px',
+    minWidth: 0,
     maxWidth: '100%',
-  },
-  trackEvenRow: {
-    backgroundColor: 'var(--tracks-bg-odd)',
+    height: '100%',
+    paddingInline: '10px 12px',
+    borderLeftWidth: '3px',
+    borderLeftStyle: 'solid',
+    borderLeftColor: 'transparent',
+    cursor: 'default',
   },
   trackSelected: {
-    backgroundColor: 'var(--active-item-bg)',
-    color: 'var(--active-item-color)',
+    backgroundColor: 'var(--info-soft)',
+    borderLeftColor: 'var(--info)',
   },
-  selectedWithSelectedAbove: {
-    borderTopColor: 'rgba(255 255 255 / 0.2)',
+  trackPlaying: {
+    backgroundColor: 'var(--pink-soft)',
+    backgroundImage:
+      'linear-gradient(90deg, var(--pink-soft), rgba(255,20,147,.02) 60%)',
+    borderLeftColor: 'var(--deep-pink)',
   },
   isDragging: {
     opacity: 0.5,
@@ -190,66 +199,73 @@ const trackStyles = stylex.create({
 });
 
 const cellStyles = stylex.create({
-  cell: {
-    borderLeftWidth: '1px',
-    borderLeftStyle: 'solid',
-    borderLeftColor: 'transparent',
-    paddingRight: '4px',
-    paddingLeft: '4px',
-    cursor: 'default',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    lineHeight: '24px',
-  },
-  trackPlaying: {
-    width: '30px',
+  index: {
+    width: '20px',
     flexShrink: 0,
+    display: 'grid',
+    placeItems: 'center',
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10.5px',
+    color: 'var(--text-faint)',
   },
-  title: {
+  meta: {
     flexGrow: 1,
     flexShrink: 1,
-    flexBasis: 'auto',
+    flexBasis: '0%',
     minWidth: 0,
-    display: 'flex',
-    alignItems: 'baseline',
-    rowGap: '4px',
-    columnGap: '4px',
   },
-  titleText: {
-    minWidth: 0,
+  title: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: 'var(--text)',
+    whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+  },
+  titlePlaying: {
+    color: '#ffd0e9',
   },
   artistInTitle: {
     color: 'var(--text-muted)',
-    fontSize: '0.85em',
-    flexShrink: 1,
-    minWidth: 0,
+    fontWeight: 500,
+    fontSize: '0.9em',
+  },
+  subtitle: {
+    display: 'block',
+    marginTop: '1px',
+    fontSize: '10.5px',
+    color: 'var(--text-faint)',
+    whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+  },
+  right: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '7px',
+    flexShrink: 0,
+  },
+  loopPin: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '15px',
+    height: '15px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--pink-soft)',
+    color: 'var(--deep-pink)',
+    fontSize: '8px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--pink-line)',
   },
   duration: {
-    width: '7%',
-    minWidth: '70px',
-    flexShrink: 0,
-  },
-  artist: {
-    width: '20%',
-    flexShrink: 0,
-  },
-  album: {
-    width: '20%',
-    flexShrink: 0,
-  },
-  genre: {
-    width: '20%',
-    flexShrink: 0,
-  },
-  rightAligned: {
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10.5px',
+    fontWeight: 600,
+    color: 'var(--text-faint)',
+    width: '38px',
     textAlign: 'right',
-    paddingRight: '8px',
   },
 });

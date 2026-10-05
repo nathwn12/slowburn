@@ -10,17 +10,19 @@ export function parseDuration(maybe_duration: number | null): string {
     const minutes = Math.trunc(duration / 60) % 60;
     const seconds = Math.trunc(duration) % 60;
 
-    const hoursStringified = hours < 10 ? `0${hours}` : hours;
+    // One dialect with the seekbar/detail formatters: only the first (largest)
+    // unit is unpadded; every following unit is two digits.
     const minutesStringified = minutes < 10 ? `0${minutes}` : minutes;
     const secondsStringified = seconds < 10 ? `0${seconds}` : seconds;
 
-    let result = hours > 0 ? `${hoursStringified}:` : '';
-    result += `${minutesStringified}:${secondsStringified}`;
+    if (hours > 0) {
+      return `${hours}:${minutesStringified}:${secondsStringified}`;
+    }
 
-    return result;
+    return `${minutes}:${secondsStringified}`;
   }
 
-  return '00:00';
+  return '0:00';
 }
 
 /**

@@ -5,11 +5,10 @@ import * as stylex from '@stylexjs/stylex';
 import useEffectsConfig from '../hooks/useEffectsConfig';
 import player from '../lib/player';
 import Icon from './Icon';
+import { REVERB_STEP, STEP, useWheelStep } from './wheel-step';
 
 const SLOW_MIN = 0.7;
 const SLOW_MAX = 1.3;
-const SLOW_STEP = 0.05;
-const REVERB_STEP = 5;
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -57,17 +56,17 @@ export default function EffectControls() {
         sliderValue={slow}
         sliderMin={SLOW_MIN}
         sliderMax={SLOW_MAX}
-        sliderStep={0.01}
+        sliderStep={STEP}
         onChange={setSlow}
-        onStepDown={() => setSlow(slow - SLOW_STEP)}
-        onStepUp={() => setSlow(slow + SLOW_STEP)}
+        onStepDown={() => setSlow(slow - STEP)}
+        onStepUp={() => setSlow(slow + STEP)}
         onReset={() => setSlow(1)}
         canDown={slow > SLOW_MIN + 0.0001}
         canUp={slow < SLOW_MAX - 0.0001}
         decreaseLabel={t`Decrease speed`}
-        decreaseTitle={t`Slower (−0.05×)`}
+        decreaseTitle={t`Slower (−0.01×)`}
         increaseLabel={t`Increase speed`}
-        increaseTitle={t`Faster (+0.05×)`}
+        increaseTitle={t`Faster (+0.01×)`}
         sliderLabel={t`Playback speed, pitch follows`}
         resetLabel={t`Reset speed to normal`}
         resetTitle={t`Reset to 1.00×`}
@@ -82,7 +81,7 @@ export default function EffectControls() {
         sliderValue={reverbPct}
         sliderMin={0}
         sliderMax={100}
-        sliderStep={1}
+        sliderStep={REVERB_STEP}
         onChange={setReverb}
         onStepDown={() => setReverb(reverbPct - REVERB_STEP)}
         onStepUp={() => setReverb(reverbPct + REVERB_STEP)}
@@ -90,9 +89,9 @@ export default function EffectControls() {
         canDown={reverbPct > 0}
         canUp={reverbPct < 100}
         decreaseLabel={t`Decrease reverb`}
-        decreaseTitle={t`Less reverb (−5%)`}
+        decreaseTitle={t`Less reverb (−1%)`}
         increaseLabel={t`Increase reverb`}
-        increaseTitle={t`More reverb (+5%)`}
+        increaseTitle={t`More reverb (+1%)`}
         sliderLabel={t`Reverb intensity`}
         resetLabel={t`Reset reverb to dry`}
         resetTitle={t`Reset to dry (0%)`}
@@ -125,6 +124,10 @@ type BurnControlProps = {
 };
 
 function BurnControl(props: BurnControlProps) {
+  const wheelRef = useWheelStep((steps) => {
+    props.onChange(props.sliderValue + steps * props.sliderStep);
+  });
+
   return (
     <div {...stylex.props(styles.burnCtl)}>
       <div {...stylex.props(styles.burnId)}>
@@ -175,7 +178,7 @@ function BurnControl(props: BurnControlProps) {
         step={props.sliderStep}
         onValueChange={props.onChange}
       >
-        <Slider.Control {...stylex.props(styles.sliderRoot)}>
+        <Slider.Control ref={wheelRef} {...stylex.props(styles.sliderRoot)}>
           <Slider.Track {...stylex.props(styles.sliderTrack)}>
             <Slider.Indicator
               {...stylex.props(
@@ -226,7 +229,7 @@ const styles = stylex.create({
     alignItems: 'center',
   },
   burnSep: {
-    backgroundColor: 'var(--border-soft)',
+    backgroundColor: 'rgba(255,255,255,.07)',
     alignSelf: 'stretch',
   },
   burnCtl: {
@@ -240,6 +243,7 @@ const styles = stylex.create({
     alignItems: 'center',
     columnGap: '6px',
     flexShrink: 0,
+    minWidth: '58px',
   },
   burnDot: {
     width: '6px',
@@ -305,23 +309,27 @@ const styles = stylex.create({
     color: '#ffb8dd',
   },
   burnReset: {
-    width: '16px',
-    height: '16px',
+    width: '18px',
+    height: '18px',
     flexShrink: 0,
     borderRadius: '3px',
-    color: {
-      default: '#555',
-      ':hover': 'var(--text-dim)',
-    },
-    backgroundColor: {
-      ':hover': 'var(--surface-hover)',
-    },
     display: 'grid',
     placeItems: 'center',
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
+    color: {
+      default: 'var(--text-dim)',
+      ':hover': 'var(--text-bright)',
+    },
+    borderStyle: 'none',
+    padding: 0,
     opacity: {
-      ':disabled': 0.35,
+      ':disabled': 0.45,
     },
     cursor: {
+      default: 'pointer',
       ':disabled': 'default',
     },
   },

@@ -307,6 +307,28 @@ async fn remove_tracks(db_state: State<'_, DBState>, ids: Vec<String>) -> AnyRes
     db_state.get_lock().await.remove_tracks(&ids).await
 }
 
+/// Record one completed play for a track (atomic increment of `play_count` and
+/// update of `last_played`).
+#[tauri::command]
+async fn record_play(db_state: State<'_, DBState>, track_id: String) -> AnyResult<()> {
+    db_state.get_lock().await.record_play(&track_id).await
+}
+
+/// One-shot backfill of the migration-05 metadata columns for tracks already in
+/// the library. No-op when no row still carries the `'unknown'` format sentinel.
+/// `import_paths` are the configured library roots.
+#[tauri::command]
+async fn backfill_track_metadata(
+    db_state: State<'_, DBState>,
+    import_paths: Vec<PathBuf>,
+) -> AnyResult<usize> {
+    db_state
+        .get_lock()
+        .await
+        .backfill_tracks_metadata(import_paths)
+        .await
+}
+
 #[tauri::command]
 async fn get_artists(db_state: State<'_, DBState>) -> AnyResult<Vec<String>> {
     db_state.get_lock().await.get_artists().await
@@ -490,6 +512,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             get_track,
             remove_tracks,
             update_track,
+            record_play,
+            backfill_track_metadata,
             get_artists,
             get_artist_tracks,
             get_compilation_albums,

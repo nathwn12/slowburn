@@ -5,23 +5,35 @@ import { useState } from 'react';
 import type { Track } from '../generated/typings';
 import { usePlayerState } from '../hooks/usePlayer';
 import { resolveSetA, resolveSetB } from '../lib/dense-ab';
-import { formatClock } from '../lib/dense-format';
 import player from '../lib/player';
+import { formatTimeInput, parseTimeInput } from './time-input';
 
 type Props = {
   trackPlaying: Track;
 };
 
+type Point = 'A' | 'B';
+
 /**
- * The `.ab-row`: A/B buttons, live times, the saved badge, the pulsing
- * LOOPING pill and Clear. All state comes from the real engine via
- * `player.getAbLoop()`; the cross/gap rules live in `dense-ab`.
+ * The `.ab-row`. A and B are TYPED fields (the owner's ask — no drag fatigue):
+ * type a time, Enter/blur commits, Escape reverts. The A/B buttons and the
+ * `[` / `]` keys remain as the instant capture-the-playhead path. Every write
+ * goes through the one engine source of truth (`player.setAbPoint`), so
+ * per-file persistence and auto-apply-on-open are unchanged.
  */
 export default function LoopControls({ trackPlaying }: Props) {
   const abLoop = usePlayerState((state) => state.abLoop);
   const isPaused = usePlayerState((state) => state.isPaused);
   const { t } = useLingui();
-  const [hovered, setHovered] = useState<null | 'A' | 'B'>(null);
+  const [hovered, setHovered] = useState<null | Point>(null);
+  const [draft, setDraft] = useState<{ A: string | null; B: string | null }>({
+    A: null,
+    B: null,
+  });
+  const [invalid, setInvalid] = useState<{ A: boolean; B: boolean }>({
+    A: false,
+    B: false,
+  });
 
   const duration = trackPlaying.duration;
   const a = abLoop.startSeconds;
@@ -30,79 +42,142 @@ export default function LoopControls({ trackPlaying }: Props) {
   const looping =
     abLoop.enabled && a != null && b != null && b - a > 0.05 && !isPaused;
 
-  const setA = () => {
-    const next = resolveSetA(player.getCurrentTime(), b, duration);
-    void player.setAbPoint('A', next.a);
-    if (next.b !== b && next.b != null) void player.setAbPoint('B', next.b);
+  const stored = (point: Point): string =>
+    formatTimeInput(point === 'A' ? a : b);
+  const value = (point: Point): string => draft[point] ?? stored(point);
+
+  const commit = (point: Point) => {
+    const parsed = parseTimeInput(value(point));
+    // Invalid or empty input never changes the loop.
+    if (parsed.kind !== 'time') {
+      setInvalid((prev) => ({ ...prev, [point]: true }));
+      return;
+    }
+
+    const seconds = Math.min(duration, Math.max(0, parsed.seconds));
+    if (point === 'A') {
+      const next = resolveSetA(seconds, b, duration);
+      void player.setAbPoint('A', next.a);
+      if (next.b != null && next.b !== b) void player.setAbPoint('B', next.b);
+    } else {
+      const next = resolveSetB(a, seconds, duration);
+      if (next.a != null && next.a !== a) void player.setAbPoint('A', next.a);
+      void player.setAbPoint('B', next.b);
+    }
+
+    setInvalid((prev) => ({ ...prev, [point]: false }));
+    setDraft((prev) => ({ ...prev, [point]: null }));
   };
 
-  const setB = () => {
-    const next = resolveSetB(a, player.getCurrentTime(), duration);
-    if (next.a !== a && next.a != null) void player.setAbPoint('A', next.a);
-    void player.setAbPoint('B', next.b);
+  const revert = (point: Point) => {
+    setInvalid((prev) => ({ ...prev, [point]: false }));
+    setDraft((prev) => ({ ...prev, [point]: null }));
+  };
+
+  const capture = (point: Point) => {
+    const current = player.getAbLoop();
+    if (point === 'A') {
+      const next = resolveSetA(
+        player.getCurrentTime(),
+        current.endSeconds,
+        duration,
+      );
+      void player.setAbPoint('A', next.a);
+      if (next.b != null && next.b !== current.endSeconds) {
+        void player.setAbPoint('B', next.b);
+      }
+    } else {
+      const next = resolveSetB(
+        current.startSeconds,
+        player.getCurrentTime(),
+        duration,
+      );
+      if (next.a != null && next.a !== current.startSeconds) {
+        void player.setAbPoint('A', next.a);
+      }
+      void player.setAbPoint('B', next.b);
+    }
+    revert(point);
+  };
+
+  const pointField = (point: Point) => {
+    const armed = (point === 'A' ? a : b) != null;
+    const label = point === 'A' ? t`Loop point A` : t`Loop point B`;
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => capture(point)}
+          onMouseEnter={() => setHovered(point)}
+          onMouseLeave={() => setHovered(null)}
+          onFocus={() => setHovered(point)}
+          onBlur={() => setHovered(null)}
+          data-armed={armed ? 'true' : 'false'}
+          title={
+            point === 'A'
+              ? t`Set loop point A at the playhead (key: [)`
+              : t`Set loop point B at the playhead (key: ])`
+          }
+          aria-label={
+            point === 'A' ? t`Set loop point A` : t`Set loop point B`
+          }
+          {...stylex.props(styles.abBtn, armed && styles.abBtnArmed)}
+        >
+          {point}
+          <span
+            {...stylex.props(
+              styles.keycap,
+              hovered === point && styles.keycapShown,
+            )}
+            aria-hidden="true"
+          >
+            {point === 'A' ? '[' : ']'}
+          </span>
+        </button>
+
+        <input
+          type="text"
+          inputMode="numeric"
+          value={value(point)}
+          placeholder="--:--"
+          aria-label={label}
+          aria-invalid={invalid[point] ? true : undefined}
+          data-invalid={invalid[point] ? 'true' : 'false'}
+          onFocus={(event) => {
+            event.currentTarget.select();
+          }}
+          onChange={(event) => {
+            const next = event.currentTarget.value;
+            setDraft((prev) => ({ ...prev, [point]: next }));
+            if (invalid[point]) {
+              setInvalid((prev) => ({ ...prev, [point]: false }));
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              event.currentTarget.blur();
+              commit(point);
+            } else if (event.key === 'Escape') {
+              event.preventDefault();
+              // Revert without blurring: a blur would commit the stale draft.
+              revert(point);
+            }
+          }}
+          onBlur={() => commit(point)}
+          {...stylex.props(
+            styles.abInput,
+            invalid[point] && styles.abInputInvalid,
+          )}
+        />
+      </>
+    );
   };
 
   return (
     <div {...stylex.props(styles.abRow)}>
-      <button
-        type="button"
-        onClick={setA}
-        onMouseEnter={() => setHovered('A')}
-        onMouseLeave={() => setHovered(null)}
-        onFocus={() => setHovered('A')}
-        onBlur={() => setHovered(null)}
-        data-armed={a != null ? 'true' : 'false'}
-        title={t`Set loop point A at the cursor (key: [)`}
-        aria-label={t`Set loop point A`}
-        {...stylex.props(styles.abBtn, a != null && styles.abBtnArmed)}
-      >
-        A
-        <span
-          {...stylex.props(
-            styles.keycap,
-            hovered === 'A' && styles.keycapShown,
-          )}
-          aria-hidden="true"
-        >
-          [
-        </span>
-      </button>
-      <span
-        {...stylex.props(styles.abTime, a != null && styles.abTimeSet)}
-        aria-label={t`Loop point A`}
-      >
-        {a != null ? formatClock(a) : '--:--'}
-      </span>
-
-      <button
-        type="button"
-        onClick={setB}
-        onMouseEnter={() => setHovered('B')}
-        onMouseLeave={() => setHovered(null)}
-        onFocus={() => setHovered('B')}
-        onBlur={() => setHovered(null)}
-        data-armed={b != null ? 'true' : 'false'}
-        title={t`Set loop point B at the cursor (key: ])`}
-        aria-label={t`Set loop point B`}
-        {...stylex.props(styles.abBtn, b != null && styles.abBtnArmed)}
-      >
-        B
-        <span
-          {...stylex.props(
-            styles.keycap,
-            hovered === 'B' && styles.keycapShown,
-          )}
-          aria-hidden="true"
-        >
-          ]
-        </span>
-      </button>
-      <span
-        {...stylex.props(styles.abTime, b != null && styles.abTimeSet)}
-        aria-label={t`Loop point B`}
-      >
-        {b != null ? formatClock(b) : '--:--'}
-      </span>
+      {pointField('A')}
+      {pointField('B')}
 
       <span {...stylex.props(styles.spacer)} />
 
@@ -120,14 +195,12 @@ export default function LoopControls({ trackPlaying }: Props) {
         {saved ? t`Saved loop` : t`No saved loop`}
       </span>
 
-      {looping && (
-        <span
-          {...stylex.props(styles.loopLive)}
-          title={t`Playback is looping the A-B region`}
-        >
-          ● LOOPING
-        </span>
-      )}
+      <span
+        {...stylex.props(styles.loopLive, !looping && styles.loopLiveHidden)}
+        title={t`Playback is looping the A-B region`}
+      >
+        ● LOOPING
+      </span>
 
       <button
         type="button"
@@ -137,6 +210,9 @@ export default function LoopControls({ trackPlaying }: Props) {
         {...stylex.props(styles.abClear, !saved && styles.abClearIdle)}
       >
         {t`Clear`}
+        <span {...stylex.props(styles.clearKeycap)} aria-hidden="true">
+          \
+        </span>
       </button>
     </div>
   );
@@ -151,7 +227,7 @@ const styles = stylex.create({
   abRow: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
+    columnGap: '6px',
     minHeight: '22px',
     flexWrap: 'wrap',
   },
@@ -160,7 +236,7 @@ const styles = stylex.create({
     alignItems: 'center',
     columnGap: '6px',
     height: '22px',
-    paddingInline: '9px',
+    paddingInline: '8px',
     borderRadius: 'var(--radius-sm)',
     backgroundColor: {
       default: 'var(--surface-2)',
@@ -176,7 +252,9 @@ const styles = stylex.create({
     fontSize: '11px',
     fontWeight: 700,
     lineHeight: 1,
-    transition: 'background-color .12s ease, color .12s ease, border-color .12s ease',
+    cursor: 'pointer',
+    transition:
+      'background-color .12s ease, color .12s ease, border-color .12s ease',
     transform: {
       ':active': 'translateY(1px)',
     },
@@ -211,17 +289,27 @@ const styles = stylex.create({
   keycapShown: {
     opacity: 1,
   },
-  abTime: {
+  abInput: {
+    width: '74px',
+    height: '22px',
+    paddingInline: '7px',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: 'var(--surface-2)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--border-soft)',
+    color: '#ffb8dd',
     fontFamily: 'var(--mono-font)',
     fontSize: '10.5px',
     fontWeight: 600,
     lineHeight: 1,
-    color: 'var(--text-dim)',
-    minWidth: '34px',
     fontVariantNumeric: 'tabular-nums',
+    outline: 'none',
   },
-  abTimeSet: {
-    color: '#ffb8dd',
+  abInputInvalid: {
+    borderColor: 'var(--danger)',
+    color: 'var(--danger)',
+    backgroundColor: 'rgba(239,68,68,.08)',
   },
   spacer: {
     flexGrow: 1,
@@ -266,6 +354,8 @@ const styles = stylex.create({
     color: '#12030b',
     backgroundColor: 'var(--deep-pink)',
     boxShadow: '0 0 0 1px rgba(255,20,147,.4), 0 0 14px rgba(255,20,147,.35)',
+    whiteSpace: 'nowrap',
+    visibility: 'visible',
     animationName: {
       '@media (prefers-reduced-motion: no-preference)': pulse,
     },
@@ -279,6 +369,9 @@ const styles = stylex.create({
       '@media (prefers-reduced-motion: no-preference)': 'infinite',
     },
   },
+  loopLiveHidden: {
+    visibility: 'hidden',
+  },
   abClear: {
     height: '22px',
     paddingInline: '8px',
@@ -288,11 +381,36 @@ const styles = stylex.create({
       ':hover': 'var(--danger)',
     },
     backgroundColor: {
+      default: 'transparent',
       ':hover': 'rgba(239,68,68,.1)',
     },
     fontSize: '10.5px',
     fontWeight: 600,
     lineHeight: 1,
+    borderStyle: 'none',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    columnGap: '6px',
+  },
+  clearKeycap: {
+    fontFamily: 'var(--mono-font)',
+    fontSize: '9px',
+    fontWeight: 700,
+    lineHeight: 1,
+    backgroundColor: '#262626',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#454545',
+    borderRadius: '3px',
+    paddingBlock: '2px',
+    paddingInline: '4px',
+    color: 'var(--text-faint)',
+    opacity: {
+      default: 0,
+      [stylex.when.ancestor(':hover')]: 1,
+    },
+    transition: 'opacity .12s ease',
   },
   abClearIdle: {
     color: 'var(--text-faint)',

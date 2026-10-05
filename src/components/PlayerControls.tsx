@@ -8,20 +8,18 @@ import VolumeControl from './VolumeControl';
 
 type Props = {
   /**
-   * The Dense layout homes the transport inside the now-playing column. The
-   * old header (rebuilt in Wave 2) still mounts this component; without
-   * `dense` it renders nothing, so the page keeps exactly one Play/Pause.
+   * Kept for call-site compatibility. The Dense layout homes the transport in
+   * the now-playing column, and the header no longer mounts PlayerControls at
+   * all, so there is exactly one transport in the tree.
    */
   dense?: boolean;
 };
 
-export default function PlayerControls({ dense = false }: Props) {
+export default function PlayerControls(_props: Props = {}) {
   const isPaused = usePlayerState((state) => state.isPaused);
   const shuffle = usePlayerState((state) => state.shuffle);
   const repeat = usePlayerState((state) => state.repeat);
   const { t } = useLingui();
-
-  if (!dense) return null;
 
   return (
     <div {...stylex.props(styles.transport)}>
@@ -102,6 +100,7 @@ const styles = stylex.create({
     display: 'grid',
     placeItems: 'center',
     color: 'var(--text-dim)',
+    borderStyle: 'none',
     backgroundColor: {
       default: 'transparent',
       ':hover': 'var(--surface-hover)',
@@ -126,6 +125,7 @@ const styles = stylex.create({
     display: 'grid',
     placeItems: 'center',
     color: '#fff',
+    borderStyle: 'none',
     backgroundImage:
       'linear-gradient(180deg, var(--accent) 0%, var(--accent-hover) 100%)',
     boxShadow: '0 3px 10px rgba(255, 20, 147, .35)',

@@ -7,7 +7,14 @@ import useEffectsConfig from '../hooks/useEffectsConfig';
 import useFormattedDuration from '../hooks/useFormattedDuration';
 import usePlayingTrackCurrentTime from '../hooks/usePlayingTrackCurrentTime';
 import { usePlayerState } from '../hooks/usePlayer';
-import { NO_VALUE, audioFormatLabel, isLosslessFormat } from '../lib/dense-format';
+import {
+  audioFormatLabel,
+  formatBitDepth,
+  formatBitrate,
+  formatChannels,
+  formatSampleRate,
+  isLosslessFormat,
+} from '../lib/dense-format';
 import TrackProgress from './TrackProgress';
 
 type Props = {
@@ -79,13 +86,23 @@ export default function PlayingBarInfo(props: Props) {
           {...stylex.props(styles.tech)}
           aria-label={t`Technical format information`}
         >
-          <span {...stylex.props(lossless && styles.lossless)}>{format}</span>
-          {/* No sample-rate / bitrate / bit-depth / channel data exists in the
-              Track record today; render the honest em-dash rather than guess. */}
-          <span>{NO_VALUE}</span>
-          <span>{NO_VALUE}</span>
-          <span>{NO_VALUE}</span>
-          <span>{NO_VALUE}</span>
+          <span
+            {...stylex.props(styles.techCell, lossless && styles.lossless)}
+          >
+            {format}
+          </span>
+          <span {...stylex.props(styles.techCell)}>
+            {formatSampleRate(trackPlaying.sample_rate)}
+          </span>
+          <span {...stylex.props(styles.techCell)}>
+            {formatBitrate(trackPlaying.bitrate)}
+          </span>
+          <span {...stylex.props(styles.techCell)}>
+            {formatBitDepth(trackPlaying.bit_depth)}
+          </span>
+          <span {...stylex.props(styles.techCell)}>
+            {formatChannels(trackPlaying.channels)}
+          </span>
         </div>
 
         <div {...stylex.props(styles.npChips)}>
@@ -228,6 +245,23 @@ const styles = stylex.create({
   lossless: {
     color: 'var(--success)',
     fontWeight: 700,
+  },
+  techCell: {
+    whiteSpace: 'nowrap',
+    paddingLeft: {
+      default: '7px',
+      ':first-child': '0',
+    },
+    paddingRight: {
+      default: '7px',
+      ':last-child': '0',
+    },
+    borderLeftWidth: {
+      default: '1px',
+      ':first-child': 0,
+    },
+    borderLeftStyle: 'solid',
+    borderLeftColor: 'rgba(255,255,255,.07)',
   },
   npChips: {
     display: 'flex',

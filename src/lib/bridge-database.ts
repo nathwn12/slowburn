@@ -13,6 +13,7 @@ export interface DatabaseBridgeInterface {
   getAllTracks(): Promise<Array<Track>>;
   getTracks(trackIDs: Array<string>): Promise<Array<Track>>;
   updateTrack(track: Track): Promise<Track>;
+  recordPlay(trackID: string): Promise<void>;
   removeTracks(trackIDs: Array<string>): Promise<Array<Track>>;
   importTracks(
     importPaths: Array<string>,
@@ -64,6 +65,13 @@ class DatabaseBridge implements DatabaseBridgeInterface {
   async updateTrack(track: Track): Promise<Track> {
     return invoke('plugin:database|update_track', {
       track,
+    });
+  }
+
+  @LogExecutionTime
+  async recordPlay(trackID: string): Promise<void> {
+    return invoke('plugin:database|record_play', {
+      trackId: trackID,
     });
   }
 

@@ -9,6 +9,7 @@ import { usePlayerState } from '../hooks/usePlayer';
 import player from '../lib/player';
 import { stopPropagation } from '../lib/utils-events';
 import type { IconName } from './Icon';
+import { STEP, useWheelStep } from './wheel-step';
 
 // Volume easing - http://www.dr-lex.be/info-stuff/volumecontrols.html#about
 const SMOOTHING_FACTOR = 2.5;
@@ -44,6 +45,10 @@ export default function VolumeControl({ dense = false }: Props) {
   const sliderValue = unsmoothifyVolume(volume);
   const readout = `${Math.round(sliderValue * 100)}%`;
 
+  const wheelRef = useWheelStep((steps) => {
+    setPlayerVolume(Math.min(1, Math.max(0, sliderValue + steps * STEP)));
+  });
+
   if (dense) {
     return (
       <div {...stylex.props(styles.volumeRow)}>
@@ -64,6 +69,7 @@ export default function VolumeControl({ dense = false }: Props) {
           step={0.01}
         >
           <Slider.Control
+            ref={wheelRef}
             {...stylex.props(styles.denseSlider, muted && styles.faded)}
           >
             <Slider.Track {...stylex.props(styles.denseTrack)}>
@@ -192,8 +198,8 @@ const styles = stylex.create({
   },
   denseThumb: {
     display: 'block',
-    width: '10px',
-    height: '10px',
+    width: '12px',
+    height: '12px',
     backgroundColor: 'white',
     borderRadius: '50%',
     outline: {

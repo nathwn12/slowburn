@@ -78,6 +78,17 @@ function GlobalKeyBindings() {
         }
       }
 
+      // Never let the global transport/seek keys hijack a focused control:
+      // Space on a button must activate only the button, a focused grip must
+      // only drag, etc. Modifier shortcuts above still work.
+      const interactive =
+        target != null &&
+        typeof target.closest === 'function' &&
+        target.closest(
+          'button, a, input, select, textarea, [contenteditable="true"], [role="button"], [role="slider"], [role="option"], [role="menuitem"], [data-museeks-action]',
+        ) != null;
+      if (interactive) return;
+
       const duration = player.getTrack()?.duration ?? 0;
 
       switch (e.key) {

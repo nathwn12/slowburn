@@ -64,8 +64,8 @@ interface TrackListGroupedLayoutProps extends TrackListProps {
 
 type Props = TrackListDefaultLayoutProps | TrackListGroupedLayoutProps;
 
-const ROW_HEIGHT = 30;
-const ROW_HEIGHT_COMPACT = 24;
+const ROW_HEIGHT = 40;
+const ROW_HEIGHT_COMPACT = 30;
 
 export default function TrackList(props: Props) {
   const {

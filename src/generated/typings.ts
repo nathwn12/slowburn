@@ -38,7 +38,53 @@ export type SortOrder = "Asc" | "Dsc";
  * Track
  * represent a single track, id and path should be unique
  */
-export type Track = { id: string, path: string, title: string, album: string, album_artist: string, artists: Array<string>, genres: Array<string>, year: number | null, duration: number, track_no: number | null, track_of: number | null, disk_no: number | null, disk_of: number | null, is_compilation: boolean, };
+export type Track = { id: string, path: string, title: string, album: string, album_artist: string, artists: Array<string>, genres: Array<string>, year: number | null, duration: number, track_no: number | null, track_of: number | null, disk_no: number | null, disk_of: number | null, is_compilation: boolean, 
+/**
+ * Lowercase source format ("flac", "mp3", "m4a", ...), never empty: the
+ * `'unknown'` sentinel is used when nothing can be detected.
+ */
+format: string, 
+/**
+ * Derived from `format`. SQLite has no native boolean, so this is stored
+ * as INTEGER 0/1 at the database boundary.
+ */
+is_lossless: boolean, 
+/**
+ * Sample rate in Hz, `None` when genuinely unknown (never a fake `0`).
+ */
+sample_rate: number | null, 
+/**
+ * Bits per sample, `None` for lossy formats (never a fake `0`).
+ */
+bit_depth: number | null, 
+/**
+ * Channel count, `None` when unknown.
+ */
+channels: number | null, 
+/**
+ * Bitrate in bits per second, `None` when unknown.
+ */
+bitrate: number | null, 
+/**
+ * File size in bytes (via `std::fs::metadata`), `None` when stat failed.
+ * Pinned to `number` in the TS contract: Tauri serializes it as a JSON
+ * number, and ts-rs would otherwise emit `bigint` for `u64`.
+ */
+file_size: number | null, 
+/**
+ * ISO-8601 UTC. Set at insert time; for rows predating migration 05 this
+ * holds the (approximate) time the migration ran.
+ */
+date_added: string, 
+/**
+ * Number of completed plays. Written only by `record_play`, never by a
+ * scan or a metadata refresh.
+ */
+play_count: number, 
+/**
+ * ISO-8601 UTC of the last completed play, `None` when never played.
+ */
+last_played: string | null, };
 
 /**
  * Represents a group of tracks, grouped by "something", lib artist name, or

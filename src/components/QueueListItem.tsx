@@ -1,11 +1,13 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 import { useCallback } from 'react';
 
 import type { Track } from '../generated/typings';
+import useFormattedDuration from '../hooks/useFormattedDuration';
 import player from '../lib/player';
-import Cover from './Cover';
+import { useIsSavedLoop } from './saved-loops';
 
 type Props = {
   index: number;
@@ -14,7 +16,10 @@ type Props = {
 };
 
 export default function QueueListItem(props: Props) {
-  const { track } = props;
+  const { track, index } = props;
+  const { t } = useLingui();
+  const duration = useFormattedDuration(track.duration);
+  const savedLoop = useIsSavedLoop(track.id);
 
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
@@ -30,105 +35,152 @@ export default function QueueListItem(props: Props) {
   };
 
   const remove = useCallback(() => {
-    player.removeFromQueue(props.index);
-  }, [props.index]);
+    player.removeFromQueue(index);
+  }, [index]);
 
   const play = useCallback(async () => {
-    await player.startFromQueue(props.queueCursor + props.index + 1);
-  }, [props.index, props.queueCursor]);
+    await player.startFromQueue(index);
+  }, [index]);
 
   return (
     <li
-      {...stylex.props(
-        styles.queueItem,
-        props.index > 0 && styles.queueItemWithTopBorder,
-        stylex.defaultMarker(),
-      )}
       {...attributes}
-      // DnD props for re-ordering
       ref={setNodeRef}
       style={itemStyle}
       onDoubleClick={play}
+      role="option"
+      aria-selected="false"
+      data-track-id={track.id}
       {...listeners}
+      {...stylex.props(styles.row)}
     >
-      <div {...stylex.props(styles.queueItemCover)}>
-        <Cover track={track} iconSize={12} />
-      </div>
-      <div {...stylex.props(styles.queueItemInfo)}>
-        <div {...stylex.props(styles.queueItemInfoTitle)}>{track.title}</div>
-        <div {...stylex.props(styles.queueItemInfoOtherInfos)}>
-          <span>{track.artists.join(', ')}</span> - <span>{track.album}</span>
-        </div>
-      </div>
-      <button
-        type="button"
-        {...stylex.props(styles.queueItemRemove)}
-        onClick={remove}
-      >
-        &times;
-      </button>
+      <span {...stylex.props(styles.idx)}>{index + 1}</span>
+      <span {...stylex.props(styles.meta)}>
+        <span {...stylex.props(styles.t1)}>{track.title}</span>
+        <span {...stylex.props(styles.t2)}>
+          {track.artists.join(', ')} · {track.album}
+        </span>
+      </span>
+      <span {...stylex.props(styles.right)}>
+        {savedLoop && (
+          <span
+            {...stylex.props(styles.pin)}
+            title={t`Saved A-B loop`}
+            aria-label={t`Saved A-B loop`}
+          >
+            ◆
+          </span>
+        )}
+        <span {...stylex.props(styles.dur)}>{duration}</span>
+        <button
+          type="button"
+          {...stylex.props(styles.remove)}
+          onClick={remove}
+          aria-label={t`Remove from queue`}
+          title={t`Remove from queue`}
+        >
+          &times;
+        </button>
+      </span>
     </li>
   );
 }
 
 const styles = stylex.create({
-  queueItem: {
+  row: {
     display: 'flex',
-    flexWrap: 'nowrap',
+    alignItems: 'center',
+    columnGap: '8px',
+    minHeight: '40px',
     width: '100%',
+    paddingInline: '10px',
     position: 'relative',
     cursor: 'pointer',
-    alignItems: 'center',
+    borderLeftWidth: '3px',
+    borderLeftStyle: 'solid',
+    borderLeftColor: 'transparent',
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
   },
-  queueItemWithTopBorder: {
-    borderTopWidth: '1px',
-    borderTopStyle: 'dashed',
-    borderTopColor: 'var(--border-color)',
+  idx: {
+    width: '20px',
+    flexShrink: 0,
+    display: 'grid',
+    placeItems: 'center',
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10.5px',
+    color: 'var(--text-faint)',
   },
-  queueItemCover: {
-    margin: '8px',
-    width: '32px',
-    aspectRatio: '1',
-    borderRadius: '3px',
-    overflow: 'hidden',
-    fontSize: '16px',
-  },
-  queueItemInfo: {
+  meta: {
+    minWidth: 0,
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: '0%',
-    minWidth: 0,
   },
-  queueItemInfoTitle: {
-    fontWeight: 'bold',
-    marginBottom: '4px',
-    paddingRight: '10px',
-    textOverflow: 'ellipsis',
-    overflow: 'hidden',
+  t1: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: 'var(--text)',
     whiteSpace: 'nowrap',
-  },
-  queueItemInfoOtherInfos: {
-    paddingRight: '10px',
-    textOverflow: 'ellipsis',
     overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    opacity: 0.7,
-    fontSize: '0.875rem',
+    textOverflow: 'ellipsis',
   },
-  queueItemRemove: {
-    color: 'var(--text-color)',
+  t2: {
+    display: 'block',
+    marginTop: '1px',
+    fontSize: '10.5px',
+    color: 'var(--text-faint)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  right: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '7px',
+    flexShrink: 0,
+  },
+  pin: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '15px',
+    height: '15px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--pink-soft)',
+    color: 'var(--deep-pink)',
+    fontSize: '8px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--pink-line)',
+  },
+  dur: {
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10.5px',
+    fontWeight: 600,
+    color: 'var(--text-faint)',
+    width: '38px',
+    textAlign: 'right',
+  },
+  remove: {
+    color: {
+      default: 'var(--text-faint)',
+      ':hover': 'var(--danger)',
+    },
     borderStyle: 'none',
     backgroundColor: 'transparent',
-    width: '25px',
-    height: '25px',
-    lineHeight: '10px',
-    padding: '3px',
-    marginRight: '5px',
+    width: '18px',
+    height: '18px',
+    lineHeight: 1,
+    padding: 0,
+    fontSize: '14px',
+    textDecoration: 'none',
     visibility: {
       default: 'hidden',
       [stylex.when.ancestor(':hover')]: 'visible',
     },
-    fontSize: '14px',
-    textDecoration: 'none',
   },
 });
