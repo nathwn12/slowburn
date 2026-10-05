@@ -30,11 +30,38 @@ pub enum SortBy {
     Genre,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, TS)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
 #[ts(export, export_to = "../../src/generated/typings.ts")]
 pub enum SortOrder {
     Asc,
     Dsc,
+}
+
+/// A field a track list can be ordered by. Exported camelCase so the TS
+/// `SortField` union is real values, not `string`.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
+#[ts(export, export_to = "../../src/generated/typings.ts")]
+#[serde(rename_all = "camelCase")]
+pub enum SortField {
+    Artist,
+    Album,
+    Title,
+    Duration,
+    Genre,
+    DiskNo,
+    TrackNo,
+    PlayCount,
+    DateAdded,
+    FileModified,
+}
+
+/// One entry in the ordered, multi-key sort model: a field plus its own
+/// direction. Key order is significant (the first key is the primary sort).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
+#[ts(export, export_to = "../../src/generated/typings.ts")]
+pub struct SortKey {
+    pub field: SortField,
+    pub direction: SortOrder,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, TS)]
@@ -85,6 +112,10 @@ pub struct Config {
     pub default_view: DefaultView,
     pub library_sort_by: SortBy,
     pub library_sort_order: SortOrder,
+    /// Ordered multi-key sort (AIMP-style). Additive: `library_sort_by` and
+    /// `library_sort_order` stay declared so an existing config file still
+    /// deserializes; the UI reads this list instead.
+    pub library_sort_keys: Vec<SortKey>,
     pub library_folders: Vec<PathBuf>,
     pub library_autorefresh: bool,
     pub sleepblocker: bool,
@@ -124,6 +155,28 @@ impl Default for Config {
             default_view: DefaultView::Library,
             library_sort_by: SortBy::Artist,
             library_sort_order: SortOrder::Asc,
+            library_sort_keys: vec![
+                SortKey {
+                    field: SortField::FileModified,
+                    direction: SortOrder::Dsc,
+                },
+                SortKey {
+                    field: SortField::Artist,
+                    direction: SortOrder::Asc,
+                },
+                SortKey {
+                    field: SortField::Album,
+                    direction: SortOrder::Asc,
+                },
+                SortKey {
+                    field: SortField::DiskNo,
+                    direction: SortOrder::Asc,
+                },
+                SortKey {
+                    field: SortField::TrackNo,
+                    direction: SortOrder::Asc,
+                },
+            ],
             library_folders: vec![],
             library_autorefresh: false,
             sleepblocker: false,
@@ -261,5 +314,64 @@ mod tests {
             "\"minimal\""
         );
         assert_eq!(serde_json::to_string(&UiMode::Full).unwrap(), "\"full\"");
+    }
+
+    #[test]
+    fn default_sort_keys_match_the_spec_bundle() {
+        let keys = Config::default().library_sort_keys;
+        assert_eq!(
+            keys,
+            vec![
+                SortKey {
+                    field: SortField::FileModified,
+                    direction: SortOrder::Dsc,
+                },
+                SortKey {
+                    field: SortField::Artist,
+                    direction: SortOrder::Asc,
+                },
+                SortKey {
+                    field: SortField::Album,
+                    direction: SortOrder::Asc,
+                },
+                SortKey {
+                    field: SortField::DiskNo,
+                    direction: SortOrder::Asc,
+                },
+                SortKey {
+                    field: SortField::TrackNo,
+                    direction: SortOrder::Asc,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn sort_keys_round_trip_through_serde() {
+        let keys = Config::default().library_sort_keys;
+        let json = serde_json::to_string(&keys).unwrap();
+
+        // Order is preserved, and the field names are camelCase on the wire.
+        assert_eq!(
+            json,
+            r#"[{"field":"fileModified","direction":"Dsc"},{"field":"artist","direction":"Asc"},{"field":"album","direction":"Asc"},{"field":"diskNo","direction":"Asc"},{"field":"trackNo","direction":"Asc"}]"#
+        );
+
+        let back: Vec<SortKey> = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, keys);
+    }
+
+    #[test]
+    fn a_config_file_without_sort_keys_still_deserializes() {
+        // Simulate an existing config file: serialize the default, drop the new
+        // key, and confirm the whole Config still loads (additive-only change).
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        value
+            .as_object_mut()
+            .unwrap()
+            .remove("library_sort_keys");
+
+        let loaded: Config = serde_json::from_value(value).unwrap();
+        assert_eq!(loaded.library_sort_keys, Config::default().library_sort_keys);
     }
 }
