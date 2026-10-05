@@ -6,6 +6,7 @@ import chevronUp from '../assets/icons/chevron-up.svg?react';
 import globe from '../assets/icons/globe.svg?react';
 import list from '../assets/icons/list.svg?react';
 import microphone from '../assets/icons/microphone.svg?react';
+import minus from '../assets/icons/minus.svg?react';
 import musicalNotes from '../assets/icons/musical-notes.svg?react';
 import pause from '../assets/icons/pause.svg?react';
 import play from '../assets/icons/play.svg?react';
@@ -13,6 +14,7 @@ import playlist from '../assets/icons/playlist.svg?react';
 import plus from '../assets/icons/plus.svg?react';
 import repeatOne from '../assets/icons/repeat-one.svg?react';
 import repeat from '../assets/icons/repeat.svg?react';
+import reset from '../assets/icons/reset.svg?react';
 import settings from '../assets/icons/settings.svg?react';
 import shuffle from '../assets/icons/shuffle.svg?react';
 import skipBack from '../assets/icons/skip-back.svg?react';
@@ -32,6 +34,7 @@ const icons: Record<
   globe,
   list,
   microphone,
+  minus,
   musicalNotes,
   pause,
   play,
@@ -39,6 +42,7 @@ const icons: Record<
   plus,
   repeat,
   repeatOne,
+  reset,
   settings,
   shuffle,
   skipBack,
@@ -104,6 +108,9 @@ const stylesBySize = stylex.create({
   },
   16: {
     width: '16px',
+  },
+  18: {
+    width: '18px',
   },
   20: {
     width: '20px',

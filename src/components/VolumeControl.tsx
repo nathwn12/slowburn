@@ -25,7 +25,12 @@ const getVolumeIcon = (volume: number, muted: boolean): IconName => {
   return 'volumeHigh';
 };
 
-export default function VolumeControl() {
+type Props = {
+  /** Dense transport row: mute + slider + mono readout, right-aligned. */
+  dense?: boolean;
+};
+
+export default function VolumeControl({ dense = false }: Props) {
   const volume = usePlayerState((state) => state.volume);
   const muted = usePlayerState((state) => state.muted);
   const { t } = useLingui();
@@ -35,6 +40,48 @@ export default function VolumeControl() {
     void player.unmute();
     player.setVolume(smoothVolume); // Debounced save happens in player
   }, []);
+
+  const sliderValue = unsmoothifyVolume(volume);
+  const readout = `${Math.round(sliderValue * 100)}%`;
+
+  if (dense) {
+    return (
+      <div {...stylex.props(styles.volumeRow)}>
+        <ButtonIcon
+          label={muted ? t`Unmute` : t`Mute`}
+          icon={getVolumeIcon(sliderValue, muted)}
+          iconSize={16}
+          onClick={() => player.toggleMute()}
+          xstyle={styles.muteButton}
+        />
+        <Slider.Root
+          value={sliderValue}
+          // prevent <- / -> keybinding conflicts with the seekbar when focused
+          onKeyDown={stopPropagation}
+          onValueChange={setPlayerVolume}
+          min={0}
+          max={1}
+          step={0.01}
+        >
+          <Slider.Control
+            {...stylex.props(styles.denseSlider, muted && styles.faded)}
+          >
+            <Slider.Track {...stylex.props(styles.denseTrack)}>
+              <Slider.Indicator {...stylex.props(styles.denseRange)} />
+            </Slider.Track>
+            <Slider.Thumb
+              aria-label={t`Volume`}
+              data-museeks-action
+              {...stylex.props(styles.denseThumb)}
+            />
+          </Slider.Control>
+        </Slider.Root>
+        <span {...stylex.props(styles.readout)} aria-hidden="true">
+          {readout}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <Popover.Root>
@@ -102,6 +149,69 @@ const styles = stylex.create({
     paddingInline: '4px',
     lineHeight: 1,
   },
+
+  // --- Dense transport volume --------------------------------------------
+  volumeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '7px',
+    marginLeft: 'auto',
+    minWidth: 0,
+  },
+  muteButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '22px',
+    height: '22px',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--text-dim)',
+  },
+  denseSlider: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    userSelect: 'none',
+    touchAction: 'none',
+    width: '96px',
+    maxWidth: '110px',
+    height: '14px',
+  },
+  denseTrack: {
+    backgroundColor: 'var(--track)',
+    position: 'relative',
+    flexGrow: 1,
+    borderRadius: '9999px',
+    height: '4px',
+  },
+  denseRange: {
+    position: 'absolute',
+    height: '100%',
+    backgroundColor: 'var(--accent)',
+    borderRadius: '9999px',
+  },
+  denseThumb: {
+    display: 'block',
+    width: '10px',
+    height: '10px',
+    backgroundColor: 'white',
+    borderRadius: '50%',
+    outline: {
+      default: '2px solid var(--accent)',
+      ':has(:focus-visible)': '2px solid var(--focus)',
+      ':active': '2px solid var(--focus)',
+    },
+  },
+  readout: {
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10.5px',
+    fontWeight: 600,
+    color: 'var(--text-dim)',
+    width: '30px',
+    textAlign: 'right',
+  },
+
+  // --- Legacy popover form (kept for non-dense callers) -------------------
   volumeHoverCard: {
     backgroundColor: 'var(--header-bg)',
     paddingBlock: '10px',
