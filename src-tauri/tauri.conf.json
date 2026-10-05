@@ -1,9 +1,9 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Museeks",
-  "mainBinaryName": "museeks",
+  "productName": "Slowburn",
+  "mainBinaryName": "slowburn",
   "version": "0.23.4",
-  "identifier": "io.museeks.app",
+  "identifier": "com.nathwn.slowburn",
   "build": {
     "beforeDevCommand": "vp run dev",
     "devUrl": "http://localhost:1420",
@@ -24,7 +24,9 @@
       },
       "csp": {
         "default-src": "'self' asset: http://asset.localhost",
-        "connect-src": "'self' asset: http://asset.localhost blob: ipc: http://ipc.localhost https://api.github.com",
+        "script-src": "'self' 'unsafe-inline' blob:",
+        "worker-src": "'self' blob:",
+        "connect-src": "'self' asset: http://asset.localhost blob: ipc: http://ipc.localhost",
         "img-src": "'self' asset: http://asset.localhost data:",
         "media-src": "'self' asset: http://asset.localhost blob: data: http://127.0.0.1:*",
         "child-src": "'self'; object-src 'self'",
@@ -53,7 +55,7 @@
       },
       "deb": {
         "files": {
-          "/usr/share/metainfo/io.museeks.app.metainfo.xml": "release/flatpak.metainfo.xml"
+          "/usr/share/metainfo/com.nathwn.slowburn.metainfo.xml": "release/flatpak.metainfo.xml"
         }
       }
     },

@@ -39,6 +39,9 @@ fn main() {
                     "set_playlist_tracks",
                     "export_playlist",
                     "delete_playlist",
+                    "get_ab_loop",
+                    "set_ab_loop",
+                    "clear_ab_loop",
                     "reset",
                 ]),
             )

@@ -1,5 +1,5 @@
 {
-  "name": "museeks",
+  "name": "slowburn",
   "version": "0.23.4",
   "description": "A simple, clean, and cross-platform music player.",
   "bugs": {
@@ -88,5 +88,5 @@
     "pre-commit": "vp run gen:translations && git add src/translations"
   },
   "packageManager": "pnpm@11.0.9",
-  "productName": "Museeks"
+  "productName": "Slowburn"
 }

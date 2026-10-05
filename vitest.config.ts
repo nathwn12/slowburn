@@ -22,7 +22,16 @@ export default defineConfig({
           includeTaskLocation: true,
           browser: {
             enabled: true,
-            provider: playwright(),
+            provider: playwright({
+              launchOptions: {
+                // Silent verification: never emit audible sound, and allow
+                // autoplay so numeric currentTime samples are possible.
+                args: [
+                  '--mute-audio',
+                  '--autoplay-policy=no-user-gesture-required',
+                ],
+              },
+            }),
             viewport: {
               width: 900,
               height: 500,

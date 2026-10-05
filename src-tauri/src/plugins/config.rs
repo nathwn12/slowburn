@@ -67,6 +67,12 @@ pub struct Config {
     pub audio_shuffle: bool,
     pub audio_repeat: Repeat,
     pub audio_stream_server: bool,
+    pub audio_effects_enabled: bool,
+    pub audio_reverb_enabled: bool,
+    pub audio_reverb_intensity: f32,
+    pub audio_slow_enabled: bool,
+    pub audio_slow: f32,
+    pub audio_ab_enabled: bool,
     pub default_view: DefaultView,
     pub library_sort_by: SortBy,
     pub library_sort_order: SortOrder,
@@ -99,13 +105,19 @@ impl Default for Config {
             audio_stream_server: true,
             #[cfg(not(target_os = "linux"))]
             audio_stream_server: false,
+            audio_effects_enabled: true,
+            audio_reverb_enabled: true,
+            audio_reverb_intensity: 0.0,
+            audio_slow_enabled: true,
+            audio_slow: 1.0,
+            audio_ab_enabled: true,
             default_view: DefaultView::Library,
             library_sort_by: SortBy::Artist,
             library_sort_order: SortOrder::Asc,
             library_folders: vec![],
             library_autorefresh: false,
             sleepblocker: false,
-            auto_update_checker: true,
+            auto_update_checker: false,
             notifications: false,
             track_view_density: TrackViewDensity::Normal,
             wayland_compat: false,
@@ -183,7 +195,7 @@ impl ConfigManager {
 pub fn get_storage_dir() -> PathBuf {
     // TODO: Replace with PathResolver::app_config_dir() + app identifier, somehow
     let path = dirs::config_dir().expect("Get config dir");
-    path.join("museeks")
+    path.join("slowburn")
 }
 
 #[tauri::command]

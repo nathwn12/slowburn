@@ -3,6 +3,7 @@
 import type { OsType } from '@tauri-apps/plugin-os';
 
 import type { Config, Track } from '../../generated/typings';
+import type { EffectsController } from '../../lib/effects';
 import type { PlayerInstance } from '../../lib/player';
 
 declare global {
@@ -16,6 +17,12 @@ declare global {
     __MUSEEKS_INITIAL_CONFIG: Config;
     __MUSEEKS_INITIAL_QUEUE: Array<Track> | null;
     __MUSEEKS_PLAYER: PlayerInstance;
+    /** Dev-only: effects debug handle for silent numeric verification. */
+    __MUSEEKS_EFFECTS?: {
+      controller: EffectsController;
+      EffectsController: typeof EffectsController;
+      convertFileSrc: (path: string) => string;
+    };
     /** Base URL of the local HTTP server for audio streaming when stream_server is enabled */
     __MUSEEKS_STREAM_SERVER_URL?: string;
   }
