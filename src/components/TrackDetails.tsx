@@ -179,7 +179,7 @@ const styles = stylex.create({
     color: 'var(--deep-pink)',
   },
   markOff: {
-    color: '#555',
+    color: 'var(--text-faint)',
   },
   drow: {
     display: 'grid',
@@ -193,7 +193,7 @@ const styles = stylex.create({
     fontWeight: 700,
     lineHeight: 1,
     letterSpacing: '.05em',
-    color: '#5f5f5f',
+    color: 'var(--text-faint)',
     textTransform: 'uppercase',
   },
   dv: {
@@ -207,9 +207,10 @@ const styles = stylex.create({
     textOverflow: 'ellipsis',
   },
   dvPin: {
-    color: '#ffb8dd',
+    color: 'var(--pink-text-soft)',
   },
   dvDry: {
     color: 'var(--text-faint)',
   },
 });
+

@@ -281,7 +281,7 @@ const styles = stylex.create({
     },
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: '#414141',
+    borderColor: 'var(--control-border)',
     color: {
       default: 'var(--text-dim)',
       ':hover': 'var(--text-bright)',
@@ -306,7 +306,7 @@ const styles = stylex.create({
     fontVariantNumeric: 'tabular-nums',
   },
   readoutOn: {
-    color: '#ffb8dd',
+    color: 'var(--pink-text-soft)',
   },
   burnReset: {
     width: '18px',
@@ -385,3 +385,4 @@ const styles = stylex.create({
     borderColor: 'var(--text-dim)',
   },
 });
+

@@ -9,6 +9,7 @@ export default function Heart() {
 
 const styles = stylex.create({
   heart: {
-    color: '#c70000',
+    color: 'var(--danger)',
   },
 });
+

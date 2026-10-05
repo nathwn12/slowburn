@@ -98,7 +98,7 @@ const styles = stylex.create({
     flexShrink: 0,
     borderWidth: '1px',
     borderStyle: 'dashed',
-    borderColor: '#4a4a4a',
+    borderColor: 'var(--control-border)',
     borderRadius: 'var(--radius-sm)',
     display: 'grid',
     placeItems: 'center',
@@ -164,3 +164,4 @@ const styles = stylex.create({
     },
   },
 });
+

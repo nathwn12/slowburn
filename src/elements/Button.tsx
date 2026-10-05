@@ -51,7 +51,7 @@ const relevancyVariants = stylex.create({
   },
   danger: {
     color: 'white',
-    backgroundColor: '#b63333',
+    backgroundColor: 'var(--danger)',
   },
 });
 
@@ -66,3 +66,4 @@ const sizeVariants = stylex.create({
     fontSize: '10px',
   },
 });
+

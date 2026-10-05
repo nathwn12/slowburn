@@ -36,11 +36,16 @@ export default function VolumeControl({ dense = false }: Props) {
   const muted = usePlayerState((state) => state.muted);
   const { t } = useLingui();
 
-  const setPlayerVolume = useCallback((value: number) => {
-    const smoothVolume = smoothifyVolume(value);
-    void player.unmute();
-    player.setVolume(smoothVolume); // Debounced save happens in player
-  }, []);
+  const setPlayerVolume = useCallback(
+    (value: number) => {
+      const smoothVolume = smoothifyVolume(value);
+      // Only unmute when actually muted: an unconditional `unmute()` persisted
+      // `audio_muted` on every drag frame (a config write storm).
+      if (muted) void player.unmute();
+      player.setVolume(smoothVolume); // Debounced save happens in player
+    },
+    [muted],
+  );
 
   const sliderValue = unsmoothifyVolume(volume);
   const readout = `${Math.round(sliderValue * 100)}%`;

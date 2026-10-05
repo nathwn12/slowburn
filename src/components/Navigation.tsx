@@ -167,7 +167,7 @@ const styles = stylex.create({
     fontSize: '11px',
   },
   sep: {
-    color: '#555',
+    color: 'var(--text-faint)',
     userSelect: 'none',
   },
   crumbLink: {
@@ -255,3 +255,4 @@ const styles = stylex.create({
     whiteSpace: 'nowrap',
   },
 });
+
