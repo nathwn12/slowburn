@@ -183,25 +183,28 @@ test('Column headers should sort tracks in the library', async () => {
   const track1content = 'Majestic Blues';
   const track2content = 'Romantic Blues';
 
-  // By default, we sort by artist, album year, album name, track number, disk number
+  // The default stack is modified-desc then artist-asc; with no modified times
+  // on the fixtures, artist ascending decides the order.
   await expect.element(firstTrack).toHaveTextContent(track0content);
   await expect.element(secondTrack).toHaveTextContent(track1content);
   await expect.element(thirdTrack).toHaveTextContent(track2content);
 
-  // Clicking on the title header should change the sorting to Descending by Artist name
+  // Clicking the Artist header cycles artist from ascending to descending.
   await getSortButton('Artist').click();
   await expect.element(firstTrack).toHaveTextContent(track2content);
   await expect.element(secondTrack).toHaveTextContent(track1content);
   await expect.element(thirdTrack).toHaveTextContent(track0content);
 
-  // Clicking again should change the sorting back to Ascending by Artist name
+  // Clicking Artist again removes it from the stack (the "off" state); with no
+  // modified times, the album/track keys then decide the order.
   await getSortButton('Artist').click();
   await expect.element(firstTrack).toHaveTextContent(track0content);
   await expect.element(secondTrack).toHaveTextContent(track1content);
   await expect.element(thirdTrack).toHaveTextContent(track2content);
 
-  // Let's sort by title as well
-  await getSortButton('Title').click();
+  // Shift-click replaces the stack with a single key, so this sorts by title
+  // alone (Majestic, Romantic, Whiskey).
+  await getSortButton('Title').click({ modifiers: ['Shift'] });
   await expect.element(firstTrack).toHaveTextContent(track1content);
   await expect.element(secondTrack).toHaveTextContent(track2content);
   await expect.element(thirdTrack).toHaveTextContent(track0content);
