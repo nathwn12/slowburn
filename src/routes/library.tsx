@@ -38,8 +38,7 @@ function ViewLibrary() {
 
   const filteredTracks = useFilteredTracks(
     tracks ?? [],
-    config.library_sort_by,
-    config.library_sort_order,
+    config.library_sort_keys,
   );
   useGlobalTrackListStatus(filteredTracks);
 

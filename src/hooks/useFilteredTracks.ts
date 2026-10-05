@@ -1,26 +1,15 @@
 import { useMemo } from 'react';
 
-import type {
-  SortBy,
-  SortOrder,
-  Track,
-  TrackGroup,
-} from '../generated/typings';
+import type { SortKey, Track, TrackGroup } from '../generated/typings';
 import useLibraryStore from '../lib/store';
-import {
-  filterTracks,
-  getSortOrder,
-  sortTracks,
-  stripAccents,
-} from '../lib/utils-library';
+import { filterTracks, sortTracks, stripAccents } from '../lib/utils-library';
 /**
  * Filter and Sort a list of tracks depending on the user preferences and search
  * IMPORTANT: can only be used ONCE per view, as it has side effects
  */
 export default function useFilteredTracks(
   tracks: Array<Track>,
-  sortBy?: SortBy,
-  sortOrder?: SortOrder,
+  sortKeys?: SortKey[],
 ): Array<Track> {
   const search = useLibraryStore((state) => stripAccents(state.search));
 
@@ -28,17 +17,13 @@ export default function useFilteredTracks(
     // 1. Raw List
     let searchedTracks: Track[] = filterTracks(tracks, search);
 
-    if (sortBy && sortOrder) {
+    if (sortKeys && sortKeys.length > 0) {
       // sorting being a costly operation, do it after filtering, ignore it if not needed
-      searchedTracks = sortTracks(
-        searchedTracks,
-        getSortOrder(sortBy),
-        sortOrder,
-      );
+      searchedTracks = sortTracks(searchedTracks, sortKeys);
     }
 
     return searchedTracks;
-  }, [tracks, search, sortBy, sortOrder]);
+  }, [tracks, search, sortKeys]);
 }
 
 /**
@@ -48,8 +33,7 @@ export default function useFilteredTracks(
  */
 export function useFilteredTrackGroup(
   tracks: TrackGroup[],
-  sortBy?: SortBy,
-  sortOrder?: SortOrder,
+  sortKeys?: SortKey[],
 ): TrackGroup[] {
   const search = useLibraryStore((state) => stripAccents(state.search));
 
@@ -61,16 +45,16 @@ export function useFilteredTrackGroup(
       };
     });
 
-    if (sortBy && sortOrder) {
+    if (sortKeys && sortKeys.length > 0) {
       // sorting being a costly operation, do it after filtering, ignore it if not needed
       searchedGroups = searchedGroups.map((group) => {
         return {
           ...group,
-          tracks: sortTracks(group.tracks, getSortOrder(sortBy), sortOrder),
+          tracks: sortTracks(group.tracks, sortKeys),
         };
       });
     }
 
     return searchedGroups.filter((group) => group.tracks.length > 0);
-  }, [tracks, search, sortBy, sortOrder]);
+  }, [tracks, search, sortKeys]);
 }
