@@ -179,8 +179,6 @@ const styles = stylex.create({
   },
   denseArtButton: {
     position: 'relative',
-    width: '118px',
-    height: '118px',
     flexShrink: 0,
     padding: 0,
     borderStyle: 'none',
@@ -188,6 +186,15 @@ const styles = stylex.create({
     overflow: 'hidden',
     cursor: 'zoom-in',
     boxShadow: '0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05)',
+    // Keep the real-art tile the same size as the no-art tile at every width.
+    width: {
+      default: '118px',
+      '@media (max-width: 900px)': '88px',
+    },
+    height: {
+      default: '118px',
+      '@media (max-width: 900px)': '88px',
+    },
   },
   denseGlyph: {
     position: 'absolute',

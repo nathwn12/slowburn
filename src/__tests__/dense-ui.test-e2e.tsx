@@ -392,6 +392,16 @@ test('a completed listen is recorded exactly once', async () => {
   expect(recorded()?.size).toBe(1);
 });
 
+test('the now-playing column scrolls instead of clipping at the floor', async () => {
+  await playFirstTrack();
+  // At the e2e viewport (900x500, near the app floor) the column must be
+  // scrollable rather than `overflow:hidden` (audit defect B1).
+  const el = page.getByRole('region', { name: 'Now playing' }).element();
+  expect(getComputedStyle(el).overflowY).toBe('auto');
+  expect(el.clientHeight).toBeGreaterThan(0);
+  expect(el.scrollHeight).toBeGreaterThanOrEqual(el.clientHeight);
+});
+
 test('typed A-B points commit, reject invalid input, and never invert', async () => {
   await playFirstTrack();
   const p = player();
