@@ -95,8 +95,13 @@ fn main() {
                 .with_state_flags(
                     // Slowburn manages its visible state by itself, and the
                     // declared `inner_size` (960×600) must win over any saved
-                    // geometry, so SIZE too is not restored.
-                    StateFlags::all() & !StateFlags::VISIBLE & !StateFlags::SIZE,
+                    // geometry. POSITION is dropped too: a saved minimised /
+                    // off-screen position (-32000,-32000) makes the app open
+                    // minimised, which reads as "no window".
+                    StateFlags::all()
+                        & !StateFlags::VISIBLE
+                        & !StateFlags::SIZE
+                        & !StateFlags::POSITION,
                 )
                 .build(),
         );

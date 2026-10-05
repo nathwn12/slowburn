@@ -1,9 +1,14 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 import { useQuery } from '@tanstack/react-query';
+import { open } from '@tauri-apps/plugin-dialog';
+import { useCallback } from 'react';
 
+import LibraryAPI from '../api/LibraryAPI';
+import useInvalidate from '../hooks/useInvalidate';
 import usePlayingTrack from '../hooks/usePlayingTrack';
 import { allTracksQuery } from '../lib/queries';
+import { logAndNotifyError } from '../lib/utils';
 import Cover from './Cover';
 import EffectControls from './EffectControls';
 import Icon from './Icon';
@@ -21,8 +26,24 @@ import TrackProgress from './TrackProgress';
 export default function NowPlaying() {
   const trackPlaying = usePlayingTrack();
   const allTracks = useQuery(allTracksQuery).data;
+  const invalidate = useInvalidate();
   const { t } = useLingui();
   const repeat = 'None' as const;
+
+  // The same path as Ctrl+O, as a real affordance (there is no File menu).
+  const importFolders = useCallback(async () => {
+    try {
+      const selection = await open({ directory: true, multiple: true });
+      if (selection == null) return;
+      const folders = Array.isArray(selection) ? selection : [selection];
+      if (folders.length === 0) return;
+      await LibraryAPI.addLibraryFolders(folders);
+      await LibraryAPI.scan();
+      await invalidate();
+    } catch (error) {
+      logAndNotifyError(error);
+    }
+  }, [invalidate]);
 
   if (trackPlaying == null) {
     const libraryEmpty = (allTracks?.length ?? 0) === 0;
@@ -43,7 +64,13 @@ export default function NowPlaying() {
               <div {...stylex.props(styles.emptyRules)}>
                 <b>{t`Drag`}</b> FLAC · MP3 · M4A · OGG · WAV {t`onto the window`}
                 <br />
-                {t`or`} <b>{t`File ▸ Import folder…`}</b>
+                <button
+                  type="button"
+                  onClick={() => void importFolders()}
+                  {...stylex.props(styles.importBtn)}
+                >
+                  {t`Import folder…`}
+                </button>
                 <br />
                 <b>Ctrl+O</b> {t`to open files`}
               </div>
@@ -176,6 +203,24 @@ const styles = stylex.create({
     paddingBlock: '10px',
     paddingInline: '14px',
     textAlign: 'left',
+  },
+  importBtn: {
+    marginBlock: '2px',
+    paddingBlock: '4px',
+    paddingInline: '10px',
+    borderRadius: 'var(--radius-sm)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--control-border)',
+    backgroundColor: 'var(--surface)',
+    color: {
+      default: 'var(--text-dim)',
+      ':hover': 'var(--text-bright)',
+    },
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10px',
+    fontWeight: 700,
+    cursor: 'pointer',
   },
 });
 

@@ -10,6 +10,7 @@ import { resolveSetA, resolveSetB } from '../lib/dense-ab';
 import player from '../lib/player';
 import { logAndNotifyError } from '../lib/utils';
 import { isCtrlKey } from '../lib/utils-events';
+import { useShortcuts } from './shortcuts';
 
 /** Seconds the plain arrow keys seek; Shift makes it fine (design §6). */
 const SEEK_STEP = 10;
@@ -131,6 +132,11 @@ function GlobalKeyBindings() {
           e.preventDefault();
           e.stopPropagation();
           await player.clearAbLoop();
+          break;
+        case '?':
+          e.preventDefault();
+          e.stopPropagation();
+          useShortcuts.getState().toggle();
           break;
         case 'ArrowLeft':
           e.preventDefault();

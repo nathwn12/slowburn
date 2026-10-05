@@ -1,12 +1,15 @@
 import { useNavigate } from '@tanstack/react-router';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { sendNotification } from '@tauri-apps/plugin-notification';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { usePlayerState } from '../hooks/usePlayer';
 import ConfigBridge from '../lib/bridge-config';
+import DatabaseBridge from '../lib/bridge-database';
 import { getCover } from '../lib/cover';
 import player from '../lib/player';
+import { allTracksQuery } from '../lib/queries';
+import queryClient from '../lib/query-client';
 import { goToPlayingTrack } from '../lib/queue-origin';
 import toastManager from '../lib/toast-manager';
 import { logAndNotifyError } from '../lib/utils';
@@ -25,6 +28,10 @@ const AUDIO_ERRORS = {
 function PlayerEvents() {
   const queueOrigin = usePlayerState((state) => state.queueOrigin);
   const navigate = useNavigate();
+  // One play credit per track load: an `ended` and a ≥75% sample, or a
+  // double-ended event, must not double-count. Replaying counts again because
+  // the flag resets on `trackChange`.
+  const credited = useRef(false);
 
   useEffect(() => {
     function handleAudioError(error: MediaError) {
@@ -85,15 +92,45 @@ function PlayerEvents() {
       }
     }
 
+    // Count a completed listen once: track ended, or >75% elapsed.
+    function creditPlay() {
+      if (credited.current) return;
+      credited.current = true;
+      const track = player.getTrack();
+      if (track == null) return;
+      void DatabaseBridge.recordPlay(track.id)
+        .then(() => queryClient.invalidateQueries(allTracksQuery))
+        .catch(logAndNotifyError);
+    }
+
+    function onTrackChange() {
+      credited.current = false;
+    }
+
+    function onTimeUpdate() {
+      const track = player.getTrack();
+      if (track == null || !(track.duration > 0)) return;
+      if (player.getCurrentTime() >= track.duration * 0.75) creditPlay();
+    }
+
+    function onEnded() {
+      void onTrackEnded();
+      creditPlay();
+    }
+
     // Bind player events
     player.on('play', notifyTrackChange);
     player.on('error', handleAudioError);
-    player.on('ended', onTrackEnded);
+    player.on('ended', onEnded);
+    player.on('trackChange', onTrackChange);
+    player.on('timeupdate', onTimeUpdate);
 
     return function cleanup() {
       player.off('play', notifyTrackChange);
       player.off('error', handleAudioError);
-      player.off('ended', onTrackEnded);
+      player.off('ended', onEnded);
+      player.off('trackChange', onTrackChange);
+      player.off('timeupdate', onTimeUpdate);
     };
   }, [queueOrigin, navigate]);
 

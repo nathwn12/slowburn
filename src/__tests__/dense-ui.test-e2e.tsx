@@ -66,6 +66,8 @@ async function recordJumps(durationMs: number): Promise<number> {
 beforeEach(() => {
   delete (globalThis as { __MUSEEKS_MOCK_AB_LOOPS?: unknown })
     .__MUSEEKS_MOCK_AB_LOOPS;
+  delete (globalThis as { __MUSEEKS_MOCK_RECORD_PLAYS?: unknown })
+    .__MUSEEKS_MOCK_RECORD_PLAYS;
 });
 
 afterEach(() => {
@@ -370,6 +372,24 @@ test('the status bar restates the effects and the loop state', async () => {
 
   await expect.element(page.getByText('Effects engaged')).toBeVisible();
   await expect.element(page.getByText(/A.B saved/)).toBeVisible();
+});
+
+test('a completed listen is recorded exactly once', async () => {
+  await playFirstTrack();
+  const p = player();
+  const recorded = () =>
+    (globalThis as { __MUSEEKS_MOCK_RECORD_PLAYS?: Set<string> })
+      .__MUSEEKS_MOCK_RECORD_PLAYS;
+
+  // Passing 75% elapsed credits one play (stay below the end so the track
+  // does not auto-advance during the test).
+  p.setCurrentTime(240);
+  await waitFor(() => recorded()?.has('0') === true, 3000);
+
+  // More time updates must not double-count the same listen.
+  p.setCurrentTime(250);
+  await sleep(200);
+  expect(recorded()?.size).toBe(1);
 });
 
 test('typed A-B points commit, reject invalid input, and never invert', async () => {

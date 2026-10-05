@@ -520,7 +520,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             has_compilations,
             get_all_playlists,
             get_playlist,
-            get_playlist,
             create_playlist,
             rename_playlist,
             set_playlist_tracks,
