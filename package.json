@@ -14,7 +14,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build": "vp build",
+    "build": "vp build && node scripts/check-i18n-catalog.mjs",
     "preview": "vp preview",
     "tauri": "tauri",
     "gen:types": "bash scripts/gen.sh",

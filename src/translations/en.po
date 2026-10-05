@@ -37,14 +37,22 @@ msgid "The playlist \"{name}\" was created"
 msgstr "The playlist \"{name}\" was created"
 
 #: src/components/ButtonRepeat.tsx:18
+#: src/components/PlayerControls.tsx:72
+#: src/components/PlayerControls.tsx:73
 msgid "Repeat"
 msgstr "Repeat"
 
 #: src/components/ButtonShuffle.tsx:12
+#: src/components/PlayerControls.tsx:61
+#: src/components/PlayerControls.tsx:62
 msgid "Shuffle"
 msgstr "Shuffle"
 
-#: src/components/Cover.tsx:34
+#: src/components/Cover.tsx:28
+msgid "Album art"
+msgstr "Album art"
+
+#: src/components/Cover.tsx:67
 msgid "Album cover"
 msgstr "Album cover"
 
@@ -64,6 +72,74 @@ msgstr "Add music to the library"
 #: src/components/DropzoneImport.tsx:91
 msgid "Drop folders anywhere"
 msgstr "Drop folders anywhere"
+
+#: src/components/EffectControls.tsx:51
+msgid "Effects: slow and reverb"
+msgstr "Effects: slow and reverb"
+
+#: src/components/EffectControls.tsx:53
+msgid "SLOW"
+msgstr "SLOW"
+
+#: src/components/EffectControls.tsx:66
+msgid "Decrease speed"
+msgstr "Decrease speed"
+
+#: src/components/EffectControls.tsx:67
+msgid "Slower (−0.01×)"
+msgstr "Slower (−0.01×)"
+
+#: src/components/EffectControls.tsx:68
+msgid "Increase speed"
+msgstr "Increase speed"
+
+#: src/components/EffectControls.tsx:69
+msgid "Faster (+0.01×)"
+msgstr "Faster (+0.01×)"
+
+#: src/components/EffectControls.tsx:70
+msgid "Playback speed, pitch follows"
+msgstr "Playback speed, pitch follows"
+
+#: src/components/EffectControls.tsx:71
+msgid "Reset speed to normal"
+msgstr "Reset speed to normal"
+
+#: src/components/EffectControls.tsx:72
+msgid "Reset to 1.00×"
+msgstr "Reset to 1.00×"
+
+#: src/components/EffectControls.tsx:78
+msgid "REVERB"
+msgstr "REVERB"
+
+#: src/components/EffectControls.tsx:91
+msgid "Decrease reverb"
+msgstr "Decrease reverb"
+
+#: src/components/EffectControls.tsx:92
+msgid "Less reverb (−1%)"
+msgstr "Less reverb (−1%)"
+
+#: src/components/EffectControls.tsx:93
+msgid "Increase reverb"
+msgstr "Increase reverb"
+
+#: src/components/EffectControls.tsx:94
+msgid "More reverb (+1%)"
+msgstr "More reverb (+1%)"
+
+#: src/components/EffectControls.tsx:95
+msgid "Reverb intensity"
+msgstr "Reverb intensity"
+
+#: src/components/EffectControls.tsx:96
+msgid "Reset reverb to dry"
+msgstr "Reset reverb to dry"
+
+#: src/components/EffectControls.tsx:97
+msgid "Reset to dry (0%)"
+msgstr "Reset to dry (0%)"
 
 #: src/components/GlobalErrors.tsx:33
 msgid "Something wrong happened: {errorMessage}"
@@ -86,97 +162,489 @@ msgstr "Try <0>reloading the app</0>,"
 msgid "or if it happens again, please <0>report an issue</0>."
 msgstr "or if it happens again, please <0>report an issue</0>."
 
-#: src/components/Header.tsx:24
+#: src/components/Header.tsx:23
 msgid "Header"
 msgstr "Header"
 
-#: src/components/Header.tsx:53
-msgid "Queue"
-msgstr "Queue"
+#: src/components/Header.tsx:34
+msgid "Slowburn logo"
+msgstr "Slowburn logo"
 
-#: src/components/Navigation.tsx:48
+#: src/components/Header.tsx:43
+msgid "Slowburn"
+msgstr "Slowburn"
+
+#: src/components/Header.tsx:49
 msgid "Main navigation"
 msgstr "Main navigation"
 
-#: src/components/Navigation.tsx:51
+#: src/components/Header.tsx:58
+#: src/components/Header.tsx:59
+#: src/components/Navigation.tsx:38
+msgid "Settings"
+msgstr "Settings"
+
+#: src/components/LoopControls.tsx:105
+msgid "Loop point A"
+msgstr "Loop point A"
+
+#: src/components/LoopControls.tsx:105
+msgid "Loop point B"
+msgstr "Loop point B"
+
+#: src/components/LoopControls.tsx:118
+msgid "Set loop point A at the playhead (key: [)"
+msgstr "Set loop point A at the playhead (key: [)"
+
+#: src/components/LoopControls.tsx:119
+msgid "Set loop point B at the playhead (key: ])"
+msgstr "Set loop point B at the playhead (key: ])"
+
+#: src/components/LoopControls.tsx:122
+#: src/components/ShortcutsPanel.tsx:41
+msgid "Set loop point A"
+msgstr "Set loop point A"
+
+#: src/components/LoopControls.tsx:122
+#: src/components/ShortcutsPanel.tsx:42
+msgid "Set loop point B"
+msgstr "Set loop point B"
+
+#: src/components/LoopControls.tsx:188
+msgid "A saved A-B loop exists for this file and auto-applies when reopened."
+msgstr "A saved A-B loop exists for this file and auto-applies when reopened."
+
+#: src/components/LoopControls.tsx:189
+msgid "No A-B loop is stored for this file."
+msgstr "No A-B loop is stored for this file."
+
+#: src/components/LoopControls.tsx:195
+msgid "Saved loop"
+msgstr "Saved loop"
+
+#: src/components/LoopControls.tsx:195
+msgid "No saved loop"
+msgstr "No saved loop"
+
+#: src/components/LoopControls.tsx:200
+msgid "Playback is looping the A-B region"
+msgstr "Playback is looping the A-B region"
+
+#: src/components/LoopControls.tsx:208
+msgid "Clear the A-B region for this track (key: \\)"
+msgstr "Clear the A-B region for this track (key: \\)"
+
+#: src/components/LoopControls.tsx:209
+msgid "Clear the A-B region for this track"
+msgstr "Clear the A-B region for this track"
+
+#: src/components/LoopControls.tsx:212
+msgid "Clear"
+msgstr "Clear"
+
+#: src/components/Navigation.tsx:37
+#: src/components/Navigation.tsx:44
+#: src/components/Navigation.tsx:47
+#: src/components/Navigation.tsx:50
+#: src/components/ShortcutsPanel.tsx:54
 #: src/routes/settings.tsx:33
 msgid "Library"
 msgstr "Library"
 
-#: src/components/Navigation.tsx:54
-#: src/routes/artists.tsx:64
-#: src/routes/settings.ui.tsx:148
-msgid "Artists"
-msgstr "Artists"
-
-#: src/components/Navigation.tsx:57
-#: src/routes/playlists.tsx:165
+#: src/components/Navigation.tsx:40
+#: src/components/Navigation.tsx:126
+#: src/routes/playlists.tsx:94
 #: src/routes/settings.ui.tsx:151
 msgid "Playlists"
 msgstr "Playlists"
 
-#: src/components/Navigation.tsx:60
-msgid "Settings"
-msgstr "Settings"
+#: src/components/Navigation.tsx:42
+#: src/components/Navigation.tsx:108
+#: src/components/QueueList.tsx:76
+msgid "Queue"
+msgstr "Queue"
 
-#: src/components/Navigation.tsx:66
-msgid "Library status"
-msgstr "Library status"
+#: src/components/Navigation.tsx:45
+#: src/components/Navigation.tsx:120
+#: src/routes/artists.tsx:51
+#: src/routes/settings.ui.tsx:148
+msgid "Artists"
+msgstr "Artists"
 
-#: src/components/Navigation.tsx:90
-msgid "scanning tracks..."
-msgstr "scanning tracks..."
+#: src/components/Navigation.tsx:48
+msgid "Track"
+msgstr "Track"
 
-#: src/components/PlayerControls.tsx:18
+#: src/components/Navigation.tsx:51
+#: src/components/Navigation.tsx:114
+msgid "All tracks"
+msgstr "All tracks"
+
+#: src/components/Navigation.tsx:83
+#: src/components/Navigation.tsx:84
+msgid "Switch view"
+msgstr "Switch view"
+
+#: src/components/Navigation.tsx:102
+msgid "Views"
+msgstr "Views"
+
+#: src/components/NowPlaying.tsx:52
+#: src/components/NowPlaying.tsx:98
+msgid "Now playing"
+msgstr "Now playing"
+
+#: src/components/NowPlaying.tsx:60
+msgid "Your library is empty"
+msgstr "Your library is empty"
+
+#: src/components/NowPlaying.tsx:62
+msgid "Slowburn plays files you already own. Nothing is streamed, nothing leaves this machine."
+msgstr "Slowburn plays files you already own. Nothing is streamed, nothing leaves this machine."
+
+#: src/components/NowPlaying.tsx:65
+msgid "Drag"
+msgstr "Drag"
+
+#: src/components/NowPlaying.tsx:65
+msgid "onto the window"
+msgstr "onto the window"
+
+#: src/components/NowPlaying.tsx:72
+msgid "Import folder…"
+msgstr "Import folder…"
+
+#: src/components/NowPlaying.tsx:75
+msgid "to open files"
+msgstr "to open files"
+
+#: src/components/NowPlaying.tsx:80
+msgid "Nothing playing"
+msgstr "Nothing playing"
+
+#: src/components/NowPlaying.tsx:82
+msgid "Pick a track from the library to begin."
+msgstr "Pick a track from the library to begin."
+
+#: src/components/PlayerControls.tsx:29
+#: src/components/PlayerControls.tsx:30
 msgid "Previous"
 msgstr "Previous"
 
-#: src/components/PlayerControls.tsx:24
+#: src/components/PlayerControls.tsx:39
+#: src/components/PlayerControls.tsx:40
 msgid "Play"
 msgstr "Play"
 
-#: src/components/PlayerControls.tsx:24
+#: src/components/PlayerControls.tsx:39
+#: src/components/PlayerControls.tsx:40
 msgid "Pause"
 msgstr "Pause"
 
-#: src/components/PlayerControls.tsx:30
+#: src/components/PlayerControls.tsx:49
+#: src/components/PlayerControls.tsx:50
 msgid "Next"
 msgstr "Next"
 
-#: src/components/QueueEmpty.tsx:7
+#: src/components/PlayingBarInfo.tsx:87
+msgid "Technical format information"
+msgstr "Technical format information"
+
+#: src/components/PlayingBarInfo.tsx:111
+msgid "A-B loop state for this file"
+msgstr "A-B loop state for this file"
+
+#: src/components/PlayingBarInfo.tsx:114
+msgid "A–B loop saved"
+msgstr "A–B loop saved"
+
+#: src/components/PlayingBarInfo.tsx:114
+msgid "No loop for this track"
+msgstr "No loop for this track"
+
+#: src/components/PlayingBarInfo.tsx:118
+msgid "Slow and reverb state"
+msgstr "Slow and reverb state"
+
+#: src/components/PlayingBarInfo.tsx:123
+#: src/components/StatusBar.tsx:71
+msgid "Effects neutral (1.00× · dry)"
+msgstr "Effects neutral (1.00× · dry)"
+
+#: src/components/Queue.tsx:59
+msgid "QUEUE"
+msgstr "QUEUE"
+
+#: src/components/Queue.tsx:61
+#: src/components/StatusBar.tsx:87
+msgid "track"
+msgstr "track"
+
+#: src/components/Queue.tsx:61
+#: src/components/StatusBar.tsx:87
+msgid "tracks"
+msgstr "tracks"
+
+#: src/components/Queue.tsx:67
+#: src/components/Queue.tsx:68
+msgid "Shuffle queue"
+msgstr "Shuffle queue"
+
+#: src/components/Queue.tsx:76
+#: src/components/Queue.tsx:77
+msgid "Clear queue"
+msgstr "Clear queue"
+
+#: src/components/Queue.tsx:91
+msgid "Show only tracks with a saved A-B loop"
+msgstr "Show only tracks with a saved A-B loop"
+
+#: src/components/Queue.tsx:97
+msgid "Saved loops"
+msgstr "Saved loops"
+
+#: src/components/Queue.tsx:102
+msgid "Sort by most played"
+msgstr "Sort by most played"
+
+#: src/components/Queue.tsx:105
+msgid "Sort the queue by how many times each track has been played"
+msgstr "Sort the queue by how many times each track has been played"
+
+#: src/components/Queue.tsx:108
+msgid "Most played"
+msgstr "Most played"
+
+#: src/components/Queue.tsx:111
+msgid "sorted: most played"
+msgstr "sorted: most played"
+
+#: src/components/Queue.tsx:111
+msgid "sorted: manual"
+msgstr "sorted: manual"
+
+#: src/components/QueueEmpty.tsx:13
 msgid "Queue is empty"
 msgstr "Queue is empty"
 
-#: src/components/QueueList.tsx:79
-msgid "clear queue"
-msgstr "clear queue"
+#: src/components/QueueEmpty.tsx:16
+msgid "Import music to get started. Saved A-B loops, speed and reverb settings are remembered per file."
+msgstr "Import music to get started. Saved A-B loops, speed and reverb settings are remembered per file."
 
-#: src/components/QueueList.tsx:105
+#: src/components/QueueList.tsx:112
 msgid "see more"
 msgstr "see more"
 
-#: src/components/Search.tsx:42
-msgid "search..."
-msgstr "search..."
+#: src/components/QueueList.tsx:150
+#: src/components/QueueList.tsx:151
+#: src/components/QueueListItem.tsx:70
+#: src/components/QueueListItem.tsx:71
+#: src/components/TrackRow.tsx:137
+#: src/components/TrackRow.tsx:138
+msgid "Saved A-B loop"
+msgstr "Saved A-B loop"
 
-#: src/components/Search.tsx:49
+#: src/components/QueueListItem.tsx:81
+#: src/components/QueueListItem.tsx:82
+msgid "Remove from queue"
+msgstr "Remove from queue"
+
+#: src/components/Search.tsx:70
+msgid "Search title, artist, album…"
+msgstr "Search title, artist, album…"
+
+#: src/components/Search.tsx:77
 msgid "Search library"
 msgstr "Search library"
 
-#: src/components/Search.tsx:61
+#: src/components/Search.tsx:87
 msgid "Clear search"
 msgstr "Clear search"
 
-#: src/components/SideNavLink.tsx:62
-msgid "Rename"
-msgstr "Rename"
+#: src/components/ShortcutsPanel.tsx:35
+msgid "Playback"
+msgstr "Playback"
+
+#: src/components/ShortcutsPanel.tsx:36
+msgid "Play / Pause"
+msgstr "Play / Pause"
+
+#: src/components/ShortcutsPanel.tsx:39
+msgid "A–B loop"
+msgstr "A–B loop"
+
+#: src/components/ShortcutsPanel.tsx:43
+msgid "Clear the loop"
+msgstr "Clear the loop"
+
+#: src/components/ShortcutsPanel.tsx:47
+msgid "Seek"
+msgstr "Seek"
+
+#: src/components/ShortcutsPanel.tsx:49
+msgid "Seek 10 seconds"
+msgstr "Seek 10 seconds"
+
+#: src/components/ShortcutsPanel.tsx:50
+msgid "Seek 1 second"
+msgstr "Seek 1 second"
+
+#: src/components/ShortcutsPanel.tsx:56
+msgid "Focus search"
+msgstr "Focus search"
+
+#: src/components/ShortcutsPanel.tsx:57
+msgid "Import folder or files"
+msgstr "Import folder or files"
+
+#: src/components/ShortcutsPanel.tsx:61
+msgid "Window"
+msgstr "Window"
+
+#: src/components/ShortcutsPanel.tsx:62
+msgid "Toggle the menu bar"
+msgstr "Toggle the menu bar"
+
+#: src/components/ShortcutsPanel.tsx:75
+#: src/components/ShortcutsPanel.tsx:80
+msgid "Keyboard shortcuts"
+msgstr "Keyboard shortcuts"
+
+#: src/components/ShortcutsPanel.tsx:84
+msgid "Close"
+msgstr "Close"
+
+#: src/components/ShortcutsPanel.tsx:111
+msgid "Press ? any time to reopen"
+msgstr "Press ? any time to reopen"
+
+#: src/components/StatusBar.tsx:53
+msgid "lossless"
+msgstr "lossless"
+
+#: src/components/StatusBar.tsx:53
+msgid "lossy"
+msgstr "lossy"
+
+#: src/components/StatusBar.tsx:75
+msgid "A–B saved · looping"
+msgstr "A–B saved · looping"
+
+#: src/components/StatusBar.tsx:76
+msgid "A–B saved · armed"
+msgstr "A–B saved · armed"
+
+#: src/components/StatusBar.tsx:77
+msgid "No A–B loop"
+msgstr "No A–B loop"
+
+#: src/components/StatusBar.tsx:81
+msgid "Status bar"
+msgstr "Status bar"
+
+#: src/components/StatusBar.tsx:86
+msgid "scanning tracks…"
+msgstr "scanning tracks…"
+
+#: src/components/StatusBar.tsx:92
+msgid "Format of the playing track"
+msgstr "Format of the playing track"
+
+#: src/components/StatusBar.tsx:106
+msgid "Effects engaged"
+msgstr "Effects engaged"
+
+#: src/components/StatusBar.tsx:106
+msgid "Effects neutral"
+msgstr "Effects neutral"
+
+#: src/components/StatusBar.tsx:123
+msgid "This webview renders through the operating system's default output device."
+msgstr "This webview renders through the operating system's default output device."
+
+#: src/components/StatusBar.tsx:126
+msgid "Output: system default"
+msgstr "Output: system default"
+
+#: src/components/TrackDetails.tsx:35
+msgid "TRACK FILE"
+msgstr "TRACK FILE"
+
+#: src/components/TrackDetails.tsx:37
+#: src/routes/tracks.$trackID.tsx:249
+msgid "Path"
+msgstr "Path"
+
+#: src/components/TrackDetails.tsx:42
+msgid "Added"
+msgstr "Added"
+
+#: src/components/TrackDetails.tsx:50
+msgid "Played"
+msgstr "Played"
+
+#: src/components/TrackDetails.tsx:58
+msgid "Size"
+msgstr "Size"
+
+#: src/components/TrackDetails.tsx:65
+msgid "Peak"
+msgstr "Peak"
+
+#: src/components/TrackDetails.tsx:66
+msgid "Hash"
+msgstr "Hash"
+
+#: src/components/TrackDetails.tsx:71
+msgid "SAVED A–B LOOP"
+msgstr "SAVED A–B LOOP"
+
+#: src/components/TrackDetails.tsx:71
+msgid "A–B LOOP"
+msgstr "A–B LOOP"
+
+#: src/components/TrackDetails.tsx:80
+msgid "A"
+msgstr "A"
+
+#: src/components/TrackDetails.tsx:85
+msgid "B"
+msgstr "B"
+
+#: src/components/TrackDetails.tsx:90
+msgid "Length"
+msgstr "Length"
+
+#: src/components/TrackDetails.tsx:95
+msgid "Saved"
+msgstr "Saved"
+
+#: src/components/TrackDetails.tsx:96
+msgid "auto · stored with file"
+msgstr "auto · stored with file"
+
+#: src/components/TrackDetails.tsx:96
+msgid "none stored for this file"
+msgstr "none stored for this file"
+
+#: src/components/TrackDetails.tsx:99
+msgid "On open"
+msgstr "On open"
+
+#: src/components/TrackDetails.tsx:100
+msgid "apply + loop immediately"
+msgstr "apply + loop immediately"
+
+#: src/components/TrackDetails.tsx:100
+msgid "press [ and ] to set"
+msgstr "press [ and ] to set"
 
 #: src/components/TrackList.tsx:243
 msgid "Create new playlist..."
 msgstr "Create new playlist..."
 
 #: src/components/TrackList.tsx:246
-#: src/routes/playlists.tsx:63
+#: src/routes/playlists.tsx:40
 msgid "New playlist"
 msgstr "New playlist"
 
@@ -252,37 +720,39 @@ msgstr "Remove"
 msgid "Track list"
 msgstr "Track list"
 
-#. placeholder {0}: props.count
 #. placeholder {0}: tracks.length
 #: src/components/TrackListGrouped.tsx:115
-#: src/components/TrackListStatus.tsx:11
 msgid "{0, plural, one {# track} other {# tracks}}"
 msgstr "{0, plural, one {# track} other {# tracks}}"
 
-#: src/components/TrackListHeader.tsx:17
+#: src/components/TrackListHeader.tsx:23
 msgid "Track list sorting options"
 msgstr "Track list sorting options"
 
-#: src/components/TrackListHeader.tsx:26
+#: src/components/TrackListHeader.tsx:25
+msgid "Sort"
+msgstr "Sort"
+
+#: src/components/TrackListHeader.tsx:28
 #: src/routes/tracks.$trackID.tsx:88
 msgid "Title"
 msgstr "Title"
 
-#: src/components/TrackListHeader.tsx:31
+#: src/components/TrackListHeader.tsx:33
 #: src/routes/tracks.$trackID.tsx:241
 msgid "Duration"
 msgstr "Duration"
 
-#: src/components/TrackListHeader.tsx:36
+#: src/components/TrackListHeader.tsx:38
 msgid "Artist"
 msgstr "Artist"
 
-#: src/components/TrackListHeader.tsx:41
+#: src/components/TrackListHeader.tsx:43
 #: src/routes/tracks.$trackID.tsx:99
 msgid "Album"
 msgstr "Album"
 
-#: src/components/TrackListHeader.tsx:46
+#: src/components/TrackListHeader.tsx:48
 #: src/routes/tracks.$trackID.tsx:139
 msgid "Genre"
 msgstr "Genre"
@@ -312,16 +782,45 @@ msgstr "you can <0>add your music here</0>"
 msgid "Your search returned no results"
 msgstr "Your search returned no results"
 
-#: src/components/VolumeControl.tsx:47
-#: src/components/VolumeControl.tsx:74
+#: src/components/TrackProgress.tsx:116
+msgid "Seek bar with A-B loop region"
+msgstr "Seek bar with A-B loop region"
+
+#: src/components/VolumeControl.tsx:61
+msgid "Unmute"
+msgstr "Unmute"
+
+#: src/components/VolumeControl.tsx:61
+msgid "Mute"
+msgstr "Mute"
+
+#: src/components/VolumeControl.tsx:84
+#: src/components/VolumeControl.tsx:105
+#: src/components/VolumeControl.tsx:132
 msgid "Volume"
 msgstr "Volume"
 
-#: src/routes/__root.tsx:82
+#: src/routes/__root.tsx:129
 msgid "Application main content"
 msgstr "Application main content"
 
-#: src/routes/artists.tsx:70
+#: src/routes/artists.tsx:40
+msgid "ARTISTS"
+msgstr "ARTISTS"
+
+#: src/routes/artists.tsx:42
+msgid "artist"
+msgstr "artist"
+
+#: src/routes/artists.tsx:42
+msgid "artists"
+msgstr "artists"
+
+#: src/routes/artists.tsx:47
+msgid "No artists in your library"
+msgstr "No artists in your library"
+
+#: src/routes/artists.tsx:77
 msgid "Compilations"
 msgstr "Compilations"
 
@@ -339,33 +838,30 @@ msgstr "Empty playlist"
 msgid "You can add tracks from the <0>library view</0>"
 msgstr "You can add tracks from the <0>library view</0>"
 
-#: src/routes/playlists.tsx:93
-msgid "Delete"
-msgstr "Delete"
+#: src/routes/playlists.tsx:63
+msgid "PLAYLISTS"
+msgstr "PLAYLISTS"
 
-#: src/routes/playlists.tsx:102
-msgid "Duplicate"
-msgstr "Duplicate"
+#: src/routes/playlists.tsx:65
+msgid "playlist"
+msgstr "playlist"
 
-#: src/routes/playlists.tsx:110
-msgid "Export"
-msgstr "Export"
+#: src/routes/playlists.tsx:65
+msgid "playlists"
+msgstr "playlists"
 
-#: src/routes/playlists.tsx:140
+#: src/routes/playlists.tsx:70
+#: src/routes/playlists.tsx:71
+msgid "New Playlist"
+msgstr "New Playlist"
+
+#: src/routes/playlists.tsx:81
 msgid "You haven't created any playlist yet"
 msgstr "You haven't created any playlist yet"
 
-#: src/routes/playlists.tsx:144
+#: src/routes/playlists.tsx:88
 msgid "create one now"
 msgstr "create one now"
-
-#: src/routes/playlists.tsx:153
-msgid "No playlist selected"
-msgstr "No playlist selected"
-
-#: src/routes/playlists.tsx:170
-msgid "New Playlist"
-msgstr "New Playlist"
 
 #: src/routes/settings.about.tsx:27
 msgid "About Slowburn"
@@ -626,10 +1122,6 @@ msgstr "Compilation"
 #: src/routes/tracks.$trackID.tsx:232
 msgid "Group this track with other tracks from the same compilation, regardless of the artist names."
 msgstr "Group this track with other tracks from the same compilation, regardless of the artist names."
-
-#: src/routes/tracks.$trackID.tsx:249
-msgid "Path"
-msgstr "Path"
 
 #: src/routes/tracks.$trackID.tsx:260
 msgid "Save"
