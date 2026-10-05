@@ -179,9 +179,9 @@ const styles = stylex.create({
     flexBasis: 'auto',
     position: 'relative',
     display: 'grid',
-    // The right column is responsive rather than a hard 388px, so the
-    // now-playing column is not starved at narrow widths.
-    gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 388px)',
+    // The right column yields as the window narrows (clamp), so the
+    // now-playing column is not starved; it also wraps/scrolls.
+    gridTemplateColumns: 'minmax(0, 1fr) clamp(320px, 38vw, 388px)',
     minHeight: 0,
     overflow: 'hidden',
     backgroundColor: 'var(--bg)',
