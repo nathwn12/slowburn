@@ -23,7 +23,7 @@ export const MOCK_CONFIG: Config = {
   library_folders: ['/home/user/music'],
   library_autorefresh: false,
   sleepblocker: false,
-  auto_update_checker: true,
+  auto_update_checker: false,
   notifications: false,
   track_view_density: 'normal',
   wayland_compat: false,

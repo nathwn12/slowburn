@@ -2873,51 +2873,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "museeks"
-version = "0.23.4"
-dependencies = [
- "anyhow",
- "axum",
- "base64 0.22.1",
- "dirs",
- "futures",
- "home-config",
- "indexmap 2.14.0",
- "itertools",
- "lofty",
- "log",
- "m3u",
- "memoize",
- "nosleep",
- "pathdiff",
- "rayon",
- "serde",
- "serde_json",
- "sqlx",
- "strum 0.28.0",
- "tauri",
- "tauri-build",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-log",
- "tauri-plugin-notification",
- "tauri-plugin-opener",
- "tauri-plugin-os",
- "tauri-plugin-prevent-default",
- "tauri-plugin-process",
- "tauri-plugin-shell",
- "tauri-plugin-single-instance",
- "tauri-plugin-window-state",
- "thiserror 2.0.18",
- "tokio",
- "tokio-util",
- "ts-rs",
- "uuid",
- "walkdir",
-]
-
-[[package]]
 name = "ndk"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4802,6 +4757,51 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+
+[[package]]
+name = "slowburn"
+version = "0.23.4"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "dirs",
+ "futures",
+ "home-config",
+ "indexmap 2.14.0",
+ "itertools",
+ "lofty",
+ "log",
+ "m3u",
+ "memoize",
+ "nosleep",
+ "pathdiff",
+ "rayon",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "strum 0.28.0",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-log",
+ "tauri-plugin-notification",
+ "tauri-plugin-opener",
+ "tauri-plugin-os",
+ "tauri-plugin-prevent-default",
+ "tauri-plugin-process",
+ "tauri-plugin-shell",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-window-state",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-util",
+ "ts-rs",
+ "uuid",
+ "walkdir",
+]
 
 [[package]]
 name = "smallvec"
