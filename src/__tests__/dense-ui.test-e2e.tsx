@@ -49,6 +49,24 @@ async function waitFor(
   }
 }
 
+/**
+ * Force the shell into a mode, for tests that assert a mode-specific surface.
+ * The site-wide default is `minimal` (which drops the ledger and the queue
+ * column), so a test about either of those must opt into `full` itself rather
+ * than lean on the default. Same bridge + invalidation path as
+ * `ui-mode.test-e2e.tsx` (toggle without a restart).
+ */
+async function setMode(mode: 'minimal' | 'full'): Promise<void> {
+  const bridge = (await import('../lib/bridge-config')) as unknown as {
+    default: { config: { ui_mode: 'minimal' | 'full' } };
+  };
+  bridge.default.config = { ...bridge.default.config, ui_mode: mode };
+
+  const { default: queryClient } = await import('../lib/query-client');
+  const { configQuery } = await import('../lib/queries');
+  await queryClient.invalidateQueries({ queryKey: configQuery.queryKey });
+}
+
 /** Records every backward seek (a loop wrap) over `durationMs`. */
 async function recordJumps(durationMs: number): Promise<number> {
   let jumps = 0;
@@ -233,6 +251,10 @@ test('the header carries the logo, brand and the Main navigation breadcrumb', as
 });
 
 test('the breadcrumb drives the right-column view stack', async () => {
+  // The "right column" view stack is a Full-mode surface; the default is now
+  // minimal, where the queue is a route-level view instead. Ask for the mode
+  // this test is actually about.
+  await setMode('full');
   await setupScannedLibrary();
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
 
@@ -378,6 +400,9 @@ test('the playing row is magenta and the cursor selection is info blue', async (
 });
 
 test('the status bar restates the effects and the loop state', async () => {
+  // The ledger is a Full-mode surface; the default is now minimal. Ask for the
+  // mode this test is actually about.
+  await setMode('full');
   await playFirstTrack();
   const p = player();
 
