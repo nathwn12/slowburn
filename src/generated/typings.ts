@@ -9,7 +9,13 @@
  */
 export type AbLoop = { track_id: string, start_seconds: number | null, end_seconds: number | null, };
 
-export type Config = { language: string, theme: string, ui_mode: UiMode, ui_accent_color: string | null, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, library_sort_by: SortBy, library_sort_order: SortOrder, library_folders: Array<string>, library_autorefresh: boolean, sleepblocker: boolean, auto_update_checker: boolean, notifications: boolean, track_view_density: TrackViewDensity, wayland_compat: boolean, menu_bar_visible: boolean, };
+export type Config = { language: string, theme: string, ui_mode: UiMode, ui_accent_color: string | null, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, library_sort_by: SortBy, library_sort_order: SortOrder, 
+/**
+ * Ordered multi-key sort (AIMP-style). Additive: `library_sort_by` and
+ * `library_sort_order` stay declared so an existing config file still
+ * deserializes; the UI reads this list instead.
+ */
+library_sort_keys: Array<SortKey>, library_folders: Array<string>, library_autorefresh: boolean, sleepblocker: boolean, auto_update_checker: boolean, notifications: boolean, track_view_density: TrackViewDensity, wayland_compat: boolean, menu_bar_visible: boolean, };
 
 export type DefaultView = "Library" | "Artists" | "Playlists";
 
@@ -31,6 +37,18 @@ export type ScanProgress = { current: number, total: number, };
 export type ScanResult = { track_count: number, track_failures: number, playlist_count: number, playlist_failures: number, };
 
 export type SortBy = "Artist" | "Album" | "Title" | "Duration" | "Genre";
+
+/**
+ * A field a track list can be ordered by. Exported camelCase so the TS
+ * `SortField` union is real values, not `string`.
+ */
+export type SortField = "artist" | "album" | "title" | "duration" | "genre" | "diskNo" | "trackNo" | "playCount" | "dateAdded" | "fileModified";
+
+/**
+ * One entry in the ordered, multi-key sort model: a field plus its own
+ * direction. Key order is significant (the first key is the primary sort).
+ */
+export type SortKey = { field: SortField, direction: SortOrder, };
 
 export type SortOrder = "Asc" | "Dsc";
 

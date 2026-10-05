@@ -21,6 +21,13 @@ export const MOCK_CONFIG: Config = {
   default_view: 'Library',
   library_sort_by: 'Artist',
   library_sort_order: 'Asc',
+  library_sort_keys: [
+    { field: 'fileModified', direction: 'Dsc' },
+    { field: 'artist', direction: 'Asc' },
+    { field: 'album', direction: 'Asc' },
+    { field: 'diskNo', direction: 'Asc' },
+    { field: 'trackNo', direction: 'Asc' },
+  ],
   library_folders: ['/home/user/music'],
   library_autorefresh: false,
   sleepblocker: false,
