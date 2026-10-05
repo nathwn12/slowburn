@@ -6,10 +6,28 @@ import {
 } from '@tanstack/react-query';
 import React, { useCallback } from 'react';
 
-import type { Config, SortBy, SortOrder } from '../generated/typings';
+import type {
+  Config,
+  SortBy,
+  SortField,
+  SortKey,
+  SortOrder,
+} from '../generated/typings';
 import ConfigBridge from '../lib/bridge-config';
 import { configQuery } from '../lib/queries';
 import Icon from './Icon';
+
+/**
+ * The header still renders `SortBy` labels ("Artist", "Title", ...), but the
+ * persisted model is the camelCase `SortField`. Map between them here.
+ */
+const SORT_FIELD_FOR: Record<SortBy, SortField> = {
+  Artist: 'artist',
+  Album: 'album',
+  Title: 'title',
+  Duration: 'duration',
+  Genre: 'genre',
+};
 
 type Props = {
   title: string;
@@ -23,19 +41,19 @@ export default function TrackListHeaderCell(props: Props) {
 
   const config = useSuspenseQuery(configQuery).data;
 
+  const field = sortBy ? SORT_FIELD_FOR[sortBy] : null;
+  const activeKey: SortKey | undefined = config.library_sort_keys[0];
+
   const icon =
-    sortBy && config.library_sort_by === sortBy
-      ? config.library_sort_order === 'Asc'
+    field && activeKey?.field === field
+      ? activeKey.direction === 'Asc'
         ? 'chevronUp'
         : 'chevronDown'
       : null;
 
   const sortMutation = useMutation({
-    mutationFn: async (newSort: { sortBy: SortBy; sortOrder: SortOrder }) => {
-      await ConfigBridge.multiSet({
-        library_sort_by: newSort.sortBy,
-        library_sort_order: newSort.sortOrder,
-      });
+    mutationFn: async (newSort: SortKey) => {
+      await ConfigBridge.multiSet({ library_sort_keys: [newSort] });
     },
     onMutate: async (newSort) => {
       await queryClient.cancelQueries({ queryKey: configQuery.queryKey });
@@ -44,23 +62,22 @@ export default function TrackListHeaderCell(props: Props) {
       );
       queryClient.setQueryData(configQuery.queryKey, {
         ...previousConfig,
-        library_sort_by: newSort.sortBy,
-        library_sort_order: newSort.sortOrder,
+        library_sort_keys: [newSort],
       });
       return { previousConfig };
     },
   });
 
   const handleSort = useCallback(() => {
-    if (!sortBy) return;
-    const newSortOrder: SortOrder =
-      sortBy === config.library_sort_by
-        ? config.library_sort_order === 'Asc'
+    if (!field) return;
+    const direction: SortOrder =
+      activeKey?.field === field
+        ? activeKey.direction === 'Asc'
           ? 'Dsc'
           : 'Asc'
         : 'Asc';
-    sortMutation.mutate({ sortBy, sortOrder: newSortOrder });
-  }, [sortBy, config.library_sort_by, config.library_sort_order, sortMutation]);
+    sortMutation.mutate({ field, direction });
+  }, [field, activeKey, sortMutation]);
 
   const content = (
     <React.Fragment>
