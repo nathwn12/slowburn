@@ -150,7 +150,10 @@ impl DB {
     pub async fn update_track(&mut self, track: Track) -> AnyResult<Track> {
         // NOTE: `date_added`, `play_count` and `last_played` are history, not
         // file metadata: a metadata refresh must never clobber them, so they
-        // are deliberately absent from this SET list.
+        // are deliberately absent from this SET list. `modified` IS file
+        // metadata and is refreshed, but through COALESCE so a refresh that
+        // could not read the file's mtime keeps the previously-known value
+        // instead of erasing it.
         sqlx::query(
             r#"
             UPDATE tracks SET
@@ -173,7 +176,8 @@ impl DB {
                 bit_depth = ?,
                 channels = ?,
                 bitrate = ?,
-                file_size = ?
+                file_size = ?,
+                modified = COALESCE(?, modified)
             WHERE id = ?
             "#,
         )
@@ -197,6 +201,7 @@ impl DB {
         .bind(track.channels)
         .bind(track.bitrate)
         .bind(track.file_size.map(|size| size as i64))
+        .bind(track.modified)
         .bind(&track.id)
         .execute(&mut self.connection)
         .await?;
@@ -301,8 +306,8 @@ impl DB {
                     id, path, title, album, album_artist, artists, genres, year,
                     duration, track_no, track_of, disk_no, disk_of, is_compilation,
                     format, is_lossless, sample_rate, bit_depth, channels, bitrate,
-                    file_size, date_added, play_count, last_played
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    file_size, modified, date_added, play_count, last_played
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 "#,
             )
             .bind(&track.id)
@@ -326,6 +331,7 @@ impl DB {
             .bind(track.channels)
             .bind(track.bitrate)
             .bind(track.file_size.map(|size| size as i64))
+            .bind(track.modified)
             .bind(&track.date_added)
             .bind(track.play_count)
             .bind(&track.last_played)
@@ -346,7 +352,9 @@ impl DB {
         for track in tracks {
             // NOTE: this is a metadata/tag refresh. `date_added`, `play_count`
             // and `last_played` are history and are deliberately absent from
-            // this SET list so a rescan can never reset them.
+            // this SET list so a rescan can never reset them. `modified` is
+            // file metadata and is refreshed, via COALESCE so a rescan that
+            // cannot read the mtime keeps the previously-known value.
             sqlx::query(
                 r#"
                 UPDATE tracks SET
@@ -369,7 +377,8 @@ impl DB {
                     bit_depth = ?,
                     channels = ?,
                     bitrate = ?,
-                    file_size = ?
+                    file_size = ?,
+                    modified = COALESCE(?, modified)
                 WHERE id = ?
                 "#,
             )
@@ -393,6 +402,7 @@ impl DB {
             .bind(track.channels)
             .bind(track.bitrate)
             .bind(track.file_size.map(|size| size as i64))
+            .bind(track.modified)
             .bind(&track.id)
             .execute(&mut *tx)
             .await?;

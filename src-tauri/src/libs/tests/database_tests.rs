@@ -32,6 +32,7 @@ fn sample_track_1() -> Track {
         channels: Some(2),
         bitrate: Some(320000),
         file_size: Some(4_096),
+        modified: Some(1_700_000_000_000),
         date_added: "2024-01-02T03:04:05.000Z".to_string(),
         play_count: 0,
         last_played: None,
@@ -61,6 +62,7 @@ fn sample_track_2() -> Track {
         channels: Some(2),
         bitrate: Some(2_500_000),
         file_size: Some(65_536),
+        modified: Some(1_750_000_000_000),
         date_added: "2024-02-03T04:05:06.000Z".to_string(),
         play_count: 3,
         last_played: Some("2024-03-04T05:06:07.000Z".to_string()),
@@ -90,6 +92,7 @@ fn sample_track_3() -> Track {
         channels: None,
         bitrate: None,
         file_size: None,
+        modified: None,
         date_added: "2024-03-04T05:06:07.000Z".to_string(),
         play_count: 0,
         last_played: None,
@@ -169,6 +172,7 @@ async fn test_tracks_db() {
             channels: Some(2),
             bitrate: Some(2_500_000),
             file_size: Some(65_536),
+            modified: Some(1_750_000_000_000),
             date_added: "2024-02-03T04:05:06.000Z".to_string(),
             play_count: 3,
             last_played: Some("2024-03-04T05:06:07.000Z".to_string()),
@@ -354,6 +358,116 @@ async fn test_track_metadata_roundtrip() {
     assert_eq!(unknown.format, "unknown");
     assert_eq!(unknown.sample_rate, None); // never a fake 0 Hz
     assert_eq!(unknown.bitrate, None);
+}
+
+/** ----------------------------------------------------------------------------
+ * Integration Test - Track modified time (migration 06)
+ * -------------------------------------------------------------------------- */
+
+/**
+ * `modified` (migration 06) must survive a write/read through every hand-written
+ * bind list.
+ *
+ * `database.rs` binds columns positionally in three places: the insert and both
+ * update paths. A column added to one list but not another silently writes the
+ * wrong value into the wrong field, so this exercises all three with distinct
+ * sentinel values and checks that the neighbouring columns are untouched.
+ */
+#[tokio::test]
+async fn modified_roundtrips_through_the_database() {
+    let mut db = get_test_db().await;
+
+    // Insert path.
+    db.insert_tracks(vec![sample_track_1(), sample_track_2(), sample_track_3()])
+        .await
+        .unwrap();
+
+    let tracks = db.get_all_tracks().await.unwrap();
+    let t1 = tracks.iter().find(|t| t.id == "1").unwrap();
+    let t2 = tracks.iter().find(|t| t.id == "2").unwrap();
+    let t3 = tracks.iter().find(|t| t.id == "3").unwrap();
+    assert_eq!(t1.modified, Some(1_700_000_000_000));
+    assert_eq!(t2.modified, Some(1_750_000_000_000));
+    assert_eq!(t3.modified, None);
+
+    // A misaligned bind would have swapped these with the sentinels above.
+    assert_eq!(t1.file_size, Some(4_096));
+    assert_eq!(t2.file_size, Some(65_536));
+    assert_eq!(t1.date_added, "2024-01-02T03:04:05.000Z");
+
+    // Single-row update path (UI tag edit).
+    let mut edited = sample_track_1();
+    edited.modified = Some(1_600_000_000_000);
+    db.update_track(edited).await.unwrap();
+    let after = db.get_track("1").await.unwrap().unwrap();
+    assert_eq!(after.modified, Some(1_600_000_000_000));
+    assert_eq!(after.file_size, Some(4_096));
+
+    // Bulk update path (rescan with refresh = true).
+    let mut refreshed = sample_track_2();
+    refreshed.modified = Some(1_650_000_000_000);
+    db.update_tracks(vec![refreshed]).await.unwrap();
+    let after = db.get_track("2").await.unwrap().unwrap();
+    assert_eq!(after.modified, Some(1_650_000_000_000));
+    assert_eq!(after.file_size, Some(65_536));
+}
+
+#[tokio::test]
+async fn modified_is_null_when_unset() {
+    let mut db = get_test_db().await;
+    db.insert_tracks(vec![sample_track_3()]).await.unwrap();
+
+    let track = db.get_track("3").await.unwrap().unwrap();
+    // Honestly NULL, never a `0` sentinel.
+    assert_eq!(track.modified, None);
+}
+
+/**
+ * Review Focus 2: a file that has disappeared must not lose its recorded
+ * mtime. `scan_dirs` only returns files that still exist, so a rescan over a
+ * root that no longer contains the file emits no row for it and the stored
+ * value is untouched.
+ */
+#[tokio::test]
+async fn a_vanished_file_keeps_its_previous_mtime() {
+    let mut db = get_test_db().await;
+
+    // A row whose file is already gone still carries its old mtime and the
+    // migration-05 `unknown` sentinel, so a backfill will try to refresh it.
+    let mut vanished = sample_track_1();
+    vanished.format = "unknown".to_string();
+    vanished.modified = Some(1_700_000_000_000);
+    db.insert_tracks(vec![vanished]).await.unwrap();
+
+    let missing_dir = std::env::temp_dir().join("slowburn_no_such_dir_vanished");
+    let refreshed = db.backfill_tracks_metadata(vec![missing_dir]).await.unwrap();
+    assert_eq!(refreshed, 0, "nothing to scan, nothing refreshed");
+
+    let after = db.get_track("1").await.unwrap().unwrap();
+    assert_eq!(
+        after.modified,
+        Some(1_700_000_000_000),
+        "a vanished file must keep its previous mtime, not become null"
+    );
+}
+
+/**
+ * Review Focus 2, bind level: an update that carries no mtime (stat failed)
+ * must not erase an already-known one.
+ */
+#[tokio::test]
+async fn a_null_refresh_does_not_erase_a_known_mtime() {
+    let mut db = get_test_db().await;
+
+    db.insert_tracks(vec![sample_track_1()]).await.unwrap();
+
+    // A refresh where the stat failed: `modified` comes back as None.
+    let mut unreadable = sample_track_1();
+    unreadable.modified = None;
+    db.update_track(unreadable).await.unwrap();
+
+    let after = db.get_track("1").await.unwrap().unwrap();
+    assert_eq!(after.modified, Some(1_700_000_000_000));
 }
 
 /**
@@ -584,6 +698,7 @@ async fn test_metadata_backfill_over_temp_library() {
             channels: None,
             bitrate: None,
             file_size: None,
+            modified: None,
             date_added: "2001-02-03T04:05:06.000Z".to_string(),
             play_count: 7,
             last_played: Some("2020-06-07T08:09:10.000Z".to_string()),
@@ -629,6 +744,8 @@ async fn test_metadata_backfill_over_temp_library() {
         assert_eq!(track.channels, Some(channels));
         assert!(track.bitrate.is_some());
         assert!(track.file_size.unwrap() > 0);
+        // migration 06: the scanner reads the real file mtime on backfill.
+        assert!(track.modified.unwrap() > 1_600_000_000_000);
         assert_eq!(track.title, title); // tag refreshed from the file
         assert_eq!(track.duration, 0); // ~0.25s truncates to 0 whole seconds
 
