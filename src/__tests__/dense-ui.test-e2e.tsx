@@ -547,3 +547,14 @@ test('the breadcrumb crumb link ellipsizes instead of overflowing', async () => 
   expect(style.whiteSpace).toBe('nowrap');
   expect(style.minWidth).toBe('0px');
 });
+
+test('keeps the volume strip mounted with no track loaded', async () => {
+  // Deliberately no scan and no playback: this is the empty state. The player
+  // band (and its volume strip) must survive it — spec §3.4 invariant 1.
+  // Assert the strip element itself, not a percentage: the player singleton
+  // carries the volume from earlier tests in this file.
+  const region = page.getByRole('region', { name: 'Now playing' });
+  const strip = region.getByRole('button', { name: /Mute|Unmute/ });
+  await expect.element(strip).toBeVisible();
+  expect(strip.element().getAttribute('data-icon')).toMatch(/^volume/);
+});
