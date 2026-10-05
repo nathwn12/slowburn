@@ -24,10 +24,10 @@ import Queue from '../Queue';
 
 vi.mock('../../lib/player', () => ({
   default: {
-    setQueue: vi.fn(),
-    clearQueue: vi.fn(),
-    removeFromQueue: vi.fn(),
-    startFromQueue: vi.fn(),
+    setQueue: vi.fn<() => void>(),
+    clearQueue: vi.fn<() => void>(),
+    removeFromQueue: vi.fn<() => void>(),
+    startFromQueue: vi.fn<() => void>(),
     getAbLoop: () => ({
       trackId: null,
       enabled: true,
@@ -35,8 +35,8 @@ vi.mock('../../lib/player', () => ({
       startSeconds: null,
       endSeconds: null,
     }),
-    on: vi.fn(),
-    off: vi.fn(),
+    on: vi.fn<() => void>(),
+    off: vi.fn<() => void>(),
   },
 }));
 

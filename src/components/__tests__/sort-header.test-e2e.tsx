@@ -28,17 +28,14 @@ import TrackListHeader from '../TrackListHeader';
 
 const harness = vi.hoisted(() => ({
   config: {} as Config,
-  multiSet: vi.fn(async (_updates: Partial<Config>) => {}),
+  multiSet: vi.fn<(updates: Partial<Config>) => Promise<void>>(async () => {}),
 }));
 
 vi.mock('../../lib/bridge-config', () => ({
   default: {
     getAll: async () => harness.config,
-    get: async (key: string) =>
-      (harness.config as unknown as Record<string, unknown>)[key],
     getInitial: (key: string) =>
       (harness.config as unknown as Record<string, unknown>)[key],
-    set: vi.fn(async () => {}),
     multiSet: harness.multiSet,
   },
 }));
