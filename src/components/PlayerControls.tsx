@@ -81,7 +81,7 @@ export default function PlayerControls(_props: Props = {}) {
         <Icon name={repeat === 'One' ? 'repeatOne' : 'repeat'} size={16} />
       </button>
 
-      <VolumeControl dense />
+      <VolumeControl />
     </div>
   );
 }
