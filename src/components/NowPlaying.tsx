@@ -140,7 +140,11 @@ const styles = stylex.create({
     flexWrap: 'wrap',
     columnGap: '12px',
     rowGap: '8px',
-    minHeight: 0,
+    // Keep the header block at its content height: with the column's
+    // `overflow-y: auto` this makes the stack genuinely overflow and scroll,
+    // instead of flex-shrinking the metadata to nothing so the opaque
+    // transport card below paints over its overflowing contents.
+    flexShrink: 0,
   },
   transportWrap: {
     backgroundColor: 'var(--surface)',
