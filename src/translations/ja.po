@@ -423,6 +423,7 @@ msgid "Sort the queue by how many times each track has been played"
 msgstr ""
 
 #: src/components/Queue.tsx:108
+#: src/components/TrackListHeader.tsx:79
 msgid "Most played"
 msgstr ""
 
@@ -623,6 +624,7 @@ msgid "B"
 msgstr ""
 
 #: src/components/TrackDetails.tsx:90
+#: src/components/TrackListHeader.tsx:78
 msgid "Length"
 msgstr ""
 
@@ -736,37 +738,51 @@ msgstr ""
 msgid "{0, plural, one {# track} other {# tracks}}"
 msgstr "{0, plural, one {# 曲} other {# 曲}}"
 
-#: src/components/TrackListHeader.tsx:23
+#: src/components/TrackListHeader.tsx:33
 msgid "Track list sorting options"
 msgstr ""
 
-#: src/components/TrackListHeader.tsx:25
-msgid "Sort"
-msgstr ""
-
-#: src/components/TrackListHeader.tsx:28
+#: src/components/TrackListHeader.tsx:38
 #: src/routes/tracks.$trackID.tsx:88
 msgid "Title"
 msgstr "タイトル"
 
-#: src/components/TrackListHeader.tsx:33
+#: src/components/TrackListHeader.tsx:43
 #: src/routes/tracks.$trackID.tsx:241
 msgid "Duration"
 msgstr "再生時間"
 
-#: src/components/TrackListHeader.tsx:38
+#: src/components/TrackListHeader.tsx:48
 msgid "Artist"
 msgstr "アーティスト"
 
-#: src/components/TrackListHeader.tsx:43
+#: src/components/TrackListHeader.tsx:53
+#: src/components/TrackListHeader.tsx:77
 #: src/routes/tracks.$trackID.tsx:99
 msgid "Album"
 msgstr "アルバム"
 
-#: src/components/TrackListHeader.tsx:48
+#: src/components/TrackListHeader.tsx:58
 #: src/routes/tracks.$trackID.tsx:139
 msgid "Genre"
 msgstr "ジャンル"
+
+#: src/components/TrackListHeader.tsx:74
+msgid "Recently modified"
+msgstr ""
+
+#: src/components/TrackListHeader.tsx:75
+msgid "Recently added"
+msgstr ""
+
+#: src/components/TrackListHeader.tsx:76
+msgid "Artist / Album"
+msgstr ""
+
+#: src/components/TrackListHeader.tsx:111
+#: src/components/TrackListHeader.tsx:116
+msgid "Sort"
+msgstr ""
 
 #: src/components/TrackListStates.tsx:25
 msgid "Loading library..."
