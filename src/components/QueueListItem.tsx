@@ -35,8 +35,10 @@ export default function QueueListItem(props: Props) {
   };
 
   const remove = useCallback(() => {
-    player.removeFromQueue(index);
-  }, [index]);
+    // `player.removeFromQueue` takes an index RELATIVE to the cursor; this row
+    // holds its absolute queue index for display.
+    player.removeFromQueue(index - props.queueCursor - 1);
+  }, [index, props.queueCursor]);
 
   const play = useCallback(async () => {
     await player.startFromQueue(index);

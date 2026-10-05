@@ -177,6 +177,7 @@ function BurnControl(props: BurnControlProps) {
         max={props.sliderMax}
         step={props.sliderStep}
         onValueChange={props.onChange}
+        {...stylex.props(styles.sliderWrap)}
       >
         <Slider.Control ref={wheelRef} {...stylex.props(styles.sliderRoot)}>
           <Slider.Track {...stylex.props(styles.sliderTrack)}>
@@ -315,6 +316,8 @@ const styles = stylex.create({
     borderRadius: '3px',
     display: 'grid',
     placeItems: 'center',
+    position: 'relative',
+    zIndex: 2,
     backgroundColor: {
       default: 'transparent',
       ':hover': 'var(--surface-hover)',
@@ -345,6 +348,15 @@ const styles = stylex.create({
     flexShrink: 1,
     flexBasis: '0%',
     minWidth: '56px',
+  },
+  // The Root owns the flex growth; without this the Control collapsed to its
+  // 56px minWidth and left dead space in each Burn column.
+  sliderWrap: {
+    display: 'flex',
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: '0%',
+    minWidth: 0,
   },
   sliderTrack: {
     position: 'relative',

@@ -31,3 +31,7 @@ target
 release
 !src-tauri/release
 .tanstack
+
+# Playwright/vitest screenshot artifacts
+src/__tests__/__screenshots__/
+.vitest-attachments/

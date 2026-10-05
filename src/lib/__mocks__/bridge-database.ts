@@ -105,8 +105,12 @@ class DatabaseBridge implements DatabaseBridgeInterface {
     return {} as Track;
   }
 
-  async recordPlay(_trackID: string): Promise<void> {
-    return;
+  async recordPlay(trackID: string): Promise<void> {
+    const holder = globalThis as typeof globalThis & {
+      __MUSEEKS_MOCK_RECORD_PLAYS?: Set<string>;
+    };
+    holder.__MUSEEKS_MOCK_RECORD_PLAYS ??= new Set<string>();
+    holder.__MUSEEKS_MOCK_RECORD_PLAYS.add(trackID);
   }
 
   async removeTracks(_trackIDs: Array<string>): Promise<Array<Track>> {

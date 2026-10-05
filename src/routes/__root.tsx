@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import SettingsAPI from '../api/SettingsAPI';
 import AppEvents from '../components/AppEvents';
 import DropzoneImport from '../components/DropzoneImport';
+import EffectsPersistence from '../components/EffectsPersistence';
 import { ErrorView, NotFoundView } from '../components/GlobalErrors';
 import GlobalKeyBindings from '../components/GlobalKeyBindings';
 import Header from '../components/Header';
@@ -17,6 +18,7 @@ import NowPlaying from '../components/NowPlaying';
 import PlayerEvents from '../components/PlayerEvents';
 import Queue from '../components/Queue';
 import { useSavedLoopsSync } from '../components/saved-loops';
+import ShortcutsPanel from '../components/ShortcutsPanel';
 import StatusBar from '../components/StatusBar';
 import Toasts from '../components/Toasts';
 import { useViewStack } from '../components/view-stack';
@@ -117,6 +119,7 @@ function ViewRoot() {
       <AppEvents />
       <LibraryEvents />
       <PlayerEvents />
+      <EffectsPersistence />
       <GlobalKeyBindings />
 
       {/** 40px header: logo, brand, breadcrumb, search, settings */}
@@ -156,6 +159,7 @@ function ViewRoot() {
 
       {/** Out-of-the-flow UI bits */}
       <Toasts />
+      <ShortcutsPanel />
       <DropzoneImport />
     </div>
   );
