@@ -85,7 +85,7 @@
     "vitest-browser-react": "2.2.0"
   },
   "simple-git-hooks": {
-    "pre-commit": "command -v vp >/dev/null || { echo '[pre-commit] vp not on PATH; refusing to commit without a catalog re-extract' >&2; exit 1; }; vp run gen:translations && git add src/translations"
+    "pre-commit": "command -v pnpm >/dev/null || { echo '[pre-commit] pnpm not on PATH; refusing to commit without a catalog re-extract' >&2; exit 1; }; pnpm run gen:translations && git add src/translations"
   },
   "packageManager": "pnpm@11.0.9",
   "productName": "Slowburn"

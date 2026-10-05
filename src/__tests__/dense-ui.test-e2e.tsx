@@ -63,6 +63,21 @@ async function recordJumps(durationMs: number): Promise<number> {
   return jumps;
 }
 
+const loopField = (name: 'Loop point A' | 'Loop point B') =>
+  page.getByRole('textbox', { name });
+
+/** Types into a loop field and blurs it (the documented commit path). */
+async function commitField(
+  field: ReturnType<typeof loopField>,
+  text: string,
+): Promise<void> {
+  await field.click();
+  await userEvent.keyboard(text);
+  await sleep(50);
+  (field.element() as HTMLInputElement).blur();
+  await sleep(120);
+}
+
 beforeEach(() => {
   delete (globalThis as { __MUSEEKS_MOCK_AB_LOOPS?: unknown })
     .__MUSEEKS_MOCK_AB_LOOPS;
@@ -448,4 +463,87 @@ test('typed A-B points commit, reject invalid input, and never invert', async ()
   await userEvent.keyboard('{Escape}');
   await sleep(100);
   expect(p.getAbLoop().endSeconds).toBe(settled);
+});
+
+test(
+  'an emptied A-B field reads neutral and leaves the loop untouched',
+  { timeout: 30_000 },
+  async () => {
+    await playFirstTrack();
+    const p = player();
+    const fieldA = loopField('Loop point A');
+    const fieldB = loopField('Loop point B');
+
+    await commitField(fieldA, '0:10');
+    await commitField(fieldB, '0:20');
+    await waitFor(
+      () =>
+        p.getAbLoop().startSeconds === 10 && p.getAbLoop().endSeconds === 20,
+      3000,
+    );
+
+    // Clearing the field must not paint it red: empty is neutral, not invalid.
+    await fieldA.click();
+    await fieldA.fill('');
+    await sleep(50);
+    (fieldA.element() as HTMLInputElement).blur();
+    await sleep(120);
+
+    expect(fieldA.element().getAttribute('aria-invalid')).not.toBe('true');
+    expect(p.getAbLoop().startSeconds).toBeCloseTo(10, 3);
+    expect(p.getAbLoop().endSeconds).toBeCloseTo(20, 3);
+  },
+);
+
+test(
+  'typed A beyond the track length keeps a usable region, not a dead loop',
+  { timeout: 30_000 },
+  async () => {
+    await playFirstTrack();
+    const p = player();
+
+    // B first, then an A beyond the 300s mock track length (5:00).
+    await commitField(loopField('Loop point B'), '0:10');
+    await waitFor(() => p.getAbLoop().endSeconds === 10, 3000);
+    await commitField(loopField('Loop point A'), '5:00');
+    await waitFor(() => p.getAbLoop().startSeconds != null, 3000);
+
+    const loop = p.getAbLoop();
+    expect(loop.startSeconds).not.toBeNull();
+    expect(loop.endSeconds).not.toBeNull();
+    // The old `{300, 300}` collapse had no width; this must not.
+    expect(loop.endSeconds! - loop.startSeconds!).toBeGreaterThan(0);
+    expect(loop.startSeconds!).toBeLessThan(loop.endSeconds!);
+  },
+);
+
+test(
+  'A == B == 0 is refused as a dead loop',
+  { timeout: 30_000 },
+  async () => {
+    await playFirstTrack();
+    const p = player();
+
+    await commitField(loopField('Loop point A'), '0');
+    await commitField(loopField('Loop point B'), '0');
+    await waitFor(() => p.getAbLoop().endSeconds != null, 3000);
+
+    const loop = p.getAbLoop();
+    expect(loop.startSeconds).not.toBeNull();
+    expect(loop.endSeconds).not.toBeNull();
+    // The old `{0, 0}` zero-width region must never be persisted.
+    expect(loop.endSeconds! - loop.startSeconds!).toBeGreaterThan(0);
+  },
+);
+
+test('the breadcrumb crumb link ellipsizes instead of overflowing', async () => {
+  await setupScannedLibrary();
+  const nav = page.getByRole('navigation', { name: 'Main navigation' });
+  const link = nav.getByRole('link', { name: 'Library' });
+  const style = getComputedStyle(link.element());
+  // D6: the one shell string that could still clip at narrow widths.
+  expect(style.textOverflow).toBe('ellipsis');
+  expect(style.overflow).toBe('hidden');
+  expect(style.whiteSpace).toBe('nowrap');
+  expect(style.minWidth).toBe('0px');
 });

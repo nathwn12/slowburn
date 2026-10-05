@@ -1,4 +1,4 @@
-import { expect, test } from 'vite-plus/test';
+import { afterEach, expect, test } from 'vite-plus/test';
 import { page, userEvent } from 'vite-plus/test/browser';
 
 import {
@@ -10,6 +10,11 @@ import {
 } from './e2e-helpers';
 
 beforeEachSetup();
+
+afterEach(() => {
+  delete (globalThis as { __MUSEEKS_MOCK_SCAN_FAILURES?: unknown })
+    .__MUSEEKS_MOCK_SCAN_FAILURES;
+});
 
 test('The library tab should display all tracks', async () => {
   await setupScannedLibrary();
@@ -200,4 +205,17 @@ test('Column headers should sort tracks in the library', async () => {
   await expect.element(firstTrack).toHaveTextContent(track1content);
   await expect.element(secondTrack).toHaveTextContent(track2content);
   await expect.element(thirdTrack).toHaveTextContent(track0content);
+});
+
+test('a scan that drops unreadable files warns instead of staying silent', async () => {
+  (globalThis as { __MUSEEKS_MOCK_SCAN_FAILURES?: number })
+    .__MUSEEKS_MOCK_SCAN_FAILURES = 1;
+
+  await setupScannedLibrary();
+
+  // Case 3: the one broken file must be surfaced, not swallowed behind the
+  // "tracks added" success line.
+  await expect
+    .element(page.getByText(/could not be read and were skipped/))
+    .toBeVisible();
 });

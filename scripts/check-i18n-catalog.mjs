@@ -33,9 +33,20 @@ if (!locales.includes('en')) {
   fail('no en.po in ' + LOCALES_DIR);
 }
 
-const files = readdirSync(ASSETS).filter((name) => name.endsWith('.js'));
+const files = (() => {
+  try {
+    return readdirSync(ASSETS)
+      .filter((name) => name.endsWith('.js'))
+      .sort();
+  } catch {
+    return fail(`no build output at ${ASSETS} - run \`pnpm run build\` first`);
+  }
+})();
 
 // Resolve each locale's compiled chunk by prefix rather than a hard-coded name.
+// The Lingui/Vite build emits the catalog for `src/translations/<locale>.po` as
+// `<locale>-<hash>.js`; a locale whose chunk cannot be found fails the build
+// loudly instead of being skipped.
 async function loadCatalog(locale) {
   const file = files.find(
     (name) => name.startsWith(`${locale}-`) && name.endsWith('.js'),
