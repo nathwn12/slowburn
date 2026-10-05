@@ -1,6 +1,6 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { Track } from '../generated/typings';
 import player from '../lib/player';
@@ -25,14 +25,7 @@ export default function Queue(props: Props) {
   const [savedOnly, setSavedOnly] = useState(false);
   const [mostPlayed, setMostPlayed] = useState(false);
 
-  const probe = useSavedLoopsStore((state) => state.probe);
   const savedIds = useSavedLoopsStore((state) => state.ids);
-
-  // Probe every queued track once so the `◆ Saved loops` filter is honest even
-  // for loops stored in an earlier session.
-  useEffect(() => {
-    queue.forEach((track) => probe(track.id));
-  }, [queue, probe]);
 
   const trackPlaying =
     queueCursor != null ? (queue[queueCursor] ?? null) : null;
@@ -236,7 +229,7 @@ const styles = stylex.create({
     lineHeight: 1,
   },
   filterOn: {
-    color: '#cfe0ff',
+    color: 'var(--info-text)',
     borderColor: 'var(--info-line)',
     backgroundColor: 'var(--info-soft)',
   },
@@ -248,3 +241,4 @@ const styles = stylex.create({
     marginLeft: 'auto',
   },
 });
+

@@ -85,6 +85,12 @@ const setTheme = async (themeID: string): Promise<void> => {
       await getCurrentWindow().setTheme('dark');
       break;
     }
+    default: {
+      // Any other theme id: pick an explicit native chrome from the theme's own
+      // source instead of leaving the window with whatever it had.
+      await getCurrentWindow().setTheme(getTheme(themeID).themeSource);
+      break;
+    }
   }
 
   const theme = (await getCurrentWindow().theme()) ?? 'light';

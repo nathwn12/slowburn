@@ -190,7 +190,10 @@ function Waveform({ peaks }: { peaks: Peaks }) {
       const mid = height / 2;
       const amplitude = mid * 0.92;
       const count = peaks.max.length;
-      ctx.fillStyle = '#5c5c5c';
+      // Canvas can't resolve CSS vars itself; read the themed token once.
+      ctx.fillStyle =
+        getComputedStyle(canvas).getPropertyValue('--text-faint').trim() ||
+        '#6b7280';
       for (let x = 0; x < width; x += 1) {
         const from = Math.floor((x * count) / width);
         const to = Math.max(from + 1, Math.floor(((x + 1) * count) / width));
@@ -325,7 +328,7 @@ const styles = stylex.create({
     backgroundColor: 'var(--surface-2)',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: '#262626',
+    borderColor: 'var(--surface-inset)',
     borderRadius: '9999px',
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,.03)',
     overflow: 'visible',
@@ -383,7 +386,7 @@ const styles = stylex.create({
     fontWeight: 800,
     lineHeight: 1,
     letterSpacing: '.09em',
-    color: '#12030b',
+    color: 'var(--on-accent-ink)',
     backgroundColor: 'var(--deep-pink)',
     paddingBlock: '3px',
     paddingInline: '7px',

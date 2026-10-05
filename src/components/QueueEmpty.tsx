@@ -36,7 +36,7 @@ const styles = stylex.create({
     padding: '24px',
   },
   icon: {
-    color: '#4a4a4a',
+    color: 'var(--control-border)',
   },
   big: {
     fontSize: '12.5px',
@@ -49,3 +49,4 @@ const styles = stylex.create({
     maxWidth: '230px',
   },
 });
+

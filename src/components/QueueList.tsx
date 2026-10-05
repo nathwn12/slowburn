@@ -213,7 +213,7 @@ const styles = stylex.create({
     textOverflow: 'ellipsis',
   },
   t1Playing: {
-    color: '#ffd0e9',
+    color: 'var(--pink-text)',
   },
   t2: {
     display: 'block',
@@ -263,3 +263,4 @@ const styles = stylex.create({
     cursor: 'pointer',
   },
 });
+

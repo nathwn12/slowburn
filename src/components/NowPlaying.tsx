@@ -143,10 +143,10 @@ const styles = stylex.create({
     borderRadius: 'var(--radius)',
     borderWidth: '1.5px',
     borderStyle: 'dashed',
-    borderColor: '#4b4b4b',
+    borderColor: 'var(--control-border)',
     display: 'grid',
     placeItems: 'center',
-    color: '#555',
+    color: 'var(--text-faint)',
     backgroundColor: 'rgba(255,255,255,.015)',
   },
   emptyTitle: {
@@ -178,3 +178,4 @@ const styles = stylex.create({
     textAlign: 'left',
   },
 });
+

@@ -224,7 +224,7 @@ const cellStyles = stylex.create({
     textOverflow: 'ellipsis',
   },
   titlePlaying: {
-    color: '#ffd0e9',
+    color: 'var(--pink-text)',
   },
   artistInTitle: {
     color: 'var(--text-muted)',
@@ -269,3 +269,4 @@ const cellStyles = stylex.create({
     textAlign: 'right',
   },
 });
+

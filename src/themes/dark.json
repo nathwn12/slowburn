@@ -88,6 +88,14 @@
     "--focus": "#ff7cc4",
     "--focus-color": "#ff7cc4",
 
+    "--pink-text": "#ffd0e9",
+    "--pink-text-soft": "#ffb8dd",
+    "--on-accent-ink": "#12030b",
+    "--surface-inset": "#262626",
+    "--control-border": "#414141",
+    "--info-text": "#cfe0ff",
+    "--form-control-color": "#ff1493",
+
     "--radius": "6px",
     "--radius-sm": "4px",
     "--row": "38px",

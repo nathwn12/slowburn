@@ -220,7 +220,7 @@ const styles = stylex.create({
     textOverflow: 'ellipsis',
   },
   npYear: {
-    color: '#565656',
+    color: 'var(--text-faint)',
   },
   tech: {
     marginTop: '6px',
@@ -294,7 +294,7 @@ const styles = stylex.create({
     backgroundColor: 'var(--text-faint)',
   },
   chipLive: {
-    color: '#ffd0e9',
+    color: 'var(--pink-text)',
     backgroundColor: 'var(--pink-soft)',
     borderColor: 'var(--pink-line)',
   },
@@ -354,3 +354,4 @@ const styles = stylex.create({
     opacity: 0.7,
   },
 });
+

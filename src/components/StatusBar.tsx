@@ -187,6 +187,7 @@ const styles = stylex.create({
     backgroundColor: 'var(--deep-pink)',
   },
   stEff: {
-    color: '#ffb8dd',
+    color: 'var(--pink-text-soft)',
   },
 });
+
