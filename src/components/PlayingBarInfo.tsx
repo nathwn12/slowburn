@@ -1,24 +1,114 @@
+import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 
 import Link from '../elements/Link';
 import type { Repeat, Track } from '../generated/typings';
+import useEffectsConfig from '../hooks/useEffectsConfig';
 import useFormattedDuration from '../hooks/useFormattedDuration';
 import usePlayingTrackCurrentTime from '../hooks/usePlayingTrackCurrentTime';
+import { usePlayerState } from '../hooks/usePlayer';
+import { NO_VALUE, audioFormatLabel, isLosslessFormat } from '../lib/dense-format';
 import TrackProgress from './TrackProgress';
 
 type Props = {
   trackPlaying: Track;
   shuffle: boolean;
   repeat: Repeat;
+  /** Dense now-playing info: tech line + loop/effects chips. */
+  variant?: 'compact' | 'dense';
 };
 
 export default function PlayingBarInfo(props: Props) {
-  const { trackPlaying } = props;
+  const { trackPlaying, variant = 'compact' } = props;
   const elapsed = usePlayingTrackCurrentTime();
+  const abLoop = usePlayerState((state) => state.abLoop);
+  const effects = useEffectsConfig();
+  const { t } = useLingui();
   const formattedDuration = useFormattedDuration(trackPlaying.duration);
   const formattedProgress = useFormattedDuration(
     Math.min(trackPlaying.duration, elapsed),
   );
+
+  if (variant === 'dense') {
+    const format = audioFormatLabel(trackPlaying.path);
+    const lossless = isLosslessFormat(format);
+
+    const saved = abLoop.startSeconds != null || abLoop.endSeconds != null;
+    const slow = effects.slow;
+    const reverbPct = Math.round(effects.reverbIntensity * 100);
+    const slowEngaged = Math.abs(slow - 1) > 0.0001;
+    const reverbEngaged = reverbPct > 0;
+    const effectsEngaged = slowEngaged || reverbEngaged;
+
+    const effectsBits: string[] = [];
+    if (slowEngaged) effectsBits.push(`Slow ${slow.toFixed(2)}×`);
+    if (reverbEngaged) effectsBits.push(`Reverb ${reverbPct}%`);
+
+    const albumMeta: string[] = [];
+    if (trackPlaying.year != null) albumMeta.push(String(trackPlaying.year));
+    if (trackPlaying.track_no != null) {
+      albumMeta.push(
+        trackPlaying.track_of != null
+          ? `track ${trackPlaying.track_no}/${trackPlaying.track_of}`
+          : `track ${trackPlaying.track_no}`,
+      );
+    }
+
+    return (
+      <div {...stylex.props(styles.npInfo)}>
+        <div {...stylex.props(styles.npTitle)} title={trackPlaying.title}>
+          {trackPlaying.title}
+        </div>
+        <div
+          {...stylex.props(styles.npArtist)}
+          title={trackPlaying.artists.join(', ')}
+        >
+          {trackPlaying.artists.join(', ')}
+        </div>
+        <div {...stylex.props(styles.npAlbum)} title={trackPlaying.album}>
+          {trackPlaying.album}
+          {albumMeta.length > 0 && (
+            <span {...stylex.props(styles.npYear)}>
+              {' · '}
+              {albumMeta.join(' · ')}
+            </span>
+          )}
+        </div>
+
+        <div
+          {...stylex.props(styles.tech)}
+          aria-label={t`Technical format information`}
+        >
+          <span {...stylex.props(lossless && styles.lossless)}>{format}</span>
+          {/* No sample-rate / bitrate / bit-depth / channel data exists in the
+              Track record today; render the honest em-dash rather than guess. */}
+          <span>{NO_VALUE}</span>
+          <span>{NO_VALUE}</span>
+          <span>{NO_VALUE}</span>
+          <span>{NO_VALUE}</span>
+        </div>
+
+        <div {...stylex.props(styles.npChips)}>
+          <span
+            {...stylex.props(styles.chip, saved && styles.chipLive)}
+            title={t`A-B loop state for this file`}
+          >
+            <span {...stylex.props(styles.chipDot)} aria-hidden="true" />
+            {saved ? t`A–B loop saved` : t`No loop for this track`}
+          </span>
+          <span
+            {...stylex.props(styles.chip, effectsEngaged && styles.chipLive)}
+            title={t`Slow and reverb state`}
+          >
+            <span {...stylex.props(styles.chipDot)} aria-hidden="true" />
+            {effectsEngaged
+              ? `${effectsBits.join(' · ')} engaged`
+              : t`Effects neutral (1.00× · dry)`}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div {...stylex.props(styles.playingBarInfo)} data-tauri-drag-region>
@@ -77,6 +167,105 @@ export default function PlayingBarInfo(props: Props) {
 }
 
 const styles = stylex.create({
+  // --- Dense info (.np-info) ---------------------------------------------
+  npInfo: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    paddingTop: '2px',
+    rowGap: '3px',
+  },
+  npTitle: {
+    fontSize: '17px',
+    fontWeight: 700,
+    lineHeight: 1.2,
+    color: 'var(--text-bright)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  npArtist: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'var(--text-dim)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  npAlbum: {
+    fontSize: '11px',
+    color: 'var(--text-faint)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  npYear: {
+    color: '#565656',
+  },
+  tech: {
+    marginTop: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10.5px',
+    fontWeight: 600,
+    lineHeight: 1,
+    color: 'var(--text-dim)',
+    backgroundColor: 'var(--surface-2)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--border-soft)',
+    borderRadius: 'var(--radius-sm)',
+    paddingBlock: '6px',
+    paddingInline: '8px',
+    width: 'fit-content',
+    maxWidth: '100%',
+  },
+  lossless: {
+    color: 'var(--success)',
+    fontWeight: 700,
+  },
+  npChips: {
+    display: 'flex',
+    columnGap: '6px',
+    marginTop: 'auto',
+    paddingBottom: '2px',
+    flexWrap: 'wrap',
+  },
+  chip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    columnGap: '5px',
+    height: '20px',
+    paddingInline: '8px',
+    borderRadius: '9999px',
+    fontSize: '10px',
+    fontWeight: 600,
+    lineHeight: 1,
+    color: 'var(--text-dim)',
+    backgroundColor: 'var(--surface-2)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--border-soft)',
+  },
+  chipDot: {
+    width: '5px',
+    height: '5px',
+    flexShrink: 0,
+    borderRadius: '50%',
+    backgroundColor: 'var(--text-faint)',
+  },
+  chipLive: {
+    color: '#ffd0e9',
+    backgroundColor: 'var(--pink-soft)',
+    borderColor: 'var(--pink-line)',
+  },
+
+  // --- Compact info (header mini-bar, unchanged) --------------------------
   playingBarInfo: {
     flexGrow: 1,
     flexShrink: 1,

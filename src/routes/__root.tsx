@@ -14,8 +14,11 @@ import IPCNavigationEvents from '../components/IPCNavigationEvents';
 import IPCPlayerEvents from '../components/IPCPlayerEvents';
 import LibraryEvents from '../components/LibraryEvents';
 import Navigation from '../components/Navigation';
+import NowPlaying from '../components/NowPlaying';
 import PlayerEvents from '../components/PlayerEvents';
+import Queue from '../components/Queue';
 import Toasts from '../components/Toasts';
+import { usePlayerState } from '../hooks/usePlayer';
 import useInvalidate from '../hooks/useInvalidate';
 import { configQuery } from '../lib/queries';
 import queryClient from '../lib/query-client';
@@ -49,6 +52,8 @@ export const Route = createRootRoute({
 function ViewRoot() {
   const invalidate = useInvalidate();
   const { t } = useLingui();
+  const queue = usePlayerState((state) => state.queue);
+  const queueCursor = usePlayerState((state) => state.queueCursor);
 
   useEffect(() => {
     // If the app imported tracks, we need to refresh route data, but it seems invalidate is not super stable
@@ -61,6 +66,11 @@ function ViewRoot() {
   useEffect(() => {
     info(`Navigated to: ${location.pathname}`);
   }, [location]);
+
+  // The settings routes position their navigation outside the content box
+  // (`right: 100%`), so they need the legacy full-width container until Wave 2
+  // folds them into the Dense shell. Every other route renders inside it.
+  const isSettingsRoute = location.pathname.startsWith('/settings');
 
   return (
     <div
@@ -75,15 +85,42 @@ function ViewRoot() {
       <PlayerEvents />
       <GlobalKeyBindings />
 
-      {/** The actual app */}
+      {/** The actual app: header row + the Dense two-column main area */}
       <Header />
-      <Navigation />
+
       <main
         aria-label={t`Application main content`}
-        {...stylex.props(styles.mainContent)}
+        {...stylex.props(
+          styles.main,
+          isSettingsRoute && styles.mainFullWidth,
+        )}
       >
-        <Outlet />
+        {isSettingsRoute ? (
+          <div {...stylex.props(styles.settingsSlot)}>
+            <Outlet />
+          </div>
+        ) : (
+          <>
+            <NowPlaying />
+            <div {...stylex.props(styles.rightColumn)}>
+              {/**
+               * Wave 1 keeps the routed surfaces (library list, …) rendering;
+               * Wave 2 folds them into this column. The Queue is the right
+               * column's own child as specified.
+               */}
+              <div {...stylex.props(styles.routeSlot)}>
+                <Outlet />
+              </div>
+              <aside aria-label={t`Queue`} {...stylex.props(styles.queueSlot)}>
+                <Queue queue={queue} queueCursor={queueCursor} />
+              </aside>
+            </div>
+          </>
+        )}
       </main>
+
+      {/** Footer navigation (collapses into the header breadcrumb in Wave 2) */}
+      <Navigation />
 
       {/** Out-of-the-flow UI bits */}
       <Toasts />
@@ -98,15 +135,53 @@ const styles = stylex.create({
     flexDirection: 'column',
     height: '100%',
   },
-  mainContent: {
+  main: {
     order: 1,
     width: '100%',
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 'auto',
     position: 'relative',
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) 388px',
+    minHeight: 0,
+    overflow: 'hidden',
+    backgroundColor: 'var(--bg)',
+  },
+  mainFullWidth: {
+    gridTemplateColumns: 'minmax(0, 1fr)',
+  },
+  settingsSlot: {
+    minHeight: 0,
+    height: '100%',
+    position: 'relative',
+  },
+  rightColumn: {
+    position: 'relative',
+    zIndex: 1,
     display: 'flex',
     flexDirection: 'column',
+    minWidth: 0,
     minHeight: 0,
+    borderLeftWidth: '1px',
+    borderLeftStyle: 'solid',
+    borderLeftColor: 'var(--border)',
+    backgroundColor: 'var(--surface-2)',
+  },
+  routeSlot: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: '0%',
+    minHeight: 0,
+    position: 'relative',
+  },
+  queueSlot: {
+    flexShrink: 0,
+    maxHeight: '38%',
+    overflow: 'auto',
+    padding: '8px',
+    borderTopWidth: '1px',
+    borderTopStyle: 'solid',
+    borderTopColor: 'var(--border)',
   },
 });
