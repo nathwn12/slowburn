@@ -797,19 +797,13 @@ msgstr "Your search returned no results"
 msgid "Seek bar with A-B loop region"
 msgstr "Seek bar with A-B loop region"
 
-#: src/components/VolumeControl.tsx:61
+#: src/components/VolumeControl.tsx:44
 msgid "Unmute"
 msgstr "Unmute"
 
-#: src/components/VolumeControl.tsx:61
+#: src/components/VolumeControl.tsx:44
 msgid "Mute"
 msgstr "Mute"
-
-#: src/components/VolumeControl.tsx:84
-#: src/components/VolumeControl.tsx:105
-#: src/components/VolumeControl.tsx:132
-msgid "Volume"
-msgstr "Volume"
 
 #: src/routes/__root.tsx:129
 msgid "Application main content"

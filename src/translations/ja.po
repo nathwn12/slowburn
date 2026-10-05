@@ -797,19 +797,13 @@ msgstr "検索結果が見つかりませんでした"
 msgid "Seek bar with A-B loop region"
 msgstr ""
 
-#: src/components/VolumeControl.tsx:61
+#: src/components/VolumeControl.tsx:44
 msgid "Unmute"
 msgstr ""
 
-#: src/components/VolumeControl.tsx:61
+#: src/components/VolumeControl.tsx:44
 msgid "Mute"
 msgstr ""
-
-#: src/components/VolumeControl.tsx:84
-#: src/components/VolumeControl.tsx:105
-#: src/components/VolumeControl.tsx:132
-msgid "Volume"
-msgstr "音量"
 
 #: src/routes/__root.tsx:129
 msgid "Application main content"
