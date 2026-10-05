@@ -166,7 +166,10 @@ const styles = stylex.create({
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: {
+      default: '1fr 1fr',
+      '@media (max-width: 560px)': '1fr',
+    },
     columnGap: '22px',
     rowGap: '14px',
   },

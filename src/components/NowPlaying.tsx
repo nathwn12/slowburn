@@ -130,11 +130,16 @@ const styles = stylex.create({
     paddingInline: '12px',
     rowGap: '10px',
     backgroundColor: 'var(--bg)',
-    overflow: 'hidden',
+    // Scroll rather than clip: below the design height the ledger and Burn
+    // strip must stay reachable.
+    overflowY: 'auto',
+    overflowX: 'hidden',
   },
   npTop: {
     display: 'flex',
+    flexWrap: 'wrap',
     columnGap: '12px',
+    rowGap: '8px',
     minHeight: 0,
   },
   transportWrap: {

@@ -90,7 +90,10 @@ const styles = stylex.create({
   transport: {
     display: 'flex',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    minWidth: 0,
     columnGap: '6px',
+    rowGap: '6px',
   },
   tbtn: {
     width: '28px',

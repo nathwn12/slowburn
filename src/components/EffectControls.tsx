@@ -224,7 +224,10 @@ const styles = stylex.create({
     paddingBottom: '9px',
     paddingInline: '11px',
     display: 'grid',
-    gridTemplateColumns: '1fr 1px 1fr',
+    gridTemplateColumns: {
+      default: '1fr 1px 1fr',
+      '@media (max-width: 900px)': '1fr',
+    },
     columnGap: '12px',
     rowGap: '12px',
     alignItems: 'center',
@@ -232,11 +235,17 @@ const styles = stylex.create({
   burnSep: {
     backgroundColor: 'rgba(255,255,255,.07)',
     alignSelf: 'stretch',
+    display: {
+      default: 'block',
+      '@media (max-width: 900px)': 'none',
+    },
   },
   burnCtl: {
     display: 'flex',
     alignItems: 'center',
+    flexWrap: 'wrap',
     columnGap: '7px',
+    rowGap: '6px',
     minWidth: 0,
   },
   burnId: {

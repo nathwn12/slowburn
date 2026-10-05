@@ -324,6 +324,7 @@ const styles = stylex.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    top: 'calc(50% - 3px)',
     height: '6px',
     backgroundColor: 'var(--surface-2)',
     borderWidth: '1px',

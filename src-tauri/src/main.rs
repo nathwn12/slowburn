@@ -126,7 +126,7 @@ fn main() {
                     .visible(false)
                     .theme(get_theme_from_name(&conf.theme))
                     .inner_size(960.0, 600.0)
-                    .min_inner_size(720.0, 480.0)
+                    .min_inner_size(900.0, 600.0)
                     .fullscreen(false)
                     .resizable(true)
                     .zoom_hotkeys_enabled(true);

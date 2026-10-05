@@ -108,7 +108,7 @@ const styles = stylex.create({
     height: '24px',
     width: '210px',
     flexShrink: 1,
-    minWidth: '120px',
+    minWidth: '90px',
     paddingInline: '8px',
     backgroundColor: {
       default: 'var(--surface-2)',

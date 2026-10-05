@@ -356,7 +356,15 @@ class Player extends EventEmitter<PlayerEvents> {
     // this user gesture). Safe to call on every play.
     this.effects.ensureGraph();
     await this.effects.resume();
-    await this.audio.play();
+    try {
+      await this.audio.play();
+    } catch (error) {
+      // An AbortError here is expected: play() is rejected when it is
+      // interrupted by a pause/seek/track change. It must not surface as a
+      // user-facing toast; every other failure still propagates.
+      if ((error as DOMException | undefined)?.name === 'AbortError') return;
+      throw error;
+    }
   }
 
   pause() {

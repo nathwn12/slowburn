@@ -69,6 +69,10 @@ const styles = stylex.create({
     position: 'sticky',
     top: 0,
     zIndex: 5,
+    // Keep the sort bar inside the column instead of forcing a horizontal
+    // scrollbar under the list.
+    overflowX: 'hidden',
+    minWidth: 0,
   },
   label: {
     fontSize: '9.5px',
@@ -76,6 +80,7 @@ const styles = stylex.create({
     letterSpacing: '.11em',
     color: 'var(--text-faint)',
     paddingInline: '4px',
+    flexShrink: 0,
   },
   cell: {
     paddingBlock: 0,
@@ -86,5 +91,10 @@ const styles = stylex.create({
     textTransform: 'uppercase',
     color: 'var(--text-faint)',
     borderRadius: 'var(--radius-sm)',
+    flexShrink: 1,
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
 });
