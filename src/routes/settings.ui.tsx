@@ -63,6 +63,27 @@ function ViewSettingsUI() {
         </Setting.Select>
       </Setting.Section>
       <Setting.Section>
+        <Setting.Select
+          label={t`Mode`}
+          description={t`Minimal hides the ledger and the queue column`}
+          value={config.ui_mode}
+          onChange={(e) =>
+            SettingsAPI.setUIMode(
+              e.currentTarget.value as Config['ui_mode'],
+            )
+              .then(invalidate)
+              .catch(logAndNotifyError)
+          }
+        >
+          <option value="minimal">
+            <Trans>Minimal (default)</Trans>
+          </option>
+          <option value="full">
+            <Trans>Full</Trans>
+          </option>
+        </Setting.Select>
+      </Setting.Section>
+      <Setting.Section>
         <Setting.ColorSelector
           label={t`Accent color`}
           value={config.ui_accent_color ?? DEFAULT_MAIN_COLOR}

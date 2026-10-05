@@ -118,6 +118,10 @@ async function setTracksDensity(
   await ConfigBridge.set('track_view_density', density);
 }
 
+async function setUIMode(mode: Config['ui_mode']): Promise<void> {
+  await ConfigBridge.set('ui_mode', mode);
+}
+
 const setUIMainColor = async (
   mainColor: Config['ui_accent_color'],
 ): Promise<void> => {
@@ -166,6 +170,7 @@ const SettingsAPI = {
   setUIMainColor,
   applyUIMainColorToUI,
   setTracksDensity,
+  setUIMode,
   toggleLibraryAutorefresh,
   toggleDisplayNotifications,
   toggleFollowPlayingTrack,
