@@ -55,10 +55,19 @@ pub enum TrackViewDensity {
 
 #[derive(Serialize, Deserialize, Debug, Clone, TS)]
 #[ts(export, export_to = "../../src/generated/typings.ts")]
+#[serde(rename_all = "lowercase")]
+pub enum UiMode {
+    Minimal,
+    Full,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, TS)]
+#[ts(export, export_to = "../../src/generated/typings.ts")]
 #[serde(default)]
 pub struct Config {
     pub language: String,
     pub theme: String,
+    pub ui_mode: UiMode,
     pub ui_accent_color: Option<String>,
     pub audio_volume: f32,
     pub audio_playback_rate: Option<f32>,
@@ -94,6 +103,7 @@ impl Default for Config {
         Config {
             language: "en".to_owned(),
             theme: SYSTEM_THEME.to_owned(),
+            ui_mode: UiMode::Minimal,
             ui_accent_color: None,
             audio_volume: 1.0,
             audio_playback_rate: Some(1.0),
@@ -233,4 +243,23 @@ pub fn init<R: Runtime>(config: ConfigManager) -> TauriPlugin<R> {
             Ok(())
         })
         .build()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ui_mode_defaults_to_minimal() {
+        assert!(matches!(Config::default().ui_mode, UiMode::Minimal));
+    }
+
+    #[test]
+    fn ui_mode_serializes_lowercase() {
+        assert_eq!(
+            serde_json::to_string(&UiMode::Minimal).unwrap(),
+            "\"minimal\""
+        );
+        assert_eq!(serde_json::to_string(&UiMode::Full).unwrap(), "\"full\"");
+    }
 }
