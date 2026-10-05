@@ -3,7 +3,13 @@ import * as stylex from '@stylexjs/stylex';
 
 import type { Track } from '../generated/typings';
 import { usePlayerState } from '../hooks/usePlayer';
-import { NO_VALUE, formatClockMs } from '../lib/dense-format';
+import {
+  NO_VALUE,
+  formatClockMs,
+  formatFileSize,
+  formatPlayed,
+  formatTimestamp,
+} from '../lib/dense-format';
 
 type Props = {
   trackPlaying: Track | null;
@@ -32,8 +38,30 @@ export default function TrackDetails({ trackPlaying }: Props) {
           value={trackPlaying?.path ?? NO_VALUE}
           title={trackPlaying?.path}
         />
-        <FactRow label={t`Added`} value={NO_VALUE} />
-        <FactRow label={t`Played`} value={NO_VALUE} />
+        <FactRow
+          label={t`Added`}
+          value={
+            trackPlaying != null
+              ? formatTimestamp(trackPlaying.date_added)
+              : NO_VALUE
+          }
+        />
+        <FactRow
+          label={t`Played`}
+          value={
+            trackPlaying != null
+              ? formatPlayed(trackPlaying.play_count, trackPlaying.last_played)
+              : NO_VALUE
+          }
+        />
+        <FactRow
+          label={t`Size`}
+          value={
+            trackPlaying != null
+              ? formatFileSize(trackPlaying.file_size)
+              : NO_VALUE
+          }
+        />
         <FactRow label={t`Peak`} value={NO_VALUE} />
         <FactRow label={t`Hash`} value={NO_VALUE} />
       </div>
@@ -126,6 +154,15 @@ const styles = stylex.create({
     paddingBottom: '6px',
     paddingInline: '10px',
     minWidth: 0,
+    borderLeftWidth: {
+      ':not(:first-child)': '1px',
+    },
+    borderLeftStyle: {
+      ':not(:first-child)': 'solid',
+    },
+    borderLeftColor: {
+      ':not(:first-child)': 'rgba(255,255,255,.07)',
+    },
   },
   dhead: {
     display: 'flex',

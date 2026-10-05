@@ -58,6 +58,77 @@ export function formatClockMs(seconds: number | null | undefined): string {
   return `${m}:${s < 10 ? '0' : ''}${s.toFixed(3)}`;
 }
 
+/**
+ * Sample rate as a kHz label: `44100` -> `44.1 kHz`, `48000` -> `48 kHz`.
+ * Em-dash when genuinely unknown.
+ */
+export function formatSampleRate(hz: number | null | undefined): string {
+  if (hz == null || !Number.isFinite(hz) || hz <= 0) return NO_VALUE;
+  const khz = hz / 1000;
+  return `${Number.isInteger(khz) ? khz : khz.toFixed(1)} kHz`;
+}
+
+/** Bit depth label, e.g. `16 bit`. Em-dash for lossy formats (null). */
+export function formatBitDepth(bits: number | null | undefined): string {
+  if (bits == null || !Number.isFinite(bits) || bits <= 0) return NO_VALUE;
+  return `${bits} bit`;
+}
+
+/** Channel-count label: `Mono`, `Stereo`, or `N ch` for anything else. */
+export function formatChannels(channels: number | null | undefined): string {
+  if (channels == null || !Number.isFinite(channels) || channels <= 0) {
+    return NO_VALUE;
+  }
+  if (channels === 1) return 'Mono';
+  if (channels === 2) return 'Stereo';
+  return `${channels} ch`;
+}
+
+/** Bitrate (bits per second) as kbps, e.g. `1009000` -> `1,009 kbps`. */
+export function formatBitrate(bps: number | null | undefined): string {
+  if (bps == null || !Number.isFinite(bps) || bps <= 0) return NO_VALUE;
+  return `${Math.round(bps / 1000).toLocaleString('en-US')} kbps`;
+}
+
+/** File size in bytes as a human label, e.g. `28698329` -> `27.4 MB`. */
+export function formatFileSize(bytes: number | null | undefined): string {
+  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return NO_VALUE;
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(1)} ${units[unit]}`;
+}
+
+/** ISO-8601 timestamp as `YYYY-MM-DD · HH:MM` (UTC), em-dash when absent. */
+export function formatTimestamp(iso: string | null | undefined): string {
+  if (!iso) return NO_VALUE;
+  // Stored as ISO-8601 UTC; the first 16 chars are the honest wall value.
+  return `${iso.slice(0, 10)} · ${iso.slice(11, 16)}`;
+}
+
+/** Play history without inventing precision: `17 times · last 3 days ago`. */
+export function formatPlayed(
+  count: number | null | undefined,
+  lastPlayed: string | null | undefined,
+): string {
+  if (count == null || !Number.isFinite(count) || count <= 0) {
+    return 'never played';
+  }
+  const times = count === 1 ? '1 time' : `${count} times`;
+  if (!lastPlayed) return times;
+  const then = Date.parse(lastPlayed);
+  if (Number.isNaN(then)) return times;
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return `${times} · today`;
+  if (days === 1) return `${times} · yesterday`;
+  return `${times} · ${days} days ago`;
+}
+
 /** Two-character stand-in glyph for the art tile, from an album/title string. */
 export function artInitials(...sources: Array<string | null | undefined>): string {
   for (const source of sources) {

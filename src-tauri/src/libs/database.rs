@@ -1,14 +1,17 @@
 use indexmap::IndexMap;
 use itertools::Itertools;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{Connection, SqliteConnection};
+use std::collections::HashSet;
 use std::path::PathBuf;
 use ts_rs::TS;
 
 use super::error::AnyResult;
 use super::playlist::Playlist;
-use super::track::{Track, TrackGroup};
+use super::track::{Track, TrackGroup, get_track_from_file, now_iso8601_utc};
+use super::utils::scan_dirs;
 
 /// A persisted A-B section loop, at most one per track.
 ///
@@ -145,6 +148,9 @@ impl DB {
      * Get tracks (and their content) given a set of document IDs
      */
     pub async fn update_track(&mut self, track: Track) -> AnyResult<Track> {
+        // NOTE: `date_added`, `play_count` and `last_played` are history, not
+        // file metadata: a metadata refresh must never clobber them, so they
+        // are deliberately absent from this SET list.
         sqlx::query(
             r#"
             UPDATE tracks SET
@@ -160,7 +166,14 @@ impl DB {
                 track_of = ?,
                 disk_no = ?,
                 disk_of = ?,
-                is_compilation = ?
+                is_compilation = ?,
+                format = ?,
+                is_lossless = ?,
+                sample_rate = ?,
+                bit_depth = ?,
+                channels = ?,
+                bitrate = ?,
+                file_size = ?
             WHERE id = ?
             "#,
         )
@@ -177,6 +190,13 @@ impl DB {
         .bind(track.disk_no)
         .bind(track.disk_of)
         .bind(track.is_compilation)
+        .bind(&track.format)
+        .bind(track.is_lossless)
+        .bind(track.sample_rate)
+        .bind(track.bit_depth)
+        .bind(track.channels)
+        .bind(track.bitrate)
+        .bind(track.file_size.map(|size| size as i64))
         .bind(&track.id)
         .execute(&mut self.connection)
         .await?;
@@ -279,8 +299,10 @@ impl DB {
                 r#"
                 INSERT INTO tracks (
                     id, path, title, album, album_artist, artists, genres, year,
-                    duration, track_no, track_of, disk_no, disk_of, is_compilation
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    duration, track_no, track_of, disk_no, disk_of, is_compilation,
+                    format, is_lossless, sample_rate, bit_depth, channels, bitrate,
+                    file_size, date_added, play_count, last_played
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 "#,
             )
             .bind(&track.id)
@@ -297,6 +319,16 @@ impl DB {
             .bind(track.disk_no)
             .bind(track.disk_of)
             .bind(track.is_compilation)
+            .bind(&track.format)
+            .bind(track.is_lossless)
+            .bind(track.sample_rate)
+            .bind(track.bit_depth)
+            .bind(track.channels)
+            .bind(track.bitrate)
+            .bind(track.file_size.map(|size| size as i64))
+            .bind(&track.date_added)
+            .bind(track.play_count)
+            .bind(&track.last_played)
             .execute(&mut *tx)
             .await?;
         }
@@ -312,6 +344,9 @@ impl DB {
         let mut tx = self.connection.begin().await?;
 
         for track in tracks {
+            // NOTE: this is a metadata/tag refresh. `date_added`, `play_count`
+            // and `last_played` are history and are deliberately absent from
+            // this SET list so a rescan can never reset them.
             sqlx::query(
                 r#"
                 UPDATE tracks SET
@@ -327,7 +362,14 @@ impl DB {
                     track_of = ?,
                     disk_no = ?,
                     disk_of = ?,
-                    is_compilation = ?
+                    is_compilation = ?,
+                    format = ?,
+                    is_lossless = ?,
+                    sample_rate = ?,
+                    bit_depth = ?,
+                    channels = ?,
+                    bitrate = ?,
+                    file_size = ?
                 WHERE id = ?
                 "#,
             )
@@ -344,6 +386,13 @@ impl DB {
             .bind(track.disk_no)
             .bind(track.disk_of)
             .bind(track.is_compilation)
+            .bind(&track.format)
+            .bind(track.is_lossless)
+            .bind(track.sample_rate)
+            .bind(track.bit_depth)
+            .bind(track.channels)
+            .bind(track.bitrate)
+            .bind(track.file_size.map(|size| size as i64))
             .bind(&track.id)
             .execute(&mut *tx)
             .await?;
@@ -351,6 +400,78 @@ impl DB {
 
         tx.commit().await?;
         Ok(())
+    }
+
+    /**
+     * Record one completed play for a track.
+     *
+     * The increment is a single SQL statement, so concurrent/repeated calls
+     * cannot lose an update through a read-modify-write race. `play_count` and
+     * `last_played` are written here and nowhere else in production.
+     */
+    pub async fn record_play(&mut self, track_id: &str) -> AnyResult<()> {
+        sqlx::query("UPDATE tracks SET play_count = play_count + 1, last_played = ? WHERE id = ?")
+            .bind(now_iso8601_utc())
+            .bind(track_id)
+            .execute(&mut self.connection)
+            .await?;
+
+        Ok(())
+    }
+
+    /**
+     * Number of tracks still carrying the migration-05 `format = 'unknown'`
+     * sentinel, i.e. rows that still need a metadata backfill.
+     */
+    pub async fn count_tracks_missing_metadata(&mut self) -> AnyResult<i64> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM tracks WHERE format = 'unknown'")
+            .fetch_one(&mut self.connection)
+            .await?;
+
+        Ok(count)
+    }
+
+    /**
+     * One-shot metadata backfill.
+     *
+     * Re-probes the given library roots and refreshes the file-derived columns
+     * of tracks that are already in the database. It is a no-op when no row
+     * still has the `'unknown'` format sentinel, so it is safe to trigger on
+     * every startup. History columns are never touched (see `update_tracks`).
+     * Files that no longer exist or no longer probe are simply skipped; the
+     * normal scan owns missing-file cleanup.
+     *
+     * Returns the number of tracks refreshed.
+     */
+    pub async fn backfill_tracks_metadata(
+        &mut self,
+        import_paths: Vec<PathBuf>,
+    ) -> AnyResult<usize> {
+        if self.count_tracks_missing_metadata().await? == 0 {
+            return Ok(0);
+        }
+
+        let existing_paths = self
+            .get_all_track_paths()
+            .await?
+            .into_iter()
+            .map(PathBuf::from)
+            .collect::<HashSet<_>>();
+
+        // Only refresh files already in the library; adding new files is the
+        // job of a normal scan.
+        let mut track_paths = scan_dirs(&import_paths, &SUPPORTED_TRACKS_EXTENSIONS);
+        track_paths.retain(|path| existing_paths.contains(path));
+
+        let tracks = track_paths
+            .par_iter()
+            .filter_map(|path| get_track_from_file(path).ok())
+            .collect::<Vec<Track>>();
+
+        let refreshed = tracks.len();
+        self.update_tracks(tracks).await?;
+
+        Ok(refreshed)
     }
 
     /**

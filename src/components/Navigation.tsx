@@ -1,190 +1,257 @@
-import { NavigationMenu } from '@base-ui/react/navigation-menu';
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { Link } from '@tanstack/react-router';
-import type { LinkProps } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
+import { Link, type LinkProps, useLocation } from '@tanstack/react-router';
+import { Fragment, useEffect, useState } from 'react';
 
-import useLibraryStore from '../lib/store';
 import Icon from './Icon';
-import ProgressBar from './ProgressBar';
-import TrackListStatus from './TrackListStatus';
+import { useViewStack, type StackView } from './view-stack';
 
-type NavItemProps = {
-  to: LinkProps['to'];
-  title: string;
-  children: ReactNode;
+type Segment = {
+  key: string;
+  label: string;
+  to?: LinkProps['to'];
+  view: StackView;
 };
 
-function NavItem({ to, title, children }: NavItemProps) {
-  return (
-    <NavigationMenu.Item {...stylex.props(styles.navigationItem)}>
-      <NavigationMenu.Link
-        render={(renderProps) => (
-          <Link
-            {...renderProps}
-            to={to}
-            title={title}
-            aria-label={title}
-            draggable={false}
-            {...stylex.props(styles.navigationLink)}
-          >
-            {children}
-          </Link>
-        )}
-      />
-    </NavigationMenu.Item>
-  );
-}
-
+/**
+ * The header breadcrumb (design §1/§5). It reads as the current location —
+ * `Library › All tracks` — not a flat nav bar. The small switcher beside it is
+ * the control for the right column's view stack (Queue / Library / Playlists).
+ */
 export default function Navigation() {
+  const { pathname } = useLocation();
   const { t } = useLingui();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [menuOpen]);
+
+  const pin = useViewStack((state) => state.pin);
+
+  const trail: Segment[] = [];
+  if (pathname.startsWith('/settings')) {
+    trail.push({ key: 'library', label: t`Library`, to: '/library', view: 'library' });
+    trail.push({ key: 'settings', label: t`Settings`, view: 'library' });
+  } else if (pathname.startsWith('/playlists')) {
+    trail.push({ key: 'playlists', label: t`Playlists`, view: 'playlists' });
+  } else if (pathname.startsWith('/queue')) {
+    trail.push({ key: 'queue', label: t`Queue`, view: 'queue' });
+  } else if (pathname.startsWith('/artists')) {
+    trail.push({ key: 'library', label: t`Library`, to: '/library', view: 'library' });
+    trail.push({ key: 'artists', label: t`Artists`, view: 'library' });
+  } else if (pathname.startsWith('/tracks')) {
+    trail.push({ key: 'library', label: t`Library`, to: '/library', view: 'library' });
+    trail.push({ key: 'track', label: t`Track`, view: 'library' });
+  } else {
+    trail.push({ key: 'library', label: t`Library`, to: '/library', view: 'library' });
+    trail.push({ key: 'all-tracks', label: t`All tracks`, view: 'library' });
+  }
 
   return (
-    <div {...stylex.props(styles.navigation)}>
-      <div {...stylex.props(styles.viewLinksContainer)}>
-        <NavigationMenu.Root
-          orientation="horizontal"
-          aria-label={t`Main navigation`}
+    <div {...stylex.props(styles.breadcrumb)}>
+      {trail.map((segment, index) => (
+        <Fragment key={segment.key}>
+          {index > 0 && (
+            <span {...stylex.props(styles.sep)} aria-hidden="true">
+              ›
+            </span>
+          )}
+          {segment.to != null ? (
+            <Link
+              to={segment.to}
+              draggable={false}
+              onClick={() => pin(segment.view)}
+              {...stylex.props(styles.crumbLink)}
+            >
+              {segment.label}
+            </Link>
+          ) : (
+            <b {...stylex.props(styles.crumbCurrent)} aria-current="page">
+              {segment.label}
+            </b>
+          )}
+        </Fragment>
+      ))}
+
+      <div {...stylex.props(styles.switcher)}>
+        <button
+          type="button"
+          aria-label={t`Switch view`}
+          title={t`Switch view`}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={(event) => {
+            event.stopPropagation();
+            setMenuOpen((value) => !value);
+          }}
+          {...stylex.props(
+            styles.switcherBtn,
+            menuOpen && styles.switcherBtnOpen,
+          )}
         >
-          <NavigationMenu.List {...stylex.props(styles.viewLinks)}>
-            <NavItem to="/library" title={t`Library`}>
-              <Icon name="musicalNotes" size={16} />
-            </NavItem>
-            <NavItem to="/artists" title={t`Artists`}>
-              <Icon name="microphone" size={16} />
-            </NavItem>
-            <NavItem to="/playlists" title={t`Playlists`}>
-              <Icon name="playlist" size={16} />
-            </NavItem>
-            <NavItem to="/settings" title={t`Settings`}>
-              <Icon name="settings" size={16} />
-            </NavItem>
-          </NavigationMenu.List>
-        </NavigationMenu.Root>
-      </div>
-      <div {...stylex.props(styles.status)} aria-label={t`Library status`}>
-        <Status />
+          <Icon name="list" size={12} />
+        </button>
+
+        {menuOpen && (
+          <div
+            role="menu"
+            aria-label={t`Views`}
+            onClick={(event) => event.stopPropagation()}
+            {...stylex.props(styles.menu)}
+          >
+            <MenuLink
+              to="/queue"
+              label={t`Queue`}
+              view="queue"
+              onPick={() => setMenuOpen(false)}
+            />
+            <MenuLink
+              to="/library"
+              label={t`All tracks`}
+              view="library"
+              onPick={() => setMenuOpen(false)}
+            />
+            <MenuLink
+              to="/artists"
+              label={t`Artists`}
+              view="library"
+              onPick={() => setMenuOpen(false)}
+            />
+            <MenuLink
+              to="/playlists"
+              label={t`Playlists`}
+              view="playlists"
+              onPick={() => setMenuOpen(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function Status() {
-  const refresh = useLibraryStore((state) => state.refresh);
-  const refreshing = useLibraryStore((state) => state.refreshing);
-  const status = useLibraryStore((state) => state.tracksStatus);
-  const { t } = useLingui();
-
-  const { current, total } = refresh;
-
-  if (refreshing) {
-    // Sketchy
-    const isScanning = total === 0;
-    const progress = total > 0 ? Math.round((current / total) * 100) : 100;
-
-    return (
-      <div {...stylex.props(styles.statusLibraryRefresh)}>
-        <div {...stylex.props(styles.statusLibraryRefreshProgress)}>
-          {isScanning ? (
-            t`scanning tracks...`
-          ) : (
-            <ProgressBar
-              progress={progress}
-              label={total > 0 ? `${current} / ${total}` : ''}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (status != null) {
-    return <TrackListStatus {...status} />;
-  }
-
-  return null;
+function MenuLink(props: {
+  to: LinkProps['to'];
+  label: string;
+  view: StackView;
+  onPick: () => void;
+}) {
+  const pin = useViewStack((state) => state.pin);
+  return (
+    <Link
+      to={props.to}
+      role="menuitem"
+      draggable={false}
+      onClick={() => {
+        pin(props.view);
+        props.onPick();
+      }}
+      {...stylex.props(styles.menuItem)}
+    >
+      {props.label}
+    </Link>
+  );
 }
 
 const styles = stylex.create({
-  navigation: {
-    order: 2,
-    backgroundColor: 'var(--footer-bg)',
-    borderTopWidth: '1px',
-    borderTopStyle: 'solid',
-    borderTopColor: 'var(--border-color)',
-    flexGrow: 0,
+  breadcrumb: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '6px',
+    minWidth: 0,
+    color: 'var(--text-dim)',
+    fontSize: '11px',
+  },
+  sep: {
+    color: '#555',
+    userSelect: 'none',
+  },
+  crumbLink: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: {
+      default: 'var(--text-dim)',
+      ':hover': 'var(--text-bright)',
+    },
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+    paddingBlock: '3px',
+    paddingInline: '4px',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: {
+      ':hover': 'var(--surface-hover)',
+    },
+  },
+  crumbCurrent: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: 'var(--text)',
+    whiteSpace: 'nowrap',
+    paddingBlock: '3px',
+    paddingInline: '4px',
+  },
+  switcher: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  switcherBtn: {
+    width: '22px',
+    height: '22px',
     flexShrink: 0,
-    flexBasis: 'auto',
-    paddingBlock: '0',
-    paddingInline: '15px',
-    display: 'flex',
-    alignItems: 'stretch',
-  },
-  viewLinksContainer: {
-    display: 'flex',
-    alignItems: 'stretch',
-    width: '30%',
-  },
-  viewLinks: {
-    display: 'flex',
-    alignItems: 'stretch',
-    listStyle: 'none',
+    borderRadius: 'var(--radius-sm)',
+    display: 'grid',
+    placeItems: 'center',
+    color: {
+      default: 'var(--text-faint)',
+      ':hover': 'var(--text-bright)',
+    },
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
+    borderStyle: 'none',
     padding: 0,
-    margin: 0,
   },
-  navigationItem: {
+  switcherBtnOpen: {
+    color: 'var(--text-bright)',
+    backgroundColor: 'var(--surface-hover)',
+  },
+  menu: {
+    position: 'absolute',
+    top: 'calc(100% + 6px)',
+    left: 0,
+    zIndex: 1000,
+    minWidth: '150px',
+    display: 'flex',
+    flexDirection: 'column',
+    rowGap: '1px',
+    padding: '4px',
+    backgroundColor: 'var(--surface)',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: 'var(--border-color)',
-    borderBlockWidth: '0',
-    borderInlineWidth: '1px',
-    marginLeft: {
-      default: '-1px',
-      ':first-child': '0',
-    },
+    borderColor: 'var(--border-soft)',
+    borderRadius: 'var(--radius)',
+    boxShadow: '0 8px 24px rgba(0,0,0,.45)',
   },
-  navigationLink: {
-    color: {
-      default: 'inherit',
-      ':hover': 'inherit',
-      ':focus': 'inherit',
-      '[data-status="active"]': 'var(--main-color)',
-    },
-    paddingBlock: '8px',
-    paddingInline: '12px',
-    lineHeight: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: {
-      ':active': 'var(--footer-nav-bg-color-active)',
-      '[data-status="active"]': 'var(--footer-nav-bg-color-active)',
-    },
-    zIndex: {
-      ':active': 1,
-    },
-  },
-  status: {
-    width: '40%',
-    textAlign: 'center',
+  menuItem: {
+    paddingBlock: '7px',
+    paddingInline: '10px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '12px',
-    paddingTop: '7px',
-    paddingBottom: '7px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusLibraryRefresh: {
-    display: 'flex',
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: '0%',
-    alignItems: 'center',
-  },
-  statusLibraryRefreshProgress: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: '0%',
+    fontWeight: 600,
+    color: {
+      default: 'var(--text-dim)',
+      ':hover': 'var(--text-bright)',
+    },
+    textDecoration: 'none',
+    backgroundColor: {
+      ':hover': 'var(--surface-hover)',
+    },
+    whiteSpace: 'nowrap',
   },
 });

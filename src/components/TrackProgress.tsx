@@ -1,21 +1,16 @@
 import { Slider } from '@base-ui/react/slider';
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Track } from '../generated/typings';
 import useFormattedDuration from '../hooks/useFormattedDuration';
 import usePlayingTrackCurrentTime from '../hooks/usePlayingTrackCurrentTime';
 import { usePlayerState } from '../hooks/usePlayer';
-import {
-  clampSeconds,
-  nudgeA,
-  nudgeB,
-  resolveDragA,
-  resolveDragB,
-} from '../lib/dense-ab';
+import { clampSeconds } from '../lib/dense-ab';
 import { formatClock } from '../lib/dense-format';
 import player from '../lib/player';
+import { useWaveform, type Peaks } from './useWaveform';
 
 type Props = {
   trackPlaying: Track;
@@ -37,20 +32,24 @@ export default function TrackProgress(props: Props) {
 function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
   const abLoop = usePlayerState((state) => state.abLoop);
   const elapsed = usePlayingTrackCurrentTime();
+  const peaks = useWaveform(trackPlaying);
   const { t } = useLingui();
 
   const trackRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState<null | 'seek' | 'A' | 'B'>(null);
+  const [seeking, setSeeking] = useState(false);
+  // Drag-local preview: the fill/playhead track the pointer at 60fps while
+  // scrubbing, instead of waiting for the engine's ~4 Hz `timeupdate`.
+  const [previewTime, setPreviewTime] = useState<number | null>(null);
 
   const duration = trackPlaying.duration;
   const denom = duration > 0 ? duration : 1;
+  const shownTime = Math.min(previewTime ?? elapsed, duration);
   const a = abLoop.startSeconds;
   const b = abLoop.endSeconds;
   const hasRegion = a != null || b != null;
 
   const lo = a != null ? a : 0;
-  const hi =
-    b != null ? b : a != null ? Math.max(elapsed, a) : 0;
+  const hi = b != null ? b : a != null ? Math.max(shownTime, a) : 0;
   const regionWidth = Math.max(0, hi - lo);
 
   const posFromEvent = useCallback((clientX: number): number => {
@@ -68,85 +67,45 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
 
   const onTrackPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if ((e.target as HTMLElement).dataset.abHandle !== undefined) return;
       e.preventDefault();
       trackRef.current?.setPointerCapture(e.pointerId);
-      setDragging('seek');
-      seekTo(posFromEvent(e.clientX) * duration);
+      setSeeking(true);
+      const seconds = posFromEvent(e.clientX) * duration;
+      setPreviewTime(seconds);
+      seekTo(seconds);
     },
     [duration, posFromEvent, seekTo],
   );
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (dragging === null) return;
-      const ratio = posFromEvent(e.clientX);
-      if (dragging === 'seek') {
-        seekTo(ratio * duration);
-        return;
-      }
-      if (dragging === 'A') {
-        void player.setAbPoint('A', resolveDragA(ratio * duration, b, duration));
-      } else {
-        void player.setAbPoint('B', resolveDragB(ratio * duration, a, duration));
-      }
+      if (!seeking) return;
+      const seconds = posFromEvent(e.clientX) * duration;
+      setPreviewTime(seconds);
+      seekTo(seconds);
     },
-    [a, b, dragging, duration, posFromEvent, seekTo],
+    [duration, posFromEvent, seekTo, seeking],
   );
 
-  const endDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragging === null) return;
-    try {
-      trackRef.current?.releasePointerCapture(e.pointerId);
-    } catch {
-      // capture already gone
-    }
-    setDragging(null);
-  }, [dragging]);
-
-  const onHandlePointerDown = useCallback(
-    (which: 'A' | 'B') => (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      trackRef.current?.setPointerCapture(e.pointerId);
-      setDragging(which);
-    },
-    [],
-  );
-
-  const onHandleKeyDown = useCallback(
-    (which: 'A' | 'B') => (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (duration <= 0) return;
-      const step = e.shiftKey ? 0.002 : 0.01;
-      let delta: number | null = null;
-      let jump: number | null = null;
-      if (e.key === 'ArrowLeft') delta = -step * duration;
-      else if (e.key === 'ArrowRight') delta = step * duration;
-      else if (e.key === 'Home') jump = 0;
-      else if (e.key === 'End') jump = duration;
-      if (delta === null && jump === null) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (which === 'A') {
-        const next = jump ?? nudgeA(delta ?? 0, a, b, duration);
-        void player.setAbPoint('A', next);
-      } else {
-        const next = jump ?? nudgeB(delta ?? 0, a, b, duration);
-        void player.setAbPoint('B', next);
+  const endDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!seeking) return;
+      try {
+        trackRef.current?.releasePointerCapture(e.pointerId);
+      } catch {
+        // capture already gone
       }
+      setSeeking(false);
+      setPreviewTime(null);
     },
-    [a, b, duration],
+    [seeking],
   );
-
-  const handleA = a != null;
-  const handleB = b != null;
-  const editing = dragging === 'A' || dragging === 'B';
 
   return (
     <div {...stylex.props(styles.seek)}>
       <div {...stylex.props(styles.seekTimes)}>
         <span {...stylex.props(styles.elapsedText)}>
-          {formatClock(Math.min(elapsed, duration))}
+          {formatClock(Math.min(shownTime, duration))}
         </span>
         <span {...stylex.props(styles.totalText)}>{formatClock(duration)}</span>
       </div>
@@ -155,78 +114,106 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
         ref={trackRef}
         role="group"
         aria-label={t`Seek bar with A-B loop region`}
-        data-ab-editing={editing ? 'true' : undefined}
         onPointerDown={onTrackPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         {...stylex.props(styles.seekTrack)}
       >
-        <div {...stylex.props(styles.gutter)}>
-          <div
-            {...stylex.props(styles.seekElapsed)}
-            style={{ width: `${(Math.min(elapsed, denom) / denom) * 100}%` }}
-          />
-          {hasRegion && (
+        {peaks != null ? (
+          <>
+            <Waveform peaks={peaks} />
             <div
-              {...stylex.props(styles.abRegion, editing && styles.abRegionEditing)}
-              style={{
-                left: `${(lo / denom) * 100}%`,
-                width: `${(regionWidth / denom) * 100}%`,
-                display: 'block',
-              }}
-            >
-              <span {...stylex.props(styles.abTag)}>A–B LOOP</span>
-            </div>
-          )}
-        </div>
-
-        {handleA && (
-          <div
-            role="slider"
-            tabIndex={0}
-            data-ab-handle="A"
-            aria-label={t`Loop point A`}
-            aria-valuemin={0}
-            aria-valuemax={Math.round(duration)}
-            aria-valuenow={Math.round(a)}
-            aria-valuetext={formatClock(a)}
-            onPointerDown={onHandlePointerDown('A')}
-            onKeyDown={onHandleKeyDown('A')}
-            {...stylex.props(
-              styles.abHandle,
-              dragging === 'A' && styles.abHandleActive,
-            )}
-            style={{ left: `${(a / denom) * 100}%` }}
-          />
+              {...stylex.props(styles.waveElapsed)}
+              style={{ width: `${(Math.min(shownTime, denom) / denom) * 100}%` }}
+            />
+          </>
+        ) : (
+          <div {...stylex.props(styles.gutter)}>
+            <div
+              {...stylex.props(styles.seekElapsed)}
+              style={{ width: `${(Math.min(shownTime, denom) / denom) * 100}%` }}
+            />
+          </div>
         )}
 
-        {handleB && (
+        {hasRegion && (
           <div
-            role="slider"
-            tabIndex={0}
-            data-ab-handle="B"
-            aria-label={t`Loop point B`}
-            aria-valuemin={0}
-            aria-valuemax={Math.round(duration)}
-            aria-valuenow={Math.round(b)}
-            aria-valuetext={formatClock(b)}
-            onPointerDown={onHandlePointerDown('B')}
-            onKeyDown={onHandleKeyDown('B')}
-            {...stylex.props(
-              styles.abHandle,
-              dragging === 'B' && styles.abHandleActive,
-            )}
-            style={{ left: `${(b / denom) * 100}%` }}
-          />
+            {...stylex.props(styles.abRegion)}
+            style={{
+              left: `${(lo / denom) * 100}%`,
+              width: `${(regionWidth / denom) * 100}%`,
+              display: 'block',
+            }}
+          >
+            <span {...stylex.props(styles.abTag)}>A–B LOOP</span>
+          </div>
         )}
 
         <div
           {...stylex.props(styles.seekHead)}
-          style={{ left: `${(Math.min(elapsed, denom) / denom) * 100}%` }}
+          style={{ left: `${(Math.min(shownTime, denom) / denom) * 100}%` }}
         />
       </div>
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Waveform                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The seek waveform: a canvas envelope mirrored around the centre line. It is
+ * decorative (`aria-hidden`) and sits under the bar; all pointer interaction
+ * stays on the parent `.seek-track`.
+ */
+function Waveform({ peaks }: { peaks: Peaks }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = ref.current;
+    if (canvas == null) return;
+
+    const draw = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const width = Math.max(1, Math.round(rect.width));
+      const height = Math.max(1, Math.round(rect.height));
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      const ctx = canvas.getContext('2d');
+      if (ctx == null) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const mid = height / 2;
+      const amplitude = mid * 0.92;
+      const count = peaks.max.length;
+      ctx.fillStyle = '#5c5c5c';
+      for (let x = 0; x < width; x += 1) {
+        const from = Math.floor((x * count) / width);
+        const to = Math.max(from + 1, Math.floor(((x + 1) * count) / width));
+        let lo = 0;
+        let hi = 0;
+        for (let b = from; b < to && b < count; b += 1) {
+          if (peaks.min[b] < lo) lo = peaks.min[b];
+          if (peaks.max[b] > hi) hi = peaks.max[b];
+        }
+        const top = mid - hi * amplitude;
+        const bottom = mid - lo * amplitude;
+        ctx.fillRect(x, top, 1, Math.max(1, bottom - top));
+      }
+    };
+
+    draw();
+    const observer = new ResizeObserver(draw);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [peaks]);
+
+  return (
+    <canvas ref={ref} aria-hidden="true" {...stylex.props(styles.waveCanvas)} />
   );
 }
 
@@ -343,10 +330,30 @@ const styles = stylex.create({
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,.03)',
     overflow: 'visible',
   },
+  waveCanvas: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none',
+  },
+  waveElapsed: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,20,147,.55)',
+    borderTopLeftRadius: '3px',
+    borderBottomLeftRadius: '3px',
+    pointerEvents: 'none',
+  },
   abRegion: {
     position: 'absolute',
-    top: '-1px',
-    bottom: '-1px',
+    top: 'calc(50% - 4px)',
+    height: '8px',
     left: 0,
     width: 0,
     display: 'none',
@@ -366,10 +373,6 @@ const styles = stylex.create({
     borderTopColor: 'rgba(255,20,147,.55)',
     borderBottomColor: 'rgba(255,20,147,.55)',
     borderRadius: '3px',
-  },
-  abRegionEditing: {
-    borderTopStyle: 'dashed',
-    borderBottomStyle: 'dashed',
   },
   abTag: {
     position: 'absolute',
@@ -415,42 +418,6 @@ const styles = stylex.create({
     pointerEvents: 'none',
     transitionProperty: 'transform',
     transitionDuration: '.08s',
-  },
-  abHandle: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    width: '11px',
-    height: '20px',
-    marginLeft: '-5.5px',
-    transform: 'translateY(-50%)',
-    borderRadius: '3px',
-    backgroundColor: 'var(--deep-pink)',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: '#ff7cc4',
-    boxShadow: '0 2px 6px rgba(0,0,0,.5)',
-    cursor: 'ew-resize',
-    zIndex: 3,
-    touchAction: 'none',
-    '::after': {
-      content: '""',
-      position: 'absolute',
-      top: '6px',
-      bottom: '6px',
-      left: '3.5px',
-      right: '3.5px',
-      borderLeftWidth: '1px',
-      borderRightWidth: '1px',
-      borderLeftStyle: 'solid',
-      borderRightStyle: 'solid',
-      borderLeftColor: 'rgba(255,255,255,.75)',
-      borderRightColor: 'rgba(255,255,255,.75)',
-    },
-  },
-  abHandleActive: {
-    backgroundColor: '#ff4fb0',
-    cursor: 'grabbing',
   },
 
   // --- Compact seek -------------------------------------------------------

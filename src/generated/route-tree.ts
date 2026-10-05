@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './../routes/__root'
 import { Route as SettingsRouteImport } from './../routes/settings'
+import { Route as QueueRouteImport } from './../routes/queue'
 import { Route as PlaylistsRouteImport } from './../routes/playlists'
 import { Route as LibraryRouteImport } from './../routes/library'
 import { Route as ArtistsRouteImport } from './../routes/artists'
@@ -25,6 +26,11 @@ import { Route as ArtistsPresetsCompilationsRouteImport } from './../routes/arti
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QueueRoute = QueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlaylistsRoute = PlaylistsRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/artists': typeof ArtistsRouteWithChildren
   '/library': typeof LibraryRoute
   '/playlists': typeof PlaylistsRouteWithChildren
+  '/queue': typeof QueueRoute
   '/settings': typeof SettingsRouteWithChildren
   '/artists/$artistID': typeof ArtistsArtistIDRoute
   '/playlists/$playlistID': typeof PlaylistsPlaylistIDRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/artists': typeof ArtistsRouteWithChildren
   '/library': typeof LibraryRoute
   '/playlists': typeof PlaylistsRouteWithChildren
+  '/queue': typeof QueueRoute
   '/settings': typeof SettingsRouteWithChildren
   '/artists/$artistID': typeof ArtistsArtistIDRoute
   '/playlists/$playlistID': typeof PlaylistsPlaylistIDRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/artists': typeof ArtistsRouteWithChildren
   '/library': typeof LibraryRoute
   '/playlists': typeof PlaylistsRouteWithChildren
+  '/queue': typeof QueueRoute
   '/settings': typeof SettingsRouteWithChildren
   '/artists/$artistID': typeof ArtistsArtistIDRoute
   '/playlists/$playlistID': typeof PlaylistsPlaylistIDRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/artists'
     | '/library'
     | '/playlists'
+    | '/queue'
     | '/settings'
     | '/artists/$artistID'
     | '/playlists/$playlistID'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/artists'
     | '/library'
     | '/playlists'
+    | '/queue'
     | '/settings'
     | '/artists/$artistID'
     | '/playlists/$playlistID'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/artists'
     | '/library'
     | '/playlists'
+    | '/queue'
     | '/settings'
     | '/artists/$artistID'
     | '/playlists/$playlistID'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   ArtistsRoute: typeof ArtistsRouteWithChildren
   LibraryRoute: typeof LibraryRoute
   PlaylistsRoute: typeof PlaylistsRouteWithChildren
+  QueueRoute: typeof QueueRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   TracksTrackIDRoute: typeof TracksTrackIDRoute
 }
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/queue': {
+      id: '/queue'
+      path: '/queue'
+      fullPath: '/queue'
+      preLoaderRoute: typeof QueueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/playlists': {
@@ -316,6 +336,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistsRoute: ArtistsRouteWithChildren,
   LibraryRoute: LibraryRoute,
   PlaylistsRoute: PlaylistsRouteWithChildren,
+  QueueRoute: QueueRoute,
   SettingsRoute: SettingsRouteWithChildren,
   TracksTrackIDRoute: TracksTrackIDRoute,
 }

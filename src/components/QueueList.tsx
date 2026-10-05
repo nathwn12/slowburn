@@ -4,17 +4,17 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Trans } from '@lingui/react/macro';
+import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 
-import Button from '../elements/Button';
 import type { Track } from '../generated/typings';
 import useDndSensors from '../hooks/useDnDSensors';
-import { useTrackListStatus } from '../hooks/useGlobalTrackListStatus';
+import useFormattedDuration from '../hooks/useFormattedDuration';
 import player from '../lib/player';
+import PlayingIndicator from './PlayingIndicator';
 import QueueListItem from './QueueListItem';
-import TrackListStatus from './TrackListStatus';
+import { useIsSavedLoop, useSavedLoopsStore } from './saved-loops';
 
 const INITIAL_QUEUE_SIZE = 20;
 const DND_MODIFIERS = [restrictToVerticalAxis];
@@ -22,43 +22,45 @@ const DND_MODIFIERS = [restrictToVerticalAxis];
 type Props = {
   queue: Track[];
   queueCursor: number;
+  savedOnly: boolean;
+  mostPlayed: boolean;
+  trackPlaying: Track | null;
 };
 
 export default function QueueList(props: Props) {
-  const { queue, queueCursor } = props;
+  const { queue, queueCursor, savedOnly, mostPlayed, trackPlaying } = props;
+  const { t } = useLingui();
   const [queueSize, setQueueSize] = useState(INITIAL_QUEUE_SIZE);
 
-  // Get the 20 next tracks displayed
+  const savedIds = useSavedLoopsStore((state) => state.ids);
+
   const shownQueue = queue.slice(queueCursor + 1, queueCursor + 1 + queueSize);
   const hiddenQueue = queue.slice(queueCursor + 1 + queueSize);
   const incomingQueue = queue.slice(queueCursor + 1);
 
-  const status = useTrackListStatus(incomingQueue);
+  const visibleUpcoming = useMemo(() => {
+    let view = savedOnly
+      ? shownQueue.filter((track) => savedIds.has(track.id))
+      : shownQueue;
+    if (mostPlayed) {
+      view = [...view].sort((a, b) => b.play_count - a.play_count);
+    }
+    return view;
+  }, [shownQueue, savedOnly, mostPlayed, savedIds]);
 
-  // Drag-and-Drop support for reordering the queue
   const sensors = useDndSensors();
   const dndId = useId();
 
   const onDragEnd = useCallback(
     (event: DragEndEvent) => {
-      const {
-        active, // dragged item
-        over, // on which item it was dropped
-      } = event;
-
-      // The item was dropped either nowhere, or on the same item
-      if (over == null || active.id === over.id) {
-        return;
-      }
+      const { active, over } = event;
+      if (over == null || active.id === over.id) return;
 
       const activeIndex = queue.findIndex((track) => track.id === active.id);
       const overIndex = queue.findIndex((track) => track.id === over.id);
-
       const newQueue = [...queue];
-
-      const movedTrack = newQueue.splice(activeIndex, 1)[0]; // Remove active track
-      newQueue.splice(overIndex, 0, movedTrack); // Move it to where the user dropped it
-
+      const movedTrack = newQueue.splice(activeIndex, 1)[0];
+      newQueue.splice(overIndex, 0, movedTrack);
       player.setQueue(newQueue);
     },
     [queue],
@@ -71,67 +73,193 @@ export default function QueueList(props: Props) {
       modifiers={DND_MODIFIERS}
       sensors={sensors}
     >
-      <div {...stylex.props(styles.queueHeader)}>
-        <div {...stylex.props(styles.queueHeaderInfos)}>
-          <TrackListStatus {...status} />
-        </div>
-        <Button bSize="small" onClick={() => player.clearQueue()}>
-          <Trans>clear queue</Trans>
-        </Button>
-      </div>
-      <ul {...stylex.props(styles.queueContent)}>
+      <ul role="listbox" aria-label={t`Queue`} {...stylex.props(styles.list)}>
+        {trackPlaying != null &&
+          (!savedOnly || savedIds.has(trackPlaying.id)) && (
+            <NowRow track={trackPlaying} />
+          )}
+
         <SortableContext
-          items={shownQueue}
+          items={visibleUpcoming}
           strategy={verticalListSortingStrategy}
         >
-          {shownQueue.map((track, index) => (
-            <QueueListItem
-              key={`track-${track.id}-${index}`}
-              index={index}
-              track={track}
-              queueCursor={props.queueCursor}
-            />
-          ))}
+          {visibleUpcoming.map((track) => {
+            const absoluteIndex = queue.findIndex(
+              (candidate) => candidate.id === track.id,
+            );
+            return (
+              <QueueListItem
+                key={`track-${track.id}-${absoluteIndex}`}
+                index={absoluteIndex}
+                track={track}
+                queueCursor={queueCursor}
+              />
+            );
+          })}
         </SortableContext>
-        {hiddenQueue.length > 0 && (
-          <Button
-            block
-            onClick={() =>
-              setQueueSize(
-                Math.min(queueSize + INITIAL_QUEUE_SIZE, incomingQueue.length),
-              )
-            }
-          >
-            <Trans>see more</Trans>
-          </Button>
+
+        {!savedOnly && hiddenQueue.length > 0 && (
+          <li>
+            <button
+              type="button"
+              onClick={() =>
+                setQueueSize(
+                  Math.min(queueSize + INITIAL_QUEUE_SIZE, incomingQueue.length),
+                )
+              }
+              {...stylex.props(styles.more)}
+            >
+              {t`see more`}
+            </button>
+          </li>
         )}
       </ul>
     </DndContext>
   );
 }
 
+/**
+ * The playing row. Kept out of the sortable set on purpose — the engine owns
+ * the cursor, not the drag layer — and shown with the brand EQ bars.
+ */
+function NowRow({ track }: { track: Track }) {
+  const { t } = useLingui();
+  const duration = useFormattedDuration(track.duration);
+  const savedLoop = useIsSavedLoop(track.id);
+
+  return (
+    <li
+      role="option"
+      aria-selected="true"
+      data-is-playing="true"
+      {...stylex.props(styles.row, styles.rowPlaying)}
+    >
+      <span {...stylex.props(styles.idx)}>
+        <PlayingIndicator />
+      </span>
+      <span {...stylex.props(styles.meta)}>
+        <span {...stylex.props(styles.t1, styles.t1Playing)}>{track.title}</span>
+        <span {...stylex.props(styles.t2)}>
+          {track.artists.join(', ')} · {track.album}
+        </span>
+      </span>
+      <span {...stylex.props(styles.right)}>
+        {savedLoop && (
+          <span
+            {...stylex.props(styles.pin)}
+            title={t`Saved A-B loop`}
+            aria-label={t`Saved A-B loop`}
+          >
+            ◆
+          </span>
+        )}
+        <span {...stylex.props(styles.dur)}>{duration}</span>
+      </span>
+    </li>
+  );
+}
+
 const styles = stylex.create({
-  queueHeader: {
-    paddingTop: '5px',
-    paddingBottom: '5px',
-    paddingLeft: '10px',
-    paddingRight: '10px',
-    backgroundColor: 'var(--queue-header-bg)',
-    borderBottomWidth: '1px',
-    borderBottomStyle: 'solid',
-    borderBottomColor: 'var(--border-color)',
-  },
-  queueHeaderInfos: {
-    float: 'right',
-    fontSize: '11px',
-    paddingTop: '1px',
-    paddingBottom: '1px',
-  },
-  queueContent: {
-    maxHeight: '300px',
-    overflow: 'auto',
+  list: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
+    minHeight: 0,
+    overflowY: 'auto',
+    overflowX: 'hidden',
     listStyle: 'none',
-    padding: 0,
     margin: 0,
+    padding: 0,
+    paddingBlock: '2px',
+  },
+  row: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '8px',
+    minHeight: '40px',
+    paddingInline: '10px',
+    borderLeftWidth: '3px',
+    borderLeftStyle: 'solid',
+    borderLeftColor: 'transparent',
+    cursor: 'pointer',
+  },
+  rowPlaying: {
+    borderLeftColor: 'var(--deep-pink)',
+    backgroundImage:
+      'linear-gradient(90deg, var(--pink-soft), rgba(255,20,147,.02) 60%)',
+  },
+  idx: {
+    width: '20px',
+    flexShrink: 0,
+    display: 'grid',
+    placeItems: 'center',
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10.5px',
+    color: 'var(--text-faint)',
+  },
+  meta: {
+    minWidth: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: '0%',
+  },
+  t1: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: 'var(--text)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  t1Playing: {
+    color: '#ffd0e9',
+  },
+  t2: {
+    display: 'block',
+    marginTop: '1px',
+    fontSize: '10.5px',
+    color: 'var(--text-faint)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  right: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '7px',
+    flexShrink: 0,
+  },
+  pin: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '15px',
+    height: '15px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--pink-soft)',
+    color: 'var(--deep-pink)',
+    fontSize: '8px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--pink-line)',
+  },
+  dur: {
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10.5px',
+    fontWeight: 600,
+    color: 'var(--text-faint)',
+    width: '38px',
+    textAlign: 'right',
+  },
+  more: {
+    width: '100%',
+    paddingBlock: '6px',
+    color: 'var(--text-faint)',
+    fontSize: '11px',
+    textAlign: 'center',
+    backgroundColor: 'transparent',
+    borderStyle: 'none',
+    cursor: 'pointer',
   },
 });

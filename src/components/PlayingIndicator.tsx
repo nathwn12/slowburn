@@ -1,87 +1,73 @@
 import * as stylex from '@stylexjs/stylex';
-import { useMemo, useState } from 'react';
 
-import { usePlayerState } from '../hooks/usePlayer';
-import player from '../lib/player';
-import Icon from './Icon';
+const eq = stylex.keyframes({
+  '0%, 100%': { transform: 'scaleY(.45)' },
+  '50%': { transform: 'scaleY(1)' },
+});
 
-export default function TrackPlayingIndicator() {
-  const [hovered, setHovered] = useState(false);
-  const isPaused = usePlayerState((state) => state.isPaused);
+const noMotion = '@media (prefers-reduced-motion: no-preference)';
 
-  const icon = useMemo(() => {
-    if (!isPaused) {
-      if (hovered) {
-        return <Icon name="pause" size={12} />;
-      }
-
-      return (
-        <div {...stylex.props(styles.animation)}>
-          <div {...stylex.props(styles.bar)} />
-          <div {...stylex.props(styles.bar, styles.barSecond)} />
-          <div {...stylex.props(styles.bar, styles.barThird)} />
-        </div>
-      );
-    }
-
-    return <Icon name="play" />;
-  }, [isPaused, hovered]);
-
+/**
+ * The playing indicator: the four-bar brand motif, magenta. Decorative
+ * (`aria-hidden`) so it never competes with the transport's single Play/Pause
+ * control. Motion is gated on `prefers-reduced-motion`.
+ */
+export default function PlayingIndicator() {
   return (
-    <button
-      type="button"
-      onClick={() => player.playPause()}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      tabIndex={0}
-      data-museeks-action
-      {...stylex.props(styles.playingIndicator)}
-    >
-      {icon}
-    </button>
+    <span {...stylex.props(styles.bars)} aria-hidden="true">
+      <span {...stylex.props(styles.bar, styles.bar1)} />
+      <span {...stylex.props(styles.bar, styles.bar2)} />
+      <span {...stylex.props(styles.bar, styles.bar3)} />
+      <span {...stylex.props(styles.bar, styles.bar4)} />
+    </span>
   );
 }
 
-const barAnimation = stylex.keyframes({
-  '0%': { transform: 'scale3d(1, 0, 1)' },
-  '50%': { transform: 'scale3d(1, 1, 1)' },
-  '100%': { transform: 'scale3d(1, 0, 1)' },
-});
-
 const styles = stylex.create({
-  playingIndicator: {
-    height: '100%',
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    borderStyle: 'none',
-    backgroundColor: 'transparent',
-    padding: 0,
-  },
-  animation: {
-    width: '8px',
-    height: '8px',
-    display: 'flex',
+  bars: {
+    display: 'inline-flex',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    columnGap: '1.5px',
+    height: '12px',
+    width: '14px',
   },
   bar: {
-    height: '8px',
     width: '2px',
-    alignItems: 'baseline',
-    backgroundColor: 'currentcolor',
-    animationName: barAnimation,
-    animationDuration: '1s',
-    animationTimingFunction: 'ease-in-out',
-    animationIterationCount: 'infinite',
+    backgroundColor: 'var(--accent)',
+    borderRadius: '1px',
     transformOrigin: 'bottom',
+    animationName: {
+      [noMotion]: eq,
+    },
+    animationDuration: {
+      [noMotion]: '.9s',
+    },
+    animationTimingFunction: {
+      [noMotion]: 'ease-in-out',
+    },
+    animationIterationCount: {
+      [noMotion]: 'infinite',
+    },
   },
-  barSecond: {
-    animationDelay: '0.55s',
+  bar1: {
+    height: '5px',
   },
-  barThird: {
-    animationDelay: '0.25s',
+  bar2: {
+    height: '11px',
+    animationDelay: {
+      [noMotion]: '.18s',
+    },
+  },
+  bar3: {
+    height: '7px',
+    animationDelay: {
+      [noMotion]: '.36s',
+    },
+  },
+  bar4: {
+    height: '12px',
+    animationDelay: {
+      [noMotion]: '.54s',
+    },
   },
 });

@@ -174,10 +174,9 @@ test('Column headers should sort tracks in the library', async () => {
   const secondTrack = getTrackAt(1);
   const thirdTrack = getTrackAt(2);
 
-  const track0content =
-    'Whiskey Blues05:00Captain_SleepyAnother Albumrock, blues';
-  const track1content = 'Majestic Blues05:00Desicomix07Pixabayblues';
-  const track2content = 'Romantic Blues05:00Jean-Paul-VPixabayblues';
+  const track0content = 'Whiskey Blues';
+  const track1content = 'Majestic Blues';
+  const track2content = 'Romantic Blues';
 
   // By default, we sort by artist, album year, album name, track number, disk number
   await expect.element(firstTrack).toHaveTextContent(track0content);

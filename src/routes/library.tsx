@@ -1,5 +1,6 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
+import * as stylex from '@stylexjs/stylex';
 
 import TrackList from '../components/TrackList';
 import TrackListStates from '../components/TrackListStates';
@@ -43,7 +44,7 @@ function ViewLibrary() {
   useGlobalTrackListStatus(filteredTracks);
 
   return (
-    <View>
+    <View xstyle={styles.view}>
       <TrackListStates isLoading={isLoading} tracks={filteredTracks}>
         <TrackList
           layout="default"
@@ -56,3 +57,11 @@ function ViewLibrary() {
     </View>
   );
 }
+
+const styles = stylex.create({
+  // Let the right column's surface-2 show through, so the library list shares
+  // its visual language with the queue/playlist views.
+  view: {
+    backgroundColor: 'transparent',
+  },
+});

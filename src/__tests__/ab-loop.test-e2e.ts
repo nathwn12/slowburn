@@ -26,6 +26,16 @@ const TRACK = {
   disk_no: 1,
   disk_of: 1,
   is_compilation: false,
+  format: 'mp3',
+  is_lossless: false,
+  sample_rate: 44100,
+  bit_depth: null,
+  channels: 2,
+  bitrate: 320000,
+  file_size: null,
+  date_added: '2026-01-01T00:00:00Z',
+  play_count: 0,
+  last_played: null,
 };
 
 const TRACK2 = {

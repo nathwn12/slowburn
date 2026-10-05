@@ -1,10 +1,7 @@
 import * as stylex from '@stylexjs/stylex';
 
-import type SideNav from '../components/SideNav';
-
 type Props = {
   children: React.ReactNode;
-  sideNav?: React.ReactElement<typeof SideNav>;
   layout?: keyof typeof layoutVariants;
   hasPadding?: boolean;
   xstyle?: stylex.CompiledStyles;
@@ -15,30 +12,6 @@ type Props = {
  */
 export default function View(props: Props) {
   const { layout = 'full-width' } = props;
-
-  // Playlists or Artists pages
-  if (props.sideNav) {
-    return (
-      <div
-        {...stylex.props(
-          styles.view,
-          styles.viewWithSideNav,
-          layoutVariants[layout],
-        )}
-      >
-        {props.sideNav}
-        <div
-          {...stylex.props(
-            styles.viewContent,
-            props.hasPadding && styles.hasPadding,
-            props.xstyle,
-          )}
-        >
-          {props.children}
-        </div>
-      </div>
-    );
-  }
 
   // Library or Settings pages
   return (
@@ -75,16 +48,6 @@ const styles = stylex.create({
   },
   hasPadding: {
     padding: '40px',
-  },
-  viewWithSideNav: {
-    display: 'flex',
-    overflow: 'hidden',
-  },
-  viewContent: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 'auto',
-    minWidth: 0,
   },
 });
 

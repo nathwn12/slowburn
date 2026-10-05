@@ -13,11 +13,13 @@ import Header from '../components/Header';
 import IPCNavigationEvents from '../components/IPCNavigationEvents';
 import IPCPlayerEvents from '../components/IPCPlayerEvents';
 import LibraryEvents from '../components/LibraryEvents';
-import Navigation from '../components/Navigation';
 import NowPlaying from '../components/NowPlaying';
 import PlayerEvents from '../components/PlayerEvents';
 import Queue from '../components/Queue';
+import { useSavedLoopsSync } from '../components/saved-loops';
+import StatusBar from '../components/StatusBar';
 import Toasts from '../components/Toasts';
+import { useViewStack } from '../components/view-stack';
 import { usePlayerState } from '../hooks/usePlayer';
 import useInvalidate from '../hooks/useInvalidate';
 import { configQuery } from '../lib/queries';
@@ -49,11 +51,33 @@ export const Route = createRootRoute({
   },
 });
 
+/**
+ * Whether the location maps to one of the right-column routed views. Anything
+ * else (including `/queue` and unknown paths) falls back to the Queue, the
+ * stack's default item.
+ */
+function isViewRoute(pathname: string): boolean {
+  return (
+    pathname.startsWith('/library') ||
+    pathname.startsWith('/artists') ||
+    pathname.startsWith('/playlists') ||
+    pathname.startsWith('/tracks')
+  );
+}
+
 function ViewRoot() {
   const invalidate = useInvalidate();
   const { t } = useLingui();
   const queue = usePlayerState((state) => state.queue);
   const queueCursor = usePlayerState((state) => state.queueCursor);
+
+  useSavedLoopsSync();
+
+  // The view-stack pin is per-app-mount; a fresh mount (a test render, or a
+  // full reload) starts from the state-aware default again.
+  useEffect(() => {
+    useViewStack.getState().pin(null);
+  }, []);
 
   useEffect(() => {
     // If the app imported tracks, we need to refresh route data, but it seems invalidate is not super stable
@@ -67,10 +91,20 @@ function ViewRoot() {
     info(`Navigated to: ${location.pathname}`);
   }, [location]);
 
-  // The settings routes position their navigation outside the content box
-  // (`right: 100%`), so they need the legacy full-width container until Wave 2
-  // folds them into the Dense shell. Every other route renders inside it.
+  // The settings routes keep their own full-width treatment.
   const isSettingsRoute = location.pathname.startsWith('/settings');
+
+  // State-aware default for the right column: the user's explicit breadcrumb
+  // choice wins; before any choice, the Queue shows when something is playing
+  // and the library shows when nothing is.
+  const pinned = useViewStack((state) => state.pinned);
+  const trackPlaying = queueCursor != null && queue.length > 0;
+  const showQueue =
+    !isSettingsRoute &&
+    (pinned === 'queue' ||
+      (pinned == null &&
+        (!isViewRoute(location.pathname) ||
+          (location.pathname === '/library' && trackPlaying))));
 
   return (
     <div
@@ -85,7 +119,7 @@ function ViewRoot() {
       <PlayerEvents />
       <GlobalKeyBindings />
 
-      {/** The actual app: header row + the Dense two-column main area */}
+      {/** 40px header: logo, brand, breadcrumb, search, settings */}
       <Header />
 
       <main
@@ -101,26 +135,24 @@ function ViewRoot() {
           </div>
         ) : (
           <>
+            {/** Left column: now playing — never changes */}
             <NowPlaying />
+            {/** Right column: the view stack (Queue / Library / Playlists) */}
             <div {...stylex.props(styles.rightColumn)}>
-              {/**
-               * Wave 1 keeps the routed surfaces (library list, …) rendering;
-               * Wave 2 folds them into this column. The Queue is the right
-               * column's own child as specified.
-               */}
-              <div {...stylex.props(styles.routeSlot)}>
-                <Outlet />
-              </div>
-              <aside aria-label={t`Queue`} {...stylex.props(styles.queueSlot)}>
+              {showQueue ? (
                 <Queue queue={queue} queueCursor={queueCursor} />
-              </aside>
+              ) : (
+                <div {...stylex.props(styles.routeSlot)}>
+                  <Outlet />
+                </div>
+              )}
             </div>
           </>
         )}
       </main>
 
-      {/** Footer navigation (collapses into the header breadcrumb in Wave 2) */}
-      <Navigation />
+      {/** 26px ledger: totals, format, effects, loop, output */}
+      <StatusBar />
 
       {/** Out-of-the-flow UI bits */}
       <Toasts />
@@ -134,9 +166,9 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
+    minHeight: 0,
   },
   main: {
-    order: 1,
     width: '100%',
     flexGrow: 1,
     flexShrink: 1,
@@ -163,6 +195,7 @@ const styles = stylex.create({
     flexDirection: 'column',
     minWidth: 0,
     minHeight: 0,
+    overflow: 'hidden',
     borderLeftWidth: '1px',
     borderLeftStyle: 'solid',
     borderLeftColor: 'var(--border)',
@@ -173,15 +206,9 @@ const styles = stylex.create({
     flexShrink: 1,
     flexBasis: '0%',
     minHeight: 0,
+    height: '100%',
     position: 'relative',
-  },
-  queueSlot: {
-    flexShrink: 0,
-    maxHeight: '38%',
-    overflow: 'auto',
-    padding: '8px',
-    borderTopWidth: '1px',
-    borderTopStyle: 'solid',
-    borderTopColor: 'var(--border)',
+    display: 'flex',
+    flexDirection: 'column',
   },
 });

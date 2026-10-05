@@ -28,6 +28,8 @@ fn main() {
                     "get_tracks",
                     "get_track",
                     "update_track",
+                    "record_play",
+                    "backfill_track_metadata",
                     "get_artists",
                     "get_artist_tracks",
                     "get_compilation_albums",

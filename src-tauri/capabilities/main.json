@@ -38,6 +38,8 @@
     "database:allow-get-all-tracks",
     "database:allow-get-tracks",
     "database:allow-update-track",
+    "database:allow-record-play",
+    "database:allow-backfill-track-metadata",
     "database:allow-remove-tracks",
     "database:allow-get-artists",
     "database:allow-get-artist-tracks",

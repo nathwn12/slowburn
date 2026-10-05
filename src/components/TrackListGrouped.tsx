@@ -147,19 +147,19 @@ function TrackListGroup(props: TrackListGroupProps) {
 const styles = stylex.create({
   group: {
     display: 'flex',
-    rowGap: '24px',
-    columnGap: '24px',
-    padding: '24px',
+    rowGap: '16px',
+    columnGap: '16px',
+    paddingBlock: '12px',
+    paddingInline: '14px',
     alignItems: 'flex-start',
     position: 'relative',
   },
   aside: {
-    width: {
-      default: '160px',
-      '@media (min-width: 1024px)': '240px',
-    },
+    // The right column is a fixed 388px; a wide aside at large viewports left
+    // the two-line rows almost no room. Keep it a fixed narrow ledger.
+    width: '120px',
     position: 'sticky',
-    top: '24px',
+    top: '12px',
     display: 'flex',
     flexDirection: 'column',
     rowGap: '8px',

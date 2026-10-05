@@ -1,7 +1,9 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
+import { useQuery } from '@tanstack/react-query';
 
 import usePlayingTrack from '../hooks/usePlayingTrack';
+import { allTracksQuery } from '../lib/queries';
 import Cover from './Cover';
 import EffectControls from './EffectControls';
 import Icon from './Icon';
@@ -18,31 +20,46 @@ import TrackProgress from './TrackProgress';
  */
 export default function NowPlaying() {
   const trackPlaying = usePlayingTrack();
+  const allTracks = useQuery(allTracksQuery).data;
   const { t } = useLingui();
   const repeat = 'None' as const;
 
   if (trackPlaying == null) {
+    const libraryEmpty = (allTracks?.length ?? 0) === 0;
+
     return (
       <section aria-label={t`Now playing`} {...stylex.props(styles.now)}>
         <div {...stylex.props(styles.emptyNp)}>
           <div {...stylex.props(styles.emptyArt)} aria-hidden="true">
             <Icon name="musicalNotes" size={36} />
           </div>
-          <h3 {...stylex.props(styles.emptyTitle)}>{t`Your library is empty`}</h3>
-          <p {...stylex.props(styles.emptyText)}>
-            {t`Slowburn plays files you already own. Nothing is streamed, nothing leaves this machine.`}
-          </p>
-          <div {...stylex.props(styles.emptyRules)}>
-            <b>{t`Drag`}</b> FLAC · MP3 · M4A · OGG · WAV {t`onto the window`}
-            <br />
-            {t`or`} <b>{t`File ▸ Import folder…`}</b>
-            <br />
-            <b>Ctrl+O</b> {t`to open files`}
-          </div>
+
+          {libraryEmpty ? (
+            <>
+              <h3 {...stylex.props(styles.emptyTitle)}>{t`Your library is empty`}</h3>
+              <p {...stylex.props(styles.emptyText)}>
+                {t`Slowburn plays files you already own. Nothing is streamed, nothing leaves this machine.`}
+              </p>
+              <div {...stylex.props(styles.emptyRules)}>
+                <b>{t`Drag`}</b> FLAC · MP3 · M4A · OGG · WAV {t`onto the window`}
+                <br />
+                {t`or`} <b>{t`File ▸ Import folder…`}</b>
+                <br />
+                <b>Ctrl+O</b> {t`to open files`}
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 {...stylex.props(styles.emptyTitle)}>{t`Nothing playing`}</h3>
+              <p {...stylex.props(styles.emptyText)}>
+                {t`Pick a track from the library to begin.`}
+              </p>
+            </>
+          )}
         </div>
 
-        {/* Kept so the empty library still offers the one global transport
-            affordance the app has always had (e2e asserts it). */}
+        {/* Kept so the idle now-playing column still offers the one global
+            transport affordance the app has always had (e2e asserts it). */}
         <div {...stylex.props(styles.transportWrap)}>
           <PlayerControls dense />
         </div>
@@ -85,9 +102,6 @@ const styles = stylex.create({
     paddingBottom: '10px',
     paddingInline: '12px',
     rowGap: '10px',
-    borderRightWidth: '1px',
-    borderRightStyle: 'solid',
-    borderRightColor: 'var(--border)',
     backgroundColor: 'var(--bg)',
     overflow: 'hidden',
   },

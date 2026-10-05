@@ -1,49 +1,23 @@
 import { Trans, useLingui } from '@lingui/react/macro';
+import * as stylex from '@stylexjs/stylex';
 import {
   createFileRoute,
+  Link,
   Outlet,
-  redirect,
   useMatch,
   useNavigate,
 } from '@tanstack/react-router';
-import type {
-  MenuItemOptions,
-  PredefinedMenuItemOptions,
-} from '@tauri-apps/api/menu';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import PlaylistsAPI from '../api/PlaylistsAPI';
-import SideNav from '../components/SideNav';
-import SideNavLink from '../components/SideNavLink';
-import ButtonIcon from '../elements/ButtonIcon';
-import Link from '../elements/Link';
-import View from '../elements/View';
-import * as ViewMessage from '../elements/ViewMessage';
+import Icon from '../components/Icon';
 import useInvalidate from '../hooks/useInvalidate';
 import DatabaseBridge from '../lib/bridge-database';
-import player from '../lib/player';
 
 export const Route = createFileRoute('/playlists')({
   component: ViewPlaylists,
-  beforeLoad: async ({ params }) => {
+  beforeLoad: async () => {
     const playlists = await DatabaseBridge.getAllPlaylists();
-    const queueOrigin = player.getQueueOrigin();
-
-    if (!('playlistID' in params) && playlists.length > 0) {
-      // If there is a playing Playlist, redirect to it
-      if (queueOrigin?.type === 'playlist') {
-        throw redirect({
-          to: '/playlists/$playlistID',
-          params: { playlistID: queueOrigin.playlistID },
-        });
-      }
-
-      throw redirect({
-        to: '/playlists/$playlistID',
-        params: { playlistID: playlists[0].id },
-      });
-    }
-
     return { playlists };
   },
   loader: async ({ context }) => {
@@ -51,6 +25,10 @@ export const Route = createFileRoute('/playlists')({
   },
 });
 
+/**
+ * The Playlists view of the right-column stack: a dense list of playlists
+ * (the breadcrumb rail is gone). Selecting one opens its tracks.
+ */
 function ViewPlaylists() {
   const { playlists } = Route.useLoaderData();
   const { t } = useLingui();
@@ -59,7 +37,6 @@ function ViewPlaylists() {
   const navigate = useNavigate();
 
   const createPlaylist = useCallback(async () => {
-    // TODO: 'new playlist 1', 'new playlist 2' ...
     const playlist = await PlaylistsAPI.create(t`New playlist`, [], false);
 
     if (playlist) {
@@ -71,111 +48,187 @@ function ViewPlaylists() {
     }
   }, [navigate, invalidate, t]);
 
-  const renamePlaylist = useCallback(
-    async (playlistID: string, name: string) => {
-      await PlaylistsAPI.rename(playlistID, name);
-      await invalidate();
-    },
-    [invalidate],
-  );
-
   const childPlaylistMatch = useMatch({
     from: '/playlists/$playlistID',
     shouldThrow: false,
   });
 
-  const sideNavItems = useMemo(() => {
-    return playlists.map((playlist) => {
-      const contextMenuItems: Array<
-        MenuItemOptions | PredefinedMenuItemOptions
-      > = [
-        {
-          text: t`Delete`,
-          action: async () => {
-            await PlaylistsAPI.remove(playlist.id);
-
-            await invalidate();
-          },
-        },
-        { item: 'Separator' },
-        {
-          text: t`Duplicate`,
-          action: async () => {
-            await PlaylistsAPI.duplicate(playlist.id);
-            await invalidate();
-          },
-        },
-        { item: 'Separator' },
-        {
-          text: t`Export`,
-          action: async () => {
-            await DatabaseBridge.exportPlaylist(playlist.id);
-          },
-        },
-      ];
-
-      return (
-        <SideNavLink
-          key={playlist.id}
-          label={playlist.name}
-          id={playlist.id}
-          linkOptions={{
-            to: '/playlists/$playlistID',
-            params: { playlistID: playlist.id },
-          }}
-          onRename={renamePlaylist}
-          contextMenuItems={contextMenuItems}
-        />
-      );
-    });
-  }, [playlists, renamePlaylist, invalidate, t]);
-
-  // Empty and List states
-  let playlistContent: React.ReactNode;
-
-  if (playlists.length === 0) {
-    playlistContent = (
-      <ViewMessage.Notice>
-        <p>
-          <Trans>You haven{"'"}t created any playlist yet</Trans>
-        </p>
-        <ViewMessage.Sub>
-          <Link onClick={createPlaylist}>
-            <Trans>create one now</Trans>
-          </Link>
-        </ViewMessage.Sub>
-      </ViewMessage.Notice>
-    );
-  } else if (!childPlaylistMatch) {
-    playlistContent = (
-      <ViewMessage.Notice>
-        <p>
-          <Trans>No playlist selected</Trans>
-        </p>
-      </ViewMessage.Notice>
-    );
-  } else {
-    playlistContent = <Outlet />;
+  if (childPlaylistMatch) {
+    return <Outlet />;
   }
 
   return (
-    <View
-      sideNav={
-        <SideNav
-          title={t`Playlists`}
-          actions={
-            <ButtonIcon
-              icon="plus"
-              onClick={createPlaylist}
-              label={t`New Playlist`}
-            />
-          }
+    <div {...stylex.props(styles.view)}>
+      <div {...stylex.props(styles.head)}>
+        <h2 {...stylex.props(styles.title)}>{t`PLAYLISTS`}</h2>
+        <span {...stylex.props(styles.count)}>
+          {playlists.length} {playlists.length === 1 ? t`playlist` : t`playlists`}
+        </span>
+        <button
+          type="button"
+          onClick={createPlaylist}
+          aria-label={t`New Playlist`}
+          title={t`New Playlist`}
+          {...stylex.props(styles.tool)}
         >
-          {sideNavItems}
-        </SideNav>
-      }
-    >
-      {playlistContent}
-    </View>
+          <Icon name="plus" size={12} />
+        </button>
+      </div>
+
+      {playlists.length === 0 ? (
+        <div {...stylex.props(styles.empty)}>
+          <p>
+            <Trans>You haven{"'"}t created any playlist yet</Trans>
+          </p>
+          <button
+            type="button"
+            onClick={createPlaylist}
+            {...stylex.props(styles.createLink)}
+          >
+            <Trans>create one now</Trans>
+          </button>
+        </div>
+      ) : (
+        <ul
+          role="listbox"
+          aria-label={t`Playlists`}
+          {...stylex.props(styles.list)}
+        >
+          {playlists.map((playlist) => (
+            <li key={playlist.id}>
+              <Link
+                to="/playlists/$playlistID"
+                params={{ playlistID: playlist.id }}
+                draggable={false}
+                {...stylex.props(styles.row)}
+              >
+                <Icon name="playlist" size={12} />
+                <span {...stylex.props(styles.rowName)}>{playlist.name}</span>
+                <span {...stylex.props(styles.chevron)} aria-hidden="true">
+                  ›
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
+
+const styles = stylex.create({
+  view: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    minHeight: 0,
+    backgroundColor: 'var(--surface-2)',
+  },
+  head: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '8px',
+    height: '38px',
+    flexShrink: 0,
+    paddingInline: '10px',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'var(--border)',
+    backgroundColor: 'var(--surface)',
+  },
+  title: {
+    margin: 0,
+    fontSize: '11px',
+    fontWeight: 800,
+    letterSpacing: '.1em',
+    color: 'var(--text-dim)',
+  },
+  count: {
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10px',
+    fontWeight: 600,
+    color: 'var(--text-faint)',
+    backgroundColor: 'var(--bg)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--border-soft)',
+    borderRadius: '9999px',
+    paddingBlock: '3px',
+    paddingInline: '7px',
+  },
+  tool: {
+    marginLeft: 'auto',
+    width: '24px',
+    height: '24px',
+    borderRadius: 'var(--radius-sm)',
+    display: 'grid',
+    placeItems: 'center',
+    color: {
+      default: 'var(--text-dim)',
+      ':hover': 'var(--text-bright)',
+    },
+    backgroundColor: {
+      ':hover': 'var(--surface-hover)',
+    },
+    borderStyle: 'none',
+    padding: 0,
+  },
+  list: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
+    minHeight: 0,
+    overflowY: 'auto',
+    listStyle: 'none',
+    margin: 0,
+    padding: 0,
+    paddingBlock: '2px',
+  },
+  row: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '8px',
+    minHeight: '34px',
+    paddingInline: '12px',
+    color: 'var(--text)',
+    textDecoration: 'none',
+    fontSize: '12px',
+    fontWeight: 600,
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
+  },
+  rowName: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: '0%',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  chevron: {
+    color: 'var(--text-faint)',
+    flexShrink: 0,
+  },
+  empty: {
+    flexGrow: 1,
+    display: 'grid',
+    placeItems: 'center',
+    alignContent: 'center',
+    rowGap: '8px',
+    color: 'var(--text-faint)',
+    fontSize: '12px',
+    textAlign: 'center',
+    padding: '24px',
+  },
+  createLink: {
+    color: 'var(--accent)',
+    fontWeight: 700,
+    backgroundColor: 'transparent',
+    borderStyle: 'none',
+    cursor: 'pointer',
+    fontSize: '12px',
+  },
+});
