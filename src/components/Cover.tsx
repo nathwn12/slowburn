@@ -1,50 +1,91 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
+import { useEffect, useState } from 'react';
 
 import type { Track } from '../generated/typings';
 import useCover from '../hooks/useCover';
-import { artInitials, audioFormatLabel } from '../lib/dense-format';
+import { artInitials } from '../lib/dense-format';
 import Icon, { type IconSize } from './Icon';
 
 type Props = {
   track: Track;
   noHorizontalBorder?: boolean;
   iconSize?: IconSize;
-  /** Dense now-playing tile: a fixed 118px square with a gradient stand-in. */
+  /** Dense now-playing tile: a fixed square with a gradient stand-in. */
   dense?: boolean;
 };
 
 export default function Cover(props: Props) {
   const coverPath = useCover(props.track);
   const { t } = useLingui();
+  const [artOpen, setArtOpen] = useState(false);
+
+  // Close the full-size view when the track changes.
+  useEffect(() => {
+    setArtOpen(false);
+  }, [props.track.path]);
+
+  useEffect(() => {
+    if (!artOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setArtOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [artOpen]);
 
   if (props.dense) {
-    const format = audioFormatLabel(props.track.path);
-    const initials = artInitials(props.track.album, props.track.title);
+    // No real art -> the gradient stand-in with initials. With real art -> only
+    // the image; the initials must never paint over the artwork.
+    if (coverPath == null) {
+      const initials = artInitials(props.track.album, props.track.title);
+      return (
+        <div
+          role="img"
+          aria-label={t`Album art`}
+          {...stylex.props(styles.denseArt)}
+        >
+          {initials !== '' && (
+            <span {...stylex.props(styles.denseGlyph)} aria-hidden="true">
+              {initials}
+            </span>
+          )}
+        </div>
+      );
+    }
 
     return (
-      <div
-        role="img"
-        aria-label={t`Album art`}
-        {...stylex.props(styles.denseArt)}
-      >
-        <span {...stylex.props(styles.denseBadge)} aria-hidden="true">
-          {format}
-        </span>
-        {initials !== '' && (
-          <span {...stylex.props(styles.denseGlyph)} aria-hidden="true">
-            {initials}
-          </span>
-        )}
-        {coverPath != null && (
+      <>
+        <button
+          type="button"
+          onClick={() => setArtOpen(true)}
+          aria-label={t`View album art`}
+          title={t`View album art`}
+          data-museeks-action
+          {...stylex.props(styles.denseArtButton)}
+        >
           <img
             src={coverPath}
             alt=""
             draggable={false}
             {...stylex.props(styles.denseImage)}
           />
+        </button>
+
+        {artOpen && (
+          <div
+            role="presentation"
+            onClick={() => setArtOpen(false)}
+            {...stylex.props(styles.artBackdrop)}
+          >
+            <img
+              src={coverPath}
+              alt={t`Album art`}
+              {...stylex.props(styles.artFull)}
+            />
+          </div>
         )}
-      </div>
+      </>
     );
   }
 
@@ -121,29 +162,32 @@ const styles = stylex.create({
   // --- Dense tile ---------------------------------------------------------
   denseArt: {
     position: 'relative',
-    width: '118px',
-    height: '118px',
     flexShrink: 0,
     borderRadius: 'var(--radius)',
     overflow: 'hidden',
     backgroundImage:
       'radial-gradient(120% 120% at 20% 15%, #ff5fb4 0%, rgba(255,20,147,0) 58%), radial-gradient(120% 110% at 85% 90%, #2563eb 0%, rgba(37,99,235,0) 60%), linear-gradient(150deg, #2b1b3a 0%, #161a2b 55%, #0f1015 100%)',
     boxShadow: '0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05)',
+    width: {
+      default: '118px',
+      '@media (max-width: 900px)': '88px',
+    },
+    height: {
+      default: '118px',
+      '@media (max-width: 900px)': '88px',
+    },
   },
-  denseBadge: {
-    position: 'absolute',
-    top: '7px',
-    left: '7px',
-    zIndex: 2,
-    fontFamily: 'var(--mono-font)',
-    fontSize: '8px',
-    fontWeight: 700,
-    letterSpacing: '.09em',
-    paddingBlock: '3px',
-    paddingInline: '5px',
-    borderRadius: '3px',
-    backgroundColor: 'rgba(0,0,0,.55)',
-    color: '#fff',
+  denseArtButton: {
+    position: 'relative',
+    width: '118px',
+    height: '118px',
+    flexShrink: 0,
+    padding: 0,
+    borderStyle: 'none',
+    borderRadius: 'var(--radius)',
+    overflow: 'hidden',
+    cursor: 'zoom-in',
+    boxShadow: '0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05)',
   },
   denseGlyph: {
     position: 'absolute',
@@ -164,5 +208,21 @@ const styles = stylex.create({
     height: '100%',
     objectFit: 'cover',
     zIndex: 1,
+  },
+  artBackdrop: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 2500,
+    display: 'grid',
+    placeItems: 'center',
+    backgroundColor: 'rgba(0,0,0,.78)',
+    cursor: 'zoom-out',
+  },
+  artFull: {
+    maxWidth: '86vw',
+    maxHeight: '86vh',
+    objectFit: 'contain',
+    borderRadius: 'var(--radius)',
+    boxShadow: '0 24px 70px rgba(0,0,0,.7)',
   },
 });

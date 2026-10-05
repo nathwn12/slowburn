@@ -47,7 +47,7 @@ const styles = stylex.create({
     position: 'relative',
   },
   hasPadding: {
-    padding: '40px',
+    padding: 'clamp(16px, 4vw, 40px)',
   },
 });
 
@@ -55,7 +55,7 @@ const layoutVariants = stylex.create({
   'full-width': {},
   centered: {
     display: 'grid',
-    gridTemplateColumns: '350px',
+    gridTemplateColumns: 'minmax(0, 350px)',
     justifyContent: 'center',
     scrollbarGutter: 'stable',
   },
