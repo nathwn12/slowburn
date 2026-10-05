@@ -248,6 +248,10 @@ const styles = stylex.create({
     rowGap: '6px',
     minWidth: 0,
   },
+  // Shared label column: a floor both rows hit, so the −/readout/+ group starts
+  // at the same x. Both labels ("SLOW" 32.7px, "REVERB" 57.9px incl. dot+gap)
+  // fit under 58px, hence both columns measure exactly 58px. A minWidth (not a
+  // fixed width) keeps longer future labels from clipping.
   burnId: {
     display: 'flex',
     alignItems: 'center',
@@ -278,6 +282,11 @@ const styles = stylex.create({
   burnNameOn: {
     color: 'var(--text-dim)',
   },
+  // Flat, like `burnReset` below: no border, transparent until hover. The UA
+  // `padding: 1px 6px` must be reset explicitly — StyleX doesn't, and with
+  // `box-sizing: border-box` it collapsed the 18px content box to 4px, so the
+  // 12px glyph was laid out at the content start instead of centred (measured
+  // 4px right of the button centre) while the reset glyph centred exactly.
   step: {
     width: '18px',
     height: '18px',
@@ -286,12 +295,11 @@ const styles = stylex.create({
     display: 'grid',
     placeItems: 'center',
     backgroundColor: {
-      default: 'var(--surface-2)',
+      default: 'transparent',
       ':hover': 'var(--surface-hover)',
     },
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: 'var(--control-border)',
+    borderStyle: 'none',
+    padding: 0,
     color: {
       default: 'var(--text-dim)',
       ':hover': 'var(--text-bright)',
@@ -300,6 +308,7 @@ const styles = stylex.create({
       ':disabled': 0.35,
     },
     cursor: {
+      default: 'pointer',
       ':disabled': 'default',
     },
   },
