@@ -91,6 +91,16 @@ describe('check-i18n-catalog', () => {
     expect(result.out).toContain('resolve across 2 catalogs');
   });
 
+  test('passes when a non-descriptor preset object sits beside a real descriptor', () => {
+    const result = run(
+      fixture({
+        bundle: `x({id:"presetAlbum",labelKey:"Artist / Album",keys:[]}); x({id:"${ID}",message:"Slowburn"});`,
+      }),
+    );
+    expect(result.status).toBe(0);
+    expect(result.out).toContain('resolve across');
+  });
+
   test('fails on a missing id', () => {
     const result = run(fixture({ bundle: `x({id:"${OTHER_ID}"});` }));
     expect(result.status).toBe(1);

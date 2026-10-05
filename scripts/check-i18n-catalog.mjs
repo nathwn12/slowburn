@@ -70,25 +70,86 @@ for (const locale of locales) {
     console.log(`[i18n] en catalog ${file}: ${keys.size} entries`);
     continue;
   }
-  if (keys.size !== enCatalog.size || [...enCatalog].some((id) => !keys.has(id))) {
+  if (
+    keys.size !== enCatalog.size ||
+    [...enCatalog].some((id) => !keys.has(id))
+  ) {
     fail(
       `${locale} catalog ${file} does not match en (${keys.size} vs ${enCatalog.size} entries)`,
     );
   }
 }
 
-// The compiled macro form is `{id:`...`}` (backticks after minification, quotes
-// otherwise). Route objects also carry `id:` but their ids are paths, so only
-// catalog-shaped ids (base64url, no `/` or `$`) are treated as message ids.
-const ID_RE = /\{id:\s*(?:`([^`]+)`|"([^"]+)")/g;
-const CATALOG_ID_RE = /^[A-Za-z0-9_-]{4,12}$/;
+// A compiled Lingui descriptor is an object literal whose fields come from the
+// MessageDescriptor / `<Trans>` surface (id, message, comment, context, values,
+// components). Other `{id:...}` literals are data - TanStack routes carry
+// `path`/`getParentRoute`, the sort presets carry `labelKey`/`keys` - and must
+// not be mistaken for messages. Identify a descriptor by its field set rather
+// than an id length/charset heuristic: that heuristic is what previously
+// flagged the sort presets (album / artistAlbum / length / mostPlayed) as
+// missing catalog ids. `id` is always the first field the macro emits.
+const DESCRIPTOR_FIELDS = new Set([
+  'id',
+  'message',
+  'comment',
+  'context',
+  'values',
+  'components',
+  'formats',
+]);
+const ID_START_RE = /\{id:\s*(?:`([^`]+)`|"([^"]+)")/g;
+
+/**
+ * Top-level field names of the object literal starting at `openIndex`,
+ * skipping string/template literals and nested braces/brackets/parens.
+ */
+function readTopLevelFields(code, openIndex) {
+  const fields = [];
+  let depth = 0;
+  let expectField = false;
+  for (let i = openIndex; i < code.length; i++) {
+    const char = code[i];
+    if (char === '`' || char === '"' || char === "'") {
+      for (i++; i < code.length; i++) {
+        if (code[i] === '\\') i++;
+        else if (code[i] === char) break;
+      }
+      continue;
+    }
+    if (char === '{' || char === '[' || char === '(') {
+      depth += 1;
+      if (depth === 1 && char === '{') expectField = true;
+      continue;
+    }
+    if (char === '}' || char === ']' || char === ')') {
+      depth -= 1;
+      if (depth === 0) return fields;
+      continue;
+    }
+    if (depth === 1 && expectField) {
+      const field = /^\s*([A-Za-z_$][\w$]*)\s*:/.exec(code.slice(i));
+      if (field != null) {
+        fields.push(field[1]);
+        i += field[0].length - 1;
+      }
+      expectField = false;
+      continue;
+    }
+    if (depth === 1 && char === ',') {
+      expectField = true;
+    }
+  }
+  return fields;
+}
+
 const scanned = new Set();
 const missing = new Set();
 for (const file of files) {
   const code = readFileSync(join(ASSETS, file), 'utf8');
-  for (const match of code.matchAll(ID_RE)) {
+  for (const match of code.matchAll(ID_START_RE)) {
+    const fields = readTopLevelFields(code, match.index);
+    if (!fields.every((field) => DESCRIPTOR_FIELDS.has(field))) continue;
     const id = match[1] ?? match[2];
-    if (!CATALOG_ID_RE.test(id)) continue;
     scanned.add(id);
     if (!enCatalog.has(id)) missing.add(id);
   }
@@ -98,7 +159,7 @@ for (const file of files) {
 // longer see the build; that must fail, not pass silently.
 if (scanned.size === 0) {
   fail(
-    'scanned 0 message ids - the compiled descriptor shape changed; update ID_RE',
+    'scanned 0 message ids - the compiled descriptor shape changed; update ID_START_RE',
   );
 }
 
