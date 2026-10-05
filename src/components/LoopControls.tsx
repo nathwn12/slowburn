@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import type { Track } from '../generated/typings';
 import { usePlayerState } from '../hooks/usePlayer';
-import { resolveSetA, resolveSetB } from '../lib/dense-ab';
+import { isDeadRegion, resolveSetA, resolveSetB } from '../lib/dense-ab';
 import player from '../lib/player';
 import { formatTimeInput, parseTimeInput } from './time-input';
 
@@ -48,8 +48,13 @@ export default function LoopControls({ trackPlaying }: Props) {
 
   const commit = (point: Point) => {
     const parsed = parseTimeInput(value(point));
-    // Invalid or empty input never changes the loop.
-    if (parsed.kind !== 'time') {
+    // An empty field is not an error: clearing a point leaves the loop
+    // untouched and the field stays neutral until something invalid is typed.
+    if (parsed.kind === 'empty') {
+      revert(point);
+      return;
+    }
+    if (parsed.kind === 'invalid') {
       setInvalid((prev) => ({ ...prev, [point]: true }));
       return;
     }
@@ -57,10 +62,21 @@ export default function LoopControls({ trackPlaying }: Props) {
     const seconds = Math.min(duration, Math.max(0, parsed.seconds));
     if (point === 'A') {
       const next = resolveSetA(seconds, b, duration);
+      // Never persist a dead region (inverted or below the 2% gap): it would
+      // claim to be a saved loop that can never loop. The geometry above
+      // already prevents this; this is the last-ditch guard.
+      if (isDeadRegion(next.a, next.b, duration)) {
+        revert(point);
+        return;
+      }
       void player.setAbPoint('A', next.a);
       if (next.b != null && next.b !== b) void player.setAbPoint('B', next.b);
     } else {
       const next = resolveSetB(a, seconds, duration);
+      if (isDeadRegion(next.a, next.b, duration)) {
+        revert(point);
+        return;
+      }
       if (next.a != null && next.a !== a) void player.setAbPoint('A', next.a);
       void player.setAbPoint('B', next.b);
     }

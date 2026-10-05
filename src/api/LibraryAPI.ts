@@ -47,6 +47,17 @@ async function scan(
         timeout: 5000,
       });
     }
+
+    // Files the scanner could not read are skipped and counted, never
+    // silently swallowed: tell the user so "742 added" cannot hide the one
+    // file that was dropped.
+    if (scanResult.track_failures > 0) {
+      toastManager.add({
+        title: t`${scanResult.track_failures} file(s) could not be read and were skipped.`,
+        type: 'warning',
+        timeout: 8000,
+      });
+    }
   } catch (err) {
     logAndNotifyError(err);
   } finally {

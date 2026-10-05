@@ -42,7 +42,14 @@ export function resolveSetA(
   const a = clampSeconds(seconds, duration);
   if (b == null) return { a, b: null };
   if (a >= b - minGap(duration)) {
-    return { a, b: clampSeconds(a + Math.max(pushAmount(duration), minGap(duration)), duration) };
+    const gap = Math.max(pushAmount(duration), minGap(duration));
+    // Push B forward to clear A...
+    const pushed = clampSeconds(a + gap, duration);
+    if (pushed - a >= minGap(duration)) return { a, b: pushed };
+    // ...but there is no room left after A (A is at/near the end). Rather than
+    // collapse to a zero-width `{duration, duration}` loop, pin B to the end
+    // and pull A back far enough to leave a usable region.
+    return { a: Math.min(a, clampSeconds(duration - gap, duration)), b: duration };
   }
   return { a, b };
 }
@@ -56,9 +63,31 @@ export function resolveSetB(
   const b = clampSeconds(seconds, duration);
   if (a == null) return { a: null, b };
   if (b <= a + minGap(duration)) {
-    return { a: clampSeconds(b - Math.max(pushAmount(duration), minGap(duration)), duration), b };
+    const gap = Math.max(pushAmount(duration), minGap(duration));
+    // Pull A back to clear B...
+    const pulled = clampSeconds(b - gap, duration);
+    if (b - pulled >= minGap(duration)) return { a: pulled, b };
+    // ...but there is no room left before B (B is at the start). Rather than
+    // collapse to a zero-width `{0, 0}` loop, pin A to the start and push B
+    // forward far enough to leave a usable region.
+    return { a: 0, b: Math.max(b, clampSeconds(gap, duration)) };
   }
   return { a, b };
+}
+
+/**
+ * True when a fully-specified region cannot actually loop: inverted, or
+ * narrower than the minimum 2% gap. A point still `null` (a half-set region)
+ * is not dead - there is simply nothing to loop yet.
+ */
+export function isDeadRegion(
+  a: number | null,
+  b: number | null,
+  duration: number,
+): boolean {
+  if (a == null || b == null) return false;
+  if (!(b > a)) return true;
+  return b - a < minGap(duration);
 }
 
 /** Drag A: cannot cross B; keeps the minimum gap. Returns the new A. */

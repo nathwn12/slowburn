@@ -28,7 +28,12 @@ msgstr "{0} 曲がライブラリに追加されました。"
 msgid "{0} playlist(s) were added to the library."
 msgstr "{0} 個のプレイリストがライブラリに追加されました。"
 
-#: src/api/LibraryAPI.ts:106
+#. placeholder {0}: scanResult.track_failures
+#: src/api/LibraryAPI.ts:56
+msgid "{0} file(s) could not be read and were skipped."
+msgstr ""
+
+#: src/api/LibraryAPI.ts:117
 msgid "Library was reset"
 msgstr "ライブラリがリセットされました"
 
@@ -190,61 +195,61 @@ msgstr ""
 msgid "Settings"
 msgstr "設定"
 
-#: src/components/LoopControls.tsx:105
+#: src/components/LoopControls.tsx:121
 msgid "Loop point A"
 msgstr ""
 
-#: src/components/LoopControls.tsx:105
+#: src/components/LoopControls.tsx:121
 msgid "Loop point B"
 msgstr ""
 
-#: src/components/LoopControls.tsx:118
+#: src/components/LoopControls.tsx:134
 msgid "Set loop point A at the playhead (key: [)"
 msgstr ""
 
-#: src/components/LoopControls.tsx:119
+#: src/components/LoopControls.tsx:135
 msgid "Set loop point B at the playhead (key: ])"
 msgstr ""
 
-#: src/components/LoopControls.tsx:122
+#: src/components/LoopControls.tsx:138
 #: src/components/ShortcutsPanel.tsx:41
 msgid "Set loop point A"
 msgstr ""
 
-#: src/components/LoopControls.tsx:122
+#: src/components/LoopControls.tsx:138
 #: src/components/ShortcutsPanel.tsx:42
 msgid "Set loop point B"
 msgstr ""
 
-#: src/components/LoopControls.tsx:188
+#: src/components/LoopControls.tsx:204
 msgid "A saved A-B loop exists for this file and auto-applies when reopened."
 msgstr ""
 
-#: src/components/LoopControls.tsx:189
+#: src/components/LoopControls.tsx:205
 msgid "No A-B loop is stored for this file."
 msgstr ""
 
-#: src/components/LoopControls.tsx:195
+#: src/components/LoopControls.tsx:211
 msgid "Saved loop"
 msgstr ""
 
-#: src/components/LoopControls.tsx:195
+#: src/components/LoopControls.tsx:211
 msgid "No saved loop"
 msgstr ""
 
-#: src/components/LoopControls.tsx:200
+#: src/components/LoopControls.tsx:216
 msgid "Playback is looping the A-B region"
 msgstr ""
 
-#: src/components/LoopControls.tsx:208
+#: src/components/LoopControls.tsx:224
 msgid "Clear the A-B region for this track (key: \\)"
 msgstr ""
 
-#: src/components/LoopControls.tsx:209
+#: src/components/LoopControls.tsx:225
 msgid "Clear the A-B region for this track"
 msgstr ""
 
-#: src/components/LoopControls.tsx:212
+#: src/components/LoopControls.tsx:228
 msgid "Clear"
 msgstr ""
 

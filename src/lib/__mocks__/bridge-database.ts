@@ -127,7 +127,13 @@ class DatabaseBridge implements DatabaseBridgeInterface {
       playlist_count: 0,
       track_count: 0,
       playlist_failures: 0,
-      track_failures: 0,
+      // Tests can force dropped files to prove the scan-failure warning.
+      track_failures:
+        (
+          globalThis as typeof globalThis & {
+            __MUSEEKS_MOCK_SCAN_FAILURES?: number;
+          }
+        ).__MUSEEKS_MOCK_SCAN_FAILURES ?? 0,
     };
   }
 
