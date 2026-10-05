@@ -59,6 +59,13 @@ pub struct Track {
     /// number, and ts-rs would otherwise emit `bigint` for `u64`.
     #[ts(type = "number | null")]
     pub file_size: Option<u64>,
+    /// File modification time in epoch milliseconds (via
+    /// `std::fs::metadata`), `None` when it could not be read (never a `0`
+    /// sentinel). Stored as an INTEGER rather than an ISO string so it must be
+    /// compared numerically. Pinned to `number` in the TS contract like
+    /// `file_size`.
+    #[ts(type = "number | null")]
+    pub modified: Option<i64>,
     /// ISO-8601 UTC. Set at insert time; for rows predating migration 05 this
     /// holds the (approximate) time the migration ran.
     pub date_added: String,
@@ -236,13 +243,22 @@ pub fn get_track_from_file(path: &PathBuf) -> AnyResult<Track> {
                 .or_else(|| properties.audio_bitrate())
                 .map(|kbps| kbps.saturating_mul(1000));
 
-            // File size is not an audio property: stat it. A failure only means
-            // an unknown size, never a failed scan.
-            let file_size = match std::fs::metadata(path) {
-                Ok(metadata) => Some(metadata.len()),
+            // File size and modification time are not audio properties: stat
+            // once. A failure only means unknown values, never a failed scan.
+            let (file_size, modified) = match std::fs::metadata(path) {
+                Ok(metadata) => {
+                    // A pre-epoch timestamp is not representable as epoch
+                    // millis; map it (like any error) to `None`, never `0`.
+                    let modified = metadata
+                        .modified()
+                        .ok()
+                        .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+                        .and_then(|elapsed| i64::try_from(elapsed.as_millis()).ok());
+                    (Some(metadata.len()), modified)
+                }
                 Err(err) => {
-                    debug!("Could not stat file size for {:?}: {}", path, err);
-                    None
+                    debug!("Could not stat file {:?}: {}", path, err);
+                    (None, None)
                 }
             };
 
@@ -294,6 +310,7 @@ pub fn get_track_from_file(path: &PathBuf) -> AnyResult<Track> {
                 channels: properties.channels(),
                 bitrate,
                 file_size,
+                modified,
                 date_added: now_iso8601_utc(),
                 play_count: 0,
                 last_played: None,

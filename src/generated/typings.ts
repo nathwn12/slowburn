@@ -72,6 +72,14 @@ bitrate: number | null,
  */
 file_size: number | null, 
 /**
+ * File modification time in epoch milliseconds (via
+ * `std::fs::metadata`), `None` when it could not be read (never a `0`
+ * sentinel). Stored as an INTEGER rather than an ISO string so it must be
+ * compared numerically. Pinned to `number` in the TS contract like
+ * `file_size`.
+ */
+modified: number | null, 
+/**
  * ISO-8601 UTC. Set at insert time; for rows predating migration 05 this
  * holds the (approximate) time the migration ran.
  */
