@@ -1,4 +1,4 @@
-# Museeks
+# Slowburn
 
 ![build](https://github.com/martpie/museeks/actions/workflows/build.yml/badge.svg?branch=master)
 ![GitHub All Releases](https://img.shields.io/github/downloads/martpie/museeks/total)
@@ -9,7 +9,7 @@ A simple, clean, and cross-platform music player. ([museeks.io](https://museeks.
 
 ## Features
 
-Museeks aims to be a simple and easy-to-use music player with a clean UI. You will not find tons of features, as its goal is not to compete with more complete and more famous music players.
+Slowburn aims to be a simple and easy-to-use music player with a clean UI. You will not find tons of features, as its goal is not to compete with more complete and more famous music players.
 
 Here is a little preview though:
 
@@ -32,7 +32,7 @@ Want more? Open a new issue or 👍 an existing one so we can talk about it.
 Binaries/Installers can be found [on the releases page](https://github.com/martpie/museeks/releases).
 
 > [!NOTE]
-> The publication of Museeks to package managers is community-maintained. Museeks may be available there (like Homebrew, AUR, etc.), but there is no guarantee it will be the latest version.
+> The publication of Slowburn to package managers is community-maintained. Slowburn may be available there (like Homebrew, AUR, etc.), but there is no guarantee it will be the latest version.
 
 ## Release Notes
 
@@ -40,7 +40,7 @@ Binaries/Installers can be found [on the releases page](https://github.com/martp
 
 ## Bugs
 
-Please open an issue on GitHub, mention your OS, your Museeks version, and how to reproduce it. Adding a screenshot of the console (Menu -> View -> Toggle Developer Tools) is a big help too.
+Please open an issue on GitHub, mention your OS, your Slowburn version, and how to reproduce it. Adding a screenshot of the console (Menu -> View -> Toggle Developer Tools) is a big help too.
 
 Thank you!
 
@@ -48,18 +48,18 @@ Thank you!
 
 Since version `0.20`, I try to keep things as backwards-compatible as possible, but I may miss some edge cases.
 
-If you encounter freezes or crashes when using the app, you can reset Museeks.
+If you encounter freezes or crashes when using the app, you can reset Slowburn.
 
 <details>
-  <summary>Reset Museeks</summary>
+  <summary>Reset Slowburn</summary>
 
 - Go to Settings -> Open Storage Directory
-- Alternatively, go to the Museeks folder directly:
-  - Windows: `%AppData%\museeks`
-  - macOS: `~/Library/Application Support/museeks`
-  - Linux: `~/.config/museeks/` or `$XDG_CONFIG_HOME/museeks`
+- Alternatively, go to the Slowburn folder directly:
+  - Windows: `%AppData%\slowburn`
+  - macOS: `~/Library/Application Support/slowburn`
+  - Linux: `~/.config/slowburn/` or `$XDG_CONFIG_HOME/slowburn`
 - Delete everything there
-- Restart Museeks
+- Restart Slowburn
 
 </details>
 
@@ -75,7 +75,7 @@ If you still have problems after that, please open an issue :)
 
 ### Setup
 
-Museeks is built upon:
+Slowburn is built upon:
 
 - Back-end: [Tauri v2](https://v2.tauri.app/) / Rust 🦀
 - UI: [React.js](https://react.dev)
@@ -88,8 +88,8 @@ So you will need to install the following dependencies:
 Then you can:
 
 - Fork the repository
-- `git clone git@github.com:<username>/museeks.git`
-- `cd museeks`
+- `git clone git@github.com:<username>/slowburn.git`
+- `cd slowburn`
 - `vp env use` to setup Node.js and the package manager
 
 ### Development Mode
@@ -97,7 +97,7 @@ Then you can:
 - `vp install`
 - `vp run tauri dev`
 
-This will launch Museeks in dev mode. Hot reload will work out-of-the-box, so when you update a `.js` file, the UI will automatically update. When you edit a `.rs` file, Museeks will automatically rebuild.
+This will launch Slowburn in dev mode. Hot reload will work out-of-the-box, so when you update a `.js` file, the UI will automatically update. When you edit a `.rs` file, Slowburn will automatically rebuild.
 
 ### Package Binaries
 
@@ -124,4 +124,4 @@ Tauri does not support cross-platform binaries, so the command will only generat
 
 </details>
 
-ps: _Translations are in an early stage. If your language has "special" characteristics, like right-to-left, specific locales instead of languages, or something else, Museeks might not be ready for it yet. Please open an issue to discuss it!_
+ps: _Translations are in an early stage. If your language has "special" characteristics, like right-to-left, specific locales instead of languages, or something else, Slowburn might not be ready for it yet. Please open an issue to discuss it!_
