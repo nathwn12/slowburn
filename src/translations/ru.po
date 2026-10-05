@@ -48,11 +48,17 @@ msgstr "Повтор"
 msgid "Shuffle"
 msgstr "Шафл"
 
-#: src/components/Cover.tsx:28
+#: src/components/Cover.tsx:45
+#: src/components/Cover.tsx:83
 msgid "Album art"
 msgstr ""
 
-#: src/components/Cover.tsx:67
+#: src/components/Cover.tsx:62
+#: src/components/Cover.tsx:63
+msgid "View album art"
+msgstr ""
+
+#: src/components/Cover.tsx:108
 msgid "Album cover"
 msgstr "Обложка альбома"
 

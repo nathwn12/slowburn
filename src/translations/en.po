@@ -48,11 +48,17 @@ msgstr "Repeat"
 msgid "Shuffle"
 msgstr "Shuffle"
 
-#: src/components/Cover.tsx:28
+#: src/components/Cover.tsx:45
+#: src/components/Cover.tsx:83
 msgid "Album art"
 msgstr "Album art"
 
-#: src/components/Cover.tsx:67
+#: src/components/Cover.tsx:62
+#: src/components/Cover.tsx:63
+msgid "View album art"
+msgstr "View album art"
+
+#: src/components/Cover.tsx:108
 msgid "Album cover"
 msgstr "Album cover"
 
