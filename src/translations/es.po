@@ -271,7 +271,7 @@ msgstr "Listas de reproducción"
 
 #: src/components/Navigation.tsx:42
 #: src/components/Navigation.tsx:108
-#: src/components/QueueList.tsx:76
+#: src/components/QueueList.tsx:89
 msgid "Queue"
 msgstr "Cola"
 
@@ -443,12 +443,12 @@ msgstr "La cola está vacía"
 msgid "Import music to get started. Saved A-B loops, speed and reverb settings are remembered per file."
 msgstr ""
 
-#: src/components/QueueList.tsx:112
+#: src/components/QueueList.tsx:125
 msgid "see more"
 msgstr "ver más"
 
-#: src/components/QueueList.tsx:150
-#: src/components/QueueList.tsx:151
+#: src/components/QueueList.tsx:163
+#: src/components/QueueList.tsx:164
 #: src/components/QueueListItem.tsx:70
 #: src/components/QueueListItem.tsx:71
 #: src/components/TrackRow.tsx:137

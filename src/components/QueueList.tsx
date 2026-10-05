@@ -8,16 +8,20 @@ import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 import { useCallback, useId, useMemo, useState } from 'react';
 
-import type { Track } from '../generated/typings';
+import type { SortKey, Track } from '../generated/typings';
 import useDndSensors from '../hooks/useDnDSensors';
 import useFormattedDuration from '../hooks/useFormattedDuration';
 import player from '../lib/player';
+import { sortTracks } from '../lib/utils-library';
 import PlayingIndicator from './PlayingIndicator';
 import QueueListItem from './QueueListItem';
 import { useIsSavedLoop, useSavedLoopsStore } from './saved-loops';
 
 const INITIAL_QUEUE_SIZE = 20;
 const DND_MODIFIERS = [restrictToVerticalAxis];
+
+/** The queue's "Most played" mode: play_count descending. */
+const MOST_PLAYED_KEY: SortKey = { field: 'playCount', direction: 'Dsc' };
 
 type Props = {
   queue: Track[];
@@ -34,19 +38,28 @@ export default function QueueList(props: Props) {
 
   const savedIds = useSavedLoopsStore((state) => state.ids);
 
-  const shownQueue = queue.slice(queueCursor + 1, queueCursor + 1 + queueSize);
-  const hiddenQueue = queue.slice(queueCursor + 1 + queueSize);
-  const incomingQueue = queue.slice(queueCursor + 1);
+  // Sort BEFORE paginating (Review Focus 5): "most played" must rank the whole
+  // upcoming queue, not just the rows that already made the first page.
+  const incomingQueue = useMemo(
+    () => queue.slice(queueCursor + 1),
+    [queue, queueCursor],
+  );
+  const orderedQueue = useMemo(
+    () =>
+      mostPlayed ? sortTracks(incomingQueue, [MOST_PLAYED_KEY]) : incomingQueue,
+    [incomingQueue, mostPlayed],
+  );
 
-  const visibleUpcoming = useMemo(() => {
-    let view = savedOnly
-      ? shownQueue.filter((track) => savedIds.has(track.id))
-      : shownQueue;
-    if (mostPlayed) {
-      view = [...view].sort((a, b) => b.play_count - a.play_count);
-    }
-    return view;
-  }, [shownQueue, savedOnly, mostPlayed, savedIds]);
+  const shownQueue = orderedQueue.slice(0, queueSize);
+  const hiddenQueue = orderedQueue.slice(queueSize);
+
+  const visibleUpcoming = useMemo(
+    () =>
+      savedOnly
+        ? shownQueue.filter((track) => savedIds.has(track.id))
+        : shownQueue,
+    [shownQueue, savedOnly, savedIds],
+  );
 
   const sensors = useDndSensors();
   const dndId = useId();
