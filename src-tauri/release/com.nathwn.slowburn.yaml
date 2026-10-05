@@ -1,0 +1,63 @@
+id: com.nathwn.slowburn
+
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+
+command: slowburn
+finish-args:
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=fallback-x11
+  # Wayland access
+  - --socket=wayland
+  # OpenGL access
+  - --device=dri
+  # To send and receive notifications
+  - --talk-name=org.freedesktop.Notifications
+  # Network access - to receive and send messages
+  - --share=network
+  # Ensure the app can play audio
+  - --socket=pulseaudio
+  # Webview is black otherwise, may be a Wayland issue
+  - --env=WEBKIT_DISABLE_COMPOSITING_MODE=1
+  # Ensure single-instance works fine
+  - --talk-name=com.nathwn.slowburn
+  - --own-name=com.nathwn.slowburn
+
+modules:
+  - name: binary
+    buildsystem: simple
+    sources:
+      - type: file
+        path: ../target/release/bundle/deb/Slowburn_0.23.4_amd64.deb
+        only-arches:
+          - x86_64
+      - type: file
+        path: ../target/release/bundle/deb/Slowburn_0.23.4_arm64.deb
+        only-arches:
+          - aarch64
+    build-commands:
+      - set -e
+      # Extract the deb package
+      - mkdir deb-extracted
+      - ar -x *.deb --output deb-extracted
+      - tar -C deb-extracted -xf deb-extracted/data.tar.gz
+
+      # Copy binary
+      - 'install -Dm755 deb-extracted/usr/bin/slowburn /app/bin/slowburn'
+
+      # Copy app icons
+      - mkdir -p /app/lib/Slowburn
+      - cp -r deb-extracted/usr/lib/Slowburn/. /app/lib/Slowburn
+      - find /app/lib/Slowburn -type f -exec chmod 644 {} \;
+
+      # Copy desktop file + ensure the right icon is set
+      - sed -i 's/^Icon=.*/Icon=com.nathwn.slowburn/' deb-extracted/usr/share/applications/Slowburn.desktop
+      - install -Dm644 deb-extracted/usr/share/applications/Slowburn.desktop /app/share/applications/com.nathwn.slowburn.desktop
+
+      # Copy icons
+      - install -Dm644 deb-extracted/usr/share/icons/hicolor/128x128/apps/slowburn.png /app/share/icons/hicolor/128x128/apps/com.nathwn.slowburn.png
+      - install -Dm644 deb-extracted/usr/share/icons/hicolor/32x32/apps/slowburn.png /app/share/icons/hicolor/32x32/apps/com.nathwn.slowburn.png
+      - install -Dm644 deb-extracted/usr/share/icons/hicolor/256x256@2/apps/slowburn.png /app/share/icons/hicolor/256x256@2/apps/com.nathwn.slowburn.png
+      - install -Dm644 deb-extracted/usr/share/metainfo/com.nathwn.slowburn.metainfo.xml /app/share/metainfo/com.nathwn.slowburn.metainfo.xml

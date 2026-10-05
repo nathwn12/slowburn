@@ -219,3 +219,55 @@ async fn test_playlists_db() {
         vec!["Playlist b".to_string()]
     );
 }
+
+/** ----------------------------------------------------------------------------
+ * Integration Test - A-B section loops
+ * -------------------------------------------------------------------------- */
+
+#[tokio::test]
+async fn test_ab_loops_db() {
+    let mut db = get_test_db().await;
+    db.insert_tracks(vec![sample_track_1(), sample_track_2()])
+        .await
+        .unwrap();
+
+    // No region by default
+    assert!(db.get_ab_loop("1").await.unwrap().is_none());
+
+    // Upsert a full region
+    let region = db
+        .set_ab_loop("1", Some(10.5), Some(42.0))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(region.track_id, "1");
+    assert_eq!(region.start_seconds, Some(10.5));
+    assert_eq!(region.end_seconds, Some(42.0));
+
+    // It round-trips through the database
+    let loaded = db.get_ab_loop("1").await.unwrap().unwrap();
+    assert_eq!(loaded, region);
+
+    // Upsert overwrites in place (no duplicate rows)
+    let updated = db.set_ab_loop("1", Some(5.0), None).await.unwrap().unwrap();
+    assert_eq!(updated.start_seconds, Some(5.0));
+    assert_eq!(updated.end_seconds, None);
+    assert_eq!(db.get_ab_loop("1").await.unwrap().unwrap(), updated);
+
+    // Regions are per track
+    assert!(db.get_ab_loop("2").await.unwrap().is_none());
+
+    // Both points `None` is an explicit clear
+    assert!(db.set_ab_loop("1", None, None).await.unwrap().is_none());
+    assert!(db.get_ab_loop("1").await.unwrap().is_none());
+
+    // Explicit clear command
+    db.set_ab_loop("2", Some(1.0), Some(2.0)).await.unwrap();
+    db.clear_ab_loop("2").await.unwrap();
+    assert!(db.get_ab_loop("2").await.unwrap().is_none());
+
+    // Removing a track removes its region
+    db.set_ab_loop("1", Some(1.0), Some(2.0)).await.unwrap();
+    db.remove_tracks(&vec!["1".to_string()]).await.unwrap();
+    assert!(db.get_ab_loop("1").await.unwrap().is_none());
+}

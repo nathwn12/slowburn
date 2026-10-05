@@ -223,7 +223,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 
                 #[cfg(target_os = "macos")]
                 {
-                    let museeks_menu = SubmenuBuilder::new(app_handle, "Museeks")
+                    let slowburn_menu = SubmenuBuilder::new(app_handle, "Slowburn")
                         .about(Some(about_metadata))
                         .separator()
                         .services()
@@ -235,7 +235,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                         .build()
                         .unwrap();
 
-                    builder.items(&[&museeks_menu])
+                    builder.items(&[&slowburn_menu])
                 }
 
                 #[cfg(not(target_os = "macos"))]

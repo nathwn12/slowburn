@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { info } from '@tauri-apps/plugin-log';
 
 import type {
+  AbLoop,
   Playlist,
   ScanResult,
   Track,
@@ -28,6 +29,13 @@ export interface DatabaseBridgeInterface {
   setPlaylistTracks(id: string, tracks: Array<string>): Promise<Playlist>;
   exportPlaylist(id: string): Promise<void>;
   deletePlaylist(id: string): Promise<void>;
+  getAbLoop(trackID: string): Promise<AbLoop | null>;
+  setAbLoop(
+    trackID: string,
+    startSeconds: number | null,
+    endSeconds: number | null,
+  ): Promise<AbLoop | null>;
+  clearAbLoop(trackID: string): Promise<void>;
   reset(): Promise<string | null>;
 }
 
@@ -151,6 +159,37 @@ class DatabaseBridge implements DatabaseBridgeInterface {
   async deletePlaylist(id: string): Promise<void> {
     return invoke('plugin:database|delete_playlist', {
       id,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // A-B section loops
+  // ---------------------------------------------------------------------------
+
+  @LogExecutionTime
+  async getAbLoop(trackID: string): Promise<AbLoop | null> {
+    return invoke('plugin:database|get_ab_loop', {
+      trackId: trackID,
+    });
+  }
+
+  @LogExecutionTime
+  async setAbLoop(
+    trackID: string,
+    startSeconds: number | null,
+    endSeconds: number | null,
+  ): Promise<AbLoop | null> {
+    return invoke('plugin:database|set_ab_loop', {
+      trackId: trackID,
+      startSeconds,
+      endSeconds,
+    });
+  }
+
+  @LogExecutionTime
+  async clearAbLoop(trackID: string): Promise<void> {
+    return invoke('plugin:database|clear_ab_loop', {
+      trackId: trackID,
     });
   }
 

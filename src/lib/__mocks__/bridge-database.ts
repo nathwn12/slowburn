@@ -1,4 +1,5 @@
 import type {
+  AbLoop,
   Playlist,
   ScanResult,
   Track,
@@ -144,9 +145,48 @@ class DatabaseBridge implements DatabaseBridgeInterface {
     return;
   }
 
+  // The A-B loop store lives on `globalThis` so the mock can model a full
+  // restart: a test can reset the module registry / reload the page and the
+  // regions are still there, exactly like the SQLite-backed real bridge.
+  async getAbLoop(trackID: string): Promise<AbLoop | null> {
+    const store = abLoopStore();
+    return store.get(trackID) ?? null;
+  }
+
+  async setAbLoop(
+    trackID: string,
+    startSeconds: number | null,
+    endSeconds: number | null,
+  ): Promise<AbLoop | null> {
+    const store = abLoopStore();
+    if (startSeconds === null && endSeconds === null) {
+      store.delete(trackID);
+      return null;
+    }
+    const region: AbLoop = {
+      track_id: trackID,
+      start_seconds: startSeconds,
+      end_seconds: endSeconds,
+    };
+    store.set(trackID, region);
+    return region;
+  }
+
+  async clearAbLoop(trackID: string): Promise<void> {
+    abLoopStore().delete(trackID);
+  }
+
   async reset(): Promise<string | null> {
     return null;
   }
+}
+
+function abLoopStore(): Map<string, AbLoop> {
+  const holder = globalThis as typeof globalThis & {
+    __MUSEEKS_MOCK_AB_LOOPS?: Map<string, AbLoop>;
+  };
+  holder.__MUSEEKS_MOCK_AB_LOOPS ??= new Map<string, AbLoop>();
+  return holder.__MUSEEKS_MOCK_AB_LOOPS;
 }
 
 export default new DatabaseBridge();

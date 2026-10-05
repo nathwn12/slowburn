@@ -1,5 +1,5 @@
 {
-  "io.museeks.app": [
+  "com.nathwn.slowburn": [
     "appstream-external-screenshot-url",
     "appstream-failed-validation",
     "appstream-screenshots-not-mirrored-in-ostree",

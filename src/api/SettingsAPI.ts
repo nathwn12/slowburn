@@ -1,8 +1,5 @@
-import { t } from '@lingui/core/macro';
-import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { info } from '@tauri-apps/plugin-log';
-import * as semver from 'semver';
 
 import type { Config } from '../generated/typings';
 import ConfigBridge from '../lib/bridge-config';
@@ -10,7 +7,6 @@ import SettingsBridge from '../lib/bridge-settings';
 import { loadTranslation } from '../lib/i18n';
 import player from '../lib/player';
 import { getTheme } from '../lib/themes';
-import toastManager from '../lib/toast-manager';
 import { logAndNotifyError } from '../lib/utils';
 import LibraryAPI from './LibraryAPI';
 
@@ -53,7 +49,6 @@ async function init(then: () => void): Promise<void> {
 
   // Non-blocking, these can be done later
   checkForLibraryRefresh().catch(logAndNotifyError);
-  checkForUpdate({ silentFail: true }).catch(logAndNotifyError);
 
   // Check if we should start a queue (maybe put that somewhere else)
   const initialQueue = window.__MUSEEKS_INITIAL_QUEUE;
@@ -128,62 +123,6 @@ const applyUIMainColorToUI = (mainColor: Config['ui_accent_color']) => {
 };
 
 /**
- * Check if a new release is available
- */
-async function checkForUpdate(
-  options: { silentFail?: boolean } = {},
-): Promise<void> {
-  const shouldCheck = await ConfigBridge.get('auto_update_checker');
-
-  if (!shouldCheck) {
-    return;
-  }
-
-  const currentVersion = await getVersion();
-
-  try {
-    const response = await fetch(
-      'https://api.github.com/repos/martpie/museeks/releases',
-    );
-
-    if (!response.ok) {
-      if (options.silentFail) {
-        return;
-      }
-
-      throw new Error('Impossible to retrieve releases information.');
-    }
-
-    const releases: any = await response.json();
-
-    // TODO Github API types?
-    const newRelease = releases.find(
-      (release: any) =>
-        semver.valid(release.tag_name) !== null &&
-        semver.gt(release.tag_name, currentVersion),
-    );
-
-    let message: string | undefined;
-    if (newRelease) {
-      message = t`Museeks ${newRelease.tag_name} is available, check https://museeks.io!`;
-    } else if (!options.silentFail) {
-      message = t`Museeks ${currentVersion} is the latest version available.`;
-    }
-
-    if (message) {
-      toastManager.add({ title: message, type: 'success' });
-    }
-  } catch (e) {
-    logAndNotifyError(
-      e,
-      'An error occurred while checking updates.',
-      true,
-      options.silentFail,
-    );
-  }
-}
-
-/**
  * Toggle library refresh on startup
  */
 async function toggleLibraryAutorefresh(value: boolean): Promise<void> {
@@ -196,13 +135,6 @@ async function checkForLibraryRefresh(): Promise<void> {
   if (autorefreshEnabled) {
     void LibraryAPI.scan();
   }
-}
-
-/**
- * Toggle update check on startup
- */
-async function toggleAutoUpdateChecker(value: boolean): Promise<void> {
-  await ConfigBridge.set('auto_update_checker', value);
 }
 
 /**
@@ -228,9 +160,7 @@ const SettingsAPI = {
   setUIMainColor,
   applyUIMainColorToUI,
   setTracksDensity,
-  checkForUpdate,
   toggleLibraryAutorefresh,
-  toggleAutoUpdateChecker,
   toggleDisplayNotifications,
   toggleFollowPlayingTrack,
 };

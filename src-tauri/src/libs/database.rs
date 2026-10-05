@@ -1,12 +1,27 @@
 use indexmap::IndexMap;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{Connection, SqliteConnection};
 use std::path::PathBuf;
+use ts_rs::TS;
 
 use super::error::AnyResult;
 use super::playlist::Playlist;
 use super::track::{Track, TrackGroup};
+
+/// A persisted A-B section loop, at most one per track.
+///
+/// `track_id` is the stable track id (UUID v3 derived from the file path), so a
+/// saved region survives library rescans and app restarts. Either point may be
+/// `None` (unset); at least one point is always set in the database.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow, TS)]
+#[ts(export, export_to = "../../src/generated/typings.ts")]
+pub struct AbLoop {
+    pub track_id: String,
+    pub start_seconds: Option<f64>,
+    pub end_seconds: Option<f64>,
+}
 
 // Single source of truth for supported audio formats (extension, MIME type).
 // KEEP IN SYNC with Tauri's file associations in tauri.conf.json
@@ -181,6 +196,73 @@ impl DB {
         }
 
         query_builder.execute(&mut self.connection).await?;
+
+        // Regions belong to their track: no track, no region.
+        let loops_query = format!("DELETE FROM ab_loops WHERE track_id IN ({})", placeholders);
+        let mut loops_builder = sqlx::query(&loops_query);
+
+        for id in track_ids {
+            loops_builder = loops_builder.bind(id);
+        }
+
+        loops_builder.execute(&mut self.connection).await?;
+
+        Ok(())
+    }
+
+    /// Get the saved A-B loop for a track, or `None` when it has none.
+    pub async fn get_ab_loop(&mut self, track_id: &str) -> AnyResult<Option<AbLoop>> {
+        let loop_region = sqlx::query_as::<_, AbLoop>(
+            "SELECT track_id, start_seconds, end_seconds FROM ab_loops WHERE track_id = ?",
+        )
+        .bind(track_id)
+        .fetch_optional(&mut self.connection)
+        .await?;
+
+        Ok(loop_region)
+    }
+
+    /// Set (upsert) the A-B loop for a track. Setting both points to `None` is
+    /// an explicit clear and removes the row, returning `None`.
+    pub async fn set_ab_loop(
+        &mut self,
+        track_id: &str,
+        start_seconds: Option<f64>,
+        end_seconds: Option<f64>,
+    ) -> AnyResult<Option<AbLoop>> {
+        if start_seconds.is_none() && end_seconds.is_none() {
+            self.clear_ab_loop(track_id).await?;
+            return Ok(None);
+        }
+
+        sqlx::query(
+            r#"
+            INSERT INTO ab_loops (track_id, start_seconds, end_seconds)
+            VALUES (?, ?, ?)
+            ON CONFLICT(track_id) DO UPDATE SET
+                start_seconds = excluded.start_seconds,
+                end_seconds = excluded.end_seconds
+            "#,
+        )
+        .bind(track_id)
+        .bind(start_seconds)
+        .bind(end_seconds)
+        .execute(&mut self.connection)
+        .await?;
+
+        Ok(Some(AbLoop {
+            track_id: track_id.to_owned(),
+            start_seconds,
+            end_seconds,
+        }))
+    }
+
+    /// Remove the saved A-B loop for a track, if any.
+    pub async fn clear_ab_loop(&mut self, track_id: &str) -> AnyResult<()> {
+        sqlx::query("DELETE FROM ab_loops WHERE track_id = ?")
+            .bind(track_id)
+            .execute(&mut self.connection)
+            .await?;
 
         Ok(())
     }

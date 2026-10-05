@@ -14,7 +14,9 @@ use tauri_plugin_dialog::{DialogExt, FilePath};
 use tokio::sync::{Mutex, MutexGuard};
 use ts_rs::TS;
 
-use crate::libs::database::{DB, SUPPORTED_PLAYLISTS_EXTENSIONS, SUPPORTED_TRACKS_EXTENSIONS};
+use crate::libs::database::{
+    AbLoop, DB, SUPPORTED_PLAYLISTS_EXTENSIONS, SUPPORTED_TRACKS_EXTENSIONS,
+};
 use crate::libs::error::{AnyResult, MuseeksError, handle_fatal_error};
 use crate::libs::events::IPCEvent;
 use crate::libs::playlist::Playlist;
@@ -37,7 +39,7 @@ impl DBState {
  * Database setup
  */
 async fn setup() -> AnyResult<DB> {
-    let database_path = get_storage_dir().join("museeks.db");
+    let database_path = get_storage_dir().join("slowburn.db");
 
     info!("Opening connection to database: {:?}", database_path);
 
@@ -429,6 +431,34 @@ async fn delete_playlist(db_state: State<'_, DBState>, id: String) -> AnyResult<
     db_state.get_lock().await.delete_playlist(&id).await
 }
 
+/// Get the saved A-B loop for a track, or `null` when it has none.
+#[tauri::command]
+async fn get_ab_loop(db_state: State<'_, DBState>, track_id: String) -> AnyResult<Option<AbLoop>> {
+    db_state.get_lock().await.get_ab_loop(&track_id).await
+}
+
+/// Set (upsert) the A-B loop for a track. Both points `null` is an explicit
+/// clear. Returns the saved region, or `null` when it was cleared.
+#[tauri::command]
+async fn set_ab_loop(
+    db_state: State<'_, DBState>,
+    track_id: String,
+    start_seconds: Option<f64>,
+    end_seconds: Option<f64>,
+) -> AnyResult<Option<AbLoop>> {
+    db_state
+        .get_lock()
+        .await
+        .set_ab_loop(&track_id, start_seconds, end_seconds)
+        .await
+}
+
+/// Remove the saved A-B loop for a track, if any.
+#[tauri::command]
+async fn clear_ab_loop(db_state: State<'_, DBState>, track_id: String) -> AnyResult<()> {
+    db_state.get_lock().await.clear_ab_loop(&track_id).await
+}
+
 #[tauri::command]
 async fn reset(db_state: State<'_, DBState>) -> AnyResult<()> {
     info!("Resetting DB...");
@@ -439,6 +469,9 @@ async fn reset(db_state: State<'_, DBState>) -> AnyResult<()> {
         .execute(&mut db.connection)
         .await?;
     sqlx::query("DELETE FROM playlists;")
+        .execute(&mut db.connection)
+        .await?;
+    sqlx::query("DELETE FROM ab_loops;")
         .execute(&mut db.connection)
         .await?;
     sqlx::query("VACUUM;").execute(&mut db.connection).await?;
@@ -469,6 +502,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             set_playlist_tracks,
             export_playlist,
             delete_playlist,
+            get_ab_loop,
+            set_ab_loop,
+            clear_ab_loop,
             reset,
             scan_library,
         ])

@@ -1,19 +1,12 @@
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, useLoaderData } from '@tanstack/react-router';
 
-import SettingsAPI from '../api/SettingsAPI';
 import * as Setting from '../components/Setting';
-import CheckboxSetting from '../components/SettingCheckbox';
-import Button from '../elements/Button';
 import DefinitionList from '../elements/DefinitionList';
 import ExternalButton from '../elements/ExternalButton';
 import ExternalLink from '../elements/ExternalLink';
 import Flexbox from '../elements/Flexbox';
 import Heart from '../elements/Heart';
-import useInvalidate, { useInvalidateCallback } from '../hooks/useInvalidate';
-import { configQuery } from '../lib/queries';
-import { logAndNotifyError } from '../lib/utils';
 import { NON_DEFAULT_LANGUAGES } from '../translations/languages';
 
 export const Route = createFileRoute('/settings/about')({
@@ -24,19 +17,17 @@ function ViewSettingsAbout() {
   const { version, tauriVersion, appStorageDir } = useLoaderData({
     from: '/settings',
   });
-  const config = useSuspenseQuery(configQuery).data;
 
-  const invalidate = useInvalidate();
   const { t } = useLingui();
 
   return (
     <>
       <Setting.Section>
         <Setting.Title>
-          <Trans>About Museeks</Trans>
+          <Trans>About Slowburn</Trans>
         </Setting.Title>
         <Setting.Description>
-          Museeks {version}
+          Slowburn {version}
           {' - '}
           <ExternalLink href="https://museeks.io" type="url">
             museeks.io
@@ -47,22 +38,6 @@ function ViewSettingsAbout() {
             type="url"
           >{t`release notes`}</ExternalLink>
         </Setting.Description>
-        <CheckboxSetting
-          title={t`Automatically check for updates`}
-          value={config.auto_update_checker}
-          onChange={useInvalidateCallback(SettingsAPI.toggleAutoUpdateChecker)}
-        />
-        <div>
-          <Button
-            onClick={() => {
-              SettingsAPI.checkForUpdate()
-                .then(invalidate)
-                .catch(logAndNotifyError);
-            }}
-          >
-            <Trans>Check for update</Trans>
-          </Button>
-        </div>
       </Setting.Section>
       <Setting.Section>
         <Setting.Title>

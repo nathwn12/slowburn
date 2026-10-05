@@ -2,12 +2,23 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import EventEmitter from 'eventemitter3';
 import debounce from 'lodash-es/debounce';
 
-import type { Repeat, Track } from '../generated/typings';
+import type { AbLoop, Repeat, Track } from '../generated/typings';
 import type { QueueOrigin } from '../types/museeks';
 import ConfigBridge from './bridge-config';
+import bridgeDatabase from './bridge-database';
 import { getCover } from './cover';
+import { EffectsController, type EffectsConfig } from './effects';
+import {
+  isLoopEngaged,
+  resolveEndSeekTarget,
+  resolveSeekTarget,
+  type LoopState,
+} from './effects-core/loop';
 import { logAndNotifyError } from './utils';
 import { shuffleTracks } from './utils-player';
+
+/** How often an armed A-B loop checks whether the B point was crossed (ms). */
+const AB_TICK_MS = 100;
 
 interface PlayerOptions {
   playbackRate?: number;
@@ -15,6 +26,22 @@ interface PlayerOptions {
   muted?: boolean;
   repeat?: Repeat;
   shuffle?: boolean;
+}
+
+/**
+ * Snapshot of the A-B loop state, exposed to the UI.
+ */
+export interface AbLoopState {
+  /** Track the region belongs to, or `null` when nothing is loaded. */
+  trackId: string | null;
+  /** Whether A-B looping is enabled in config at all. */
+  enabled: boolean;
+  /** Whether a region is armed and the loop is live. */
+  active: boolean;
+  /** A point in seconds, or `null` when unset. */
+  startSeconds: number | null;
+  /** B point in seconds, or `null` when unset. */
+  endSeconds: number | null;
 }
 
 /**
@@ -29,6 +56,7 @@ export interface PlayerState {
   volume: number;
   muted: boolean;
   isPaused: boolean;
+  abLoop: AbLoopState;
 }
 
 /**
@@ -47,6 +75,9 @@ export interface PlayerEvents {
   // State change event (for React hooks)
   stateChange: (state: PlayerState) => void;
 
+  // A-B loop state change event (for React hooks)
+  abLoopChange: (state: AbLoopState) => void;
+
   // Track change event
   trackChange: (track: Track | null) => void;
 }
@@ -57,6 +88,22 @@ export interface PlayerEvents {
  */
 class Player extends EventEmitter<PlayerEvents> {
   private readonly audio: HTMLAudioElement;
+  private readonly effects: EffectsController;
+
+  // A-B section loop. The loop is armed from the persisted region for the
+  // current track, then a ~100 ms tick seeks back to A once the playhead
+  // crosses B. `abTicker` only runs while a region is armed and playing.
+  private abEnabled: boolean;
+  private abTrackId: string | null = null;
+  private abStart: number | null = null;
+  private abEnd: number | null = null;
+  private abTicker: ReturnType<typeof setInterval> | null = null;
+  // Guards async hydration against the track changing mid-load.
+  private abApplyToken = 0;
+
+  // User-facing volume. Kept here (not read back from `audio.volume`) because
+  // the effects graph's master gain owns loudness once it is built.
+  private volume: number;
 
   // Queue state
   private queue: Track[];
@@ -84,6 +131,11 @@ class Player extends EventEmitter<PlayerEvents> {
     };
 
     this.audio = new Audio();
+    // Asset-protocol media (`http://asset.localhost/...`) is cross-origin to
+    // the app. Without an anonymous crossOrigin request the browser routes the
+    // element into the Web Audio graph as silence (`createMediaElementSource`
+    // would measure RMS 0). This MUST be set before any `src` is assigned.
+    this.audio.crossOrigin = 'anonymous';
     this.queue = [];
     this.oldQueue = [];
     this.queueCursor = null;
@@ -95,6 +147,20 @@ class Player extends EventEmitter<PlayerEvents> {
     this.audio.playbackRate = mergedOptions.playbackRate;
     this.audio.volume = mergedOptions.volume;
     this.audio.muted = mergedOptions.muted;
+
+    // The effects layer owns the Web Audio graph around this one element:
+    // Dattorro reverb + slowed playback rate. It is inert at the defaults
+    // (reverb intensity 0, slow 1x) and records the element's base rate/pitch
+    // so teardown can restore them.
+    this.effects = new EffectsController(this.audio, {
+      enabled: ConfigBridge.getInitial('audio_effects_enabled'),
+      slowEnabled: ConfigBridge.getInitial('audio_slow_enabled'),
+      slow: ConfigBridge.getInitial('audio_slow') ?? 1,
+      reverbEnabled: ConfigBridge.getInitial('audio_reverb_enabled'),
+      reverbIntensity: ConfigBridge.getInitial('audio_reverb_intensity') ?? 0,
+    });
+    this.abEnabled = ConfigBridge.getInitial('audio_ab_enabled') ?? true;
+    this.volume = this.audio.volume;
 
     this.setupAudioListeners();
     this.setupMediaSession();
@@ -133,12 +199,30 @@ class Player extends EventEmitter<PlayerEvents> {
     });
 
     this.audio.addEventListener('pause', () => {
+      this.stopAbTicker();
       this.emit('pause');
       this.emitStateChange();
     });
 
+    this.audio.addEventListener('play', () => {
+      this.startAbTicker();
+    });
+
     this.audio.addEventListener('ended', async () => {
       this.emit('ended');
+
+      // An armed A-B loop wins over auto-advance: the region's end is the
+      // song's end, so loop back to A instead of moving to the next track.
+      const loopTarget = resolveEndSeekTarget(
+        this.abLoopState(),
+        this.audio.duration,
+      );
+      if (loopTarget !== null) {
+        this.seekAudio(loopTarget);
+        void this.play().catch(logAndNotifyError);
+        return;
+      }
+
       // Auto-advance to next track
       await this.next();
     });
@@ -250,9 +334,10 @@ class Player extends EventEmitter<PlayerEvents> {
       queueOrigin: this.queueOrigin,
       repeat: this.repeat,
       shuffle: this.shuffle,
-      volume: this.audio.volume,
+      volume: this.volume,
       muted: this.audio.muted,
       isPaused: this.audio.paused,
+      abLoop: this.getAbLoop(),
     };
 
     return this.state;
@@ -267,6 +352,10 @@ class Player extends EventEmitter<PlayerEvents> {
       throw new Error('Trying to play a track but no audio.src is defined');
     }
 
+    // Build the graph lazily on the first play (and resume the context from
+    // this user gesture). Safe to call on every play.
+    this.effects.ensureGraph();
+    await this.effects.resume();
     await this.audio.play();
   }
 
@@ -276,6 +365,7 @@ class Player extends EventEmitter<PlayerEvents> {
 
   stop() {
     this.audio.pause();
+    this.stopAbTicker();
 
     this.queue = [];
     this.queueCursor = null;
@@ -588,6 +678,7 @@ class Player extends EventEmitter<PlayerEvents> {
 
     this.emit('trackChange', track);
     this.emitStateChange();
+    void this.hydrateAbLoop(track);
   }
 
   /**
@@ -613,7 +704,8 @@ class Player extends EventEmitter<PlayerEvents> {
   }
 
   setVolume(volume: number) {
-    this.audio.volume = volume;
+    this.volume = volume;
+    this.effects.setVolume(volume);
     this.emitStateChange();
     this.saveVolumeDebounced(volume);
   }
@@ -626,7 +718,7 @@ class Player extends EventEmitter<PlayerEvents> {
   }, 500);
 
   getVolume(): number {
-    return this.audio.volume;
+    return this.volume;
   }
 
   async toggleMute() {
@@ -654,11 +746,13 @@ class Player extends EventEmitter<PlayerEvents> {
     if (!Number.isNaN(rate) && rate >= 0.5 && rate <= 5) {
       this.audio.playbackRate = rate;
       this.audio.defaultPlaybackRate = rate;
+      this.effects.setBaseRate(rate);
       this.emitStateChange();
       await ConfigBridge.set('audio_playback_rate', rate);
     } else {
       this.audio.playbackRate = 1.0;
       this.audio.defaultPlaybackRate = 1.0;
+      this.effects.setBaseRate(1);
       this.emitStateChange();
       await ConfigBridge.set('audio_playback_rate', null);
     }
@@ -666,6 +760,233 @@ class Player extends EventEmitter<PlayerEvents> {
 
   getPlaybackRate(): number {
     return this.audio.playbackRate;
+  }
+
+  // ============================================================================
+  // Effects (reverb + slowed playback)
+  // ============================================================================
+
+  /** The effects controller owning the Web Audio graph around `audio`. */
+  getEffects(): EffectsController {
+    return this.effects;
+  }
+
+  /** Applies a partial effects settings patch (used by the future UI). */
+  setEffectsConfig(patch: Partial<EffectsConfig>): void {
+    this.effects.setConfig(patch);
+    this.emitStateChange();
+  }
+
+  /** Current normalized effects settings. */
+  getEffectsConfig(): EffectsConfig {
+    return this.effects.getConfig();
+  }
+
+  // ============================================================================
+  // A-B section loop
+  // ============================================================================
+
+  /**
+   * Current A-B loop snapshot for the loaded track. Stable to use with
+   * `useSyncExternalStore` together with {@link subscribeAbLoop}.
+   */
+  getAbLoop(): AbLoopState {
+    return {
+      trackId: this.abTrackId,
+      enabled: this.abEnabled,
+      active: this.abEnabled && (this.abStart !== null || this.abEnd !== null),
+      startSeconds: this.abStart,
+      endSeconds: this.abEnd,
+    };
+  }
+
+  /**
+   * Subscribes to A-B loop state changes; returns an unsubscribe function.
+   * Follows the same contract as a `useSyncExternalStore` subscription.
+   */
+  subscribeAbLoop(listener: (state: AbLoopState) => void): () => void {
+    this.on('abLoopChange', listener);
+    return () => {
+      this.off('abLoopChange', listener);
+    };
+  }
+
+  /**
+   * Sets the A (start) or B (end) point, in seconds, and persists the region
+   * for the current track. Setting a point arms the loop and starts ticking
+   * when playing.
+   */
+  async setAbPoint(point: 'A' | 'B', seconds: number): Promise<void> {
+    if (!Number.isFinite(seconds) || seconds < 0) return;
+    const track = this.getTrack();
+    if (track === null) return;
+
+    if (point === 'A') {
+      this.abStart = seconds;
+    } else {
+      this.abEnd = seconds;
+    }
+    if (this.abTrackId !== track.id) {
+      // A region is being authored for a track whose saved region has not
+      // finished hydrating; claim it and invalidate the in-flight load.
+      this.abApplyToken += 1;
+      this.abTrackId = track.id;
+    }
+
+    if (isLoopEngaged(this.abLoopState()) && !this.audio.paused) {
+      this.startAbTicker();
+    } else if (!isLoopEngaged(this.abLoopState())) {
+      this.stopAbTicker();
+    }
+    this.emitAbLoopChange();
+
+    try {
+      await bridgeDatabase.setAbLoop(track.id, this.abStart, this.abEnd);
+    } catch (error) {
+      logAndNotifyError(error);
+    }
+  }
+
+  /**
+   * Clears the A-B loop for the current track: stops looping, resets the
+   * points, and removes the persisted region.
+   */
+  async clearAbLoop(): Promise<void> {
+    const track = this.getTrack();
+    this.abStart = null;
+    this.abEnd = null;
+    this.stopAbTicker();
+    this.emitAbLoopChange();
+
+    if (track === null) return;
+    try {
+      await bridgeDatabase.clearAbLoop(track.id);
+    } catch (error) {
+      logAndNotifyError(error);
+    }
+  }
+
+  /**
+   * Enables or disables A-B looping (persisted as `audio_ab_enabled`). The
+   * region itself is kept; disabling only stops it from driving playback.
+   */
+  async setAbEnabled(enabled: boolean): Promise<void> {
+    this.abEnabled = enabled;
+    if (!enabled) {
+      this.stopAbTicker();
+    } else if (!this.audio.paused) {
+      this.startAbTicker();
+    }
+    this.emitAbLoopChange();
+    await ConfigBridge.set('audio_ab_enabled', enabled);
+  }
+
+  /** The loop state in the engine's own terms (no track/config metadata). */
+  private abLoopState(): LoopState {
+    return {
+      active: this.abEnabled && (this.abStart !== null || this.abEnd !== null),
+      startSeconds: this.abStart,
+      endSeconds: this.abEnd,
+    };
+  }
+
+  /**
+   * Loads the persisted region for `track` and auto-applies it: arms the loop,
+   * seeks to A, and starts ticking immediately (no user action required).
+   */
+  private async hydrateAbLoop(track: Track): Promise<void> {
+    const token = ++this.abApplyToken;
+    this.abTrackId = track.id;
+    this.abStart = null;
+    this.abEnd = null;
+    this.stopAbTicker();
+    this.emitAbLoopChange();
+
+    let saved: AbLoop | null = null;
+    try {
+      saved = await bridgeDatabase.getAbLoop(track.id);
+    } catch (error) {
+      logAndNotifyError(error);
+      return;
+    }
+
+    if (token !== this.abApplyToken) return; // track changed while loading
+    if (saved === null) return;
+
+    this.abStart = saved.start_seconds;
+    this.abEnd = saved.end_seconds;
+    this.emitAbLoopChange();
+    this.applyArmedAbLoop();
+  }
+
+  /** Seeks to A and starts the ticker if playback is already running. */
+  private applyArmedAbLoop(): void {
+    const loop = this.abLoopState();
+    if (!isLoopEngaged(loop)) {
+      this.stopAbTicker();
+      return;
+    }
+    const start = resolveEndSeekTarget(loop, this.audio.duration);
+    if (start !== null) this.seekAudio(start);
+    if (!this.audio.paused) this.startAbTicker();
+  }
+
+  private startAbTicker(): void {
+    if (this.abTicker !== null) return;
+    if (!isLoopEngaged(this.abLoopState())) return;
+    this.abTicker = setInterval(() => {
+      this.tickAbLoop();
+    }, AB_TICK_MS);
+  }
+
+  private stopAbTicker(): void {
+    if (this.abTicker === null) return;
+    clearInterval(this.abTicker);
+    this.abTicker = null;
+  }
+
+  /** Seeks back to A once the playhead has crossed the loop's end threshold. */
+  private tickAbLoop(): void {
+    if (this.audio.paused || !this.abEnabled) return;
+    const target = resolveSeekTarget(this.abLoopState(), {
+      currentTime: this.audio.currentTime,
+      duration: this.audio.duration,
+      paused: this.audio.paused,
+      seeking: this.audio.seeking,
+    });
+    if (target !== null) this.seekAudio(target);
+  }
+
+  /**
+   * Writes `currentTime` now when the element has metadata, otherwise once
+   * `loadedmetadata` fires (the fast path is the normal one).
+   */
+  private seekAudio(target: number): void {
+    if (!Number.isFinite(target) || target < 0) return;
+    if (this.audio.readyState >= 1) {
+      try {
+        this.audio.currentTime = target;
+      } catch {
+        // Not seekable yet; fall through to the metadata retry.
+      }
+      return;
+    }
+    this.audio.addEventListener(
+      'loadedmetadata',
+      () => {
+        try {
+          this.audio.currentTime = target;
+        } catch {
+          // Give up silently; the ticker retries while armed.
+        }
+      },
+      { once: true },
+    );
+  }
+
+  private emitAbLoopChange(): void {
+    this.emit('abLoopChange', this.getAbLoop());
+    this.emitStateChange();
   }
 }
 
@@ -686,3 +1007,13 @@ export default playerInstance;
 
 // Expose for debugging
 window.__MUSEEKS_PLAYER = playerInstance;
+
+// Dev-only handle for silent, numeric verification of the effects layer
+// (mirrors `__MUSEEKS_PLAYER`). Not present in production builds.
+if (import.meta.env.DEV) {
+  window.__MUSEEKS_EFFECTS = {
+    controller: playerInstance.getEffects(),
+    EffectsController,
+    convertFileSrc,
+  };
+}
