@@ -15,6 +15,7 @@ import type {
 } from '../generated/typings';
 import ConfigBridge from '../lib/bridge-config';
 import { configQuery } from '../lib/queries';
+import { DEFAULT_SORT_KEYS } from '../lib/sort-presets';
 import Icon from './Icon';
 
 /**
@@ -35,6 +36,22 @@ type Props = {
   sortBy?: SortBy | null;
 };
 
+const ASC: SortOrder = 'Asc';
+const DSC: SortOrder = 'Dsc';
+
+/**
+ * One sortable field. It is a control over the ordered `library_sort_keys`
+ * stack, not over a single key:
+ *
+ * - click a field not in the stack -> append it (ascending)
+ * - click an ascending field        -> make it descending
+ * - click a descending field        -> remove it (restoring the default bundle
+ *                                      if it was the last key)
+ * - shift-click                     -> reset the stack to this single field
+ *
+ * A numbered badge shows the key's position in the stack, which is why it is
+ * read from the key array and never from the column's render order.
+ */
 export default function TrackListHeaderCell(props: Props) {
   const { sortBy, xstyle, title } = props;
   const queryClient = useQueryClient();
@@ -42,52 +59,67 @@ export default function TrackListHeaderCell(props: Props) {
   const config = useSuspenseQuery(configQuery).data;
 
   const field = sortBy ? SORT_FIELD_FOR[sortBy] : null;
-  const activeKey: SortKey | undefined = config.library_sort_keys[0];
+  const keys = config.library_sort_keys;
+  const keyIndex =
+    field == null ? -1 : keys.findIndex((key) => key.field === field);
+  const activeKey: SortKey | undefined = keyIndex >= 0 ? keys[keyIndex] : undefined;
+  const position = keyIndex >= 0 ? keyIndex + 1 : null;
 
   const icon =
-    field && activeKey?.field === field
-      ? activeKey.direction === 'Asc'
+    activeKey == null
+      ? null
+      : activeKey.direction === ASC
         ? 'chevronUp'
-        : 'chevronDown'
-      : null;
+        : 'chevronDown';
 
   const sortMutation = useMutation({
-    mutationFn: async (newSort: SortKey) => {
-      await ConfigBridge.multiSet({ library_sort_keys: [newSort] });
+    mutationFn: async (nextKeys: SortKey[]) => {
+      await ConfigBridge.multiSet({ library_sort_keys: nextKeys });
     },
-    onMutate: async (newSort) => {
+    onMutate: async (nextKeys) => {
       await queryClient.cancelQueries({ queryKey: configQuery.queryKey });
       const previousConfig = queryClient.getQueryData<Config>(
         configQuery.queryKey,
       );
       queryClient.setQueryData(configQuery.queryKey, {
         ...previousConfig,
-        library_sort_keys: [newSort],
+        library_sort_keys: nextKeys,
       });
       return { previousConfig };
     },
   });
 
-  const handleSort = useCallback(() => {
-    if (!field) return;
-    const direction: SortOrder =
-      activeKey?.field === field
-        ? activeKey.direction === 'Asc'
-          ? 'Dsc'
-          : 'Asc'
-        : 'Asc';
-    sortMutation.mutate({ field, direction });
-  }, [field, activeKey, sortMutation]);
+  const handleSort = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (!field) return;
 
-  const content = (
-    <React.Fragment>
-      <div {...stylex.props(styles.name)}>{title}</div>
-      {icon && (
-        <div {...stylex.props(styles.icon)}>
-          <Icon name={icon} size={12} />
-        </div>
-      )}
-    </React.Fragment>
+      // Shift-click resets the stack to this single, ascending key — including
+      // when the field is already present (Review Focus 3).
+      if (event.shiftKey) {
+        sortMutation.mutate([{ field, direction: ASC }]);
+        return;
+      }
+
+      const currentIndex = keys.findIndex((key) => key.field === field);
+
+      if (currentIndex === -1) {
+        sortMutation.mutate([...keys, { field, direction: ASC }]);
+        return;
+      }
+
+      if (keys[currentIndex].direction === ASC) {
+        sortMutation.mutate(
+          keys.map((key, index) =>
+            index === currentIndex ? { field, direction: DSC } : key,
+          ),
+        );
+        return;
+      }
+
+      const removed = keys.filter((_, index) => index !== currentIndex);
+      sortMutation.mutate(removed.length === 0 ? DEFAULT_SORT_KEYS : removed);
+    },
+    [field, keys, sortMutation],
   );
 
   return (
@@ -101,7 +133,17 @@ export default function TrackListHeaderCell(props: Props) {
         xstyle,
       )}
     >
-      {content}
+      <div {...stylex.props(styles.name)}>{title}</div>
+      {position !== null && (
+        <div {...stylex.props(styles.badge)} aria-hidden="true">
+          {position}
+        </div>
+      )}
+      {icon && (
+        <div {...stylex.props(styles.icon)} aria-hidden="true">
+          <Icon name={icon} size={12} />
+        </div>
+      )}
     </button>
   );
 }
@@ -142,6 +184,18 @@ const styles = stylex.create({
     paddingInline: '4px',
     display: 'flex',
     alignItems: 'center',
+  },
+  badge: {
+    marginBlock: '4px',
+    marginInline: '0',
+    paddingBlock: '0',
+    paddingInline: '4px',
+    fontFamily: 'var(--mono-font)',
+    fontSize: '9px',
+    fontWeight: 700,
+    fontStyle: 'normal',
+    lineHeight: 1,
+    color: 'var(--pink-text)',
   },
   name: {
     flexGrow: 1,
