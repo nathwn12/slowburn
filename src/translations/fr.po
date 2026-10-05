@@ -265,7 +265,7 @@ msgstr "Bibliothèque"
 #: src/components/Navigation.tsx:40
 #: src/components/Navigation.tsx:126
 #: src/routes/playlists.tsx:94
-#: src/routes/settings.ui.tsx:151
+#: src/routes/settings.ui.tsx:172
 msgid "Playlists"
 msgstr "Playlists"
 
@@ -278,7 +278,7 @@ msgstr "File d'attente"
 #: src/components/Navigation.tsx:45
 #: src/components/Navigation.tsx:120
 #: src/routes/artists.tsx:51
-#: src/routes/settings.ui.tsx:148
+#: src/routes/settings.ui.tsx:169
 msgid "Artists"
 msgstr "Artistes"
 
@@ -982,7 +982,7 @@ msgid "Reset library?"
 msgstr "Réinitialiser la bibliothèque ?"
 
 #: src/routes/settings.library.tsx:146
-#: src/routes/settings.ui.tsx:79
+#: src/routes/settings.ui.tsx:100
 msgid "Reset"
 msgstr "Réinitialiser"
 
@@ -1015,70 +1015,86 @@ msgid "System (default)"
 msgstr "Système (par défaut)"
 
 #: src/routes/settings.ui.tsx:67
+msgid "Mode"
+msgstr ""
+
+#: src/routes/settings.ui.tsx:68
+msgid "Minimal hides the ledger and the queue column"
+msgstr ""
+
+#: src/routes/settings.ui.tsx:79
+msgid "Minimal (default)"
+msgstr ""
+
+#: src/routes/settings.ui.tsx:82
+msgid "Full"
+msgstr ""
+
+#: src/routes/settings.ui.tsx:88
 msgid "Accent color"
 msgstr "Couleur d'accentuation"
 
-#: src/routes/settings.ui.tsx:90
+#: src/routes/settings.ui.tsx:111
 msgid "Language"
 msgstr "Langue"
 
-#: src/routes/settings.ui.tsx:114
+#: src/routes/settings.ui.tsx:135
 msgid "Tracks density"
 msgstr "Densité visuelle des pistes"
 
-#: src/routes/settings.ui.tsx:115
+#: src/routes/settings.ui.tsx:136
 msgid "Change the tracks spacing"
 msgstr "Adapter l'espace entre les pistes"
 
-#: src/routes/settings.ui.tsx:126
+#: src/routes/settings.ui.tsx:147
 msgid "Normal (default)"
 msgstr "Normal (par défaut)"
 
-#: src/routes/settings.ui.tsx:129
+#: src/routes/settings.ui.tsx:150
 msgid "Compact"
 msgstr "Compact"
 
-#: src/routes/settings.ui.tsx:135
+#: src/routes/settings.ui.tsx:156
 msgid "Default view"
 msgstr "Vue par défaut"
 
-#: src/routes/settings.ui.tsx:137
+#: src/routes/settings.ui.tsx:158
 msgid "Change the default view when starting the application"
 msgstr "Changer la vue par défaut au démarrage de l'application"
 
-#: src/routes/settings.ui.tsx:145
+#: src/routes/settings.ui.tsx:166
 msgid "Library (default)"
 msgstr "Bibliothèque (par défaut)"
 
-#: src/routes/settings.ui.tsx:157
+#: src/routes/settings.ui.tsx:178
 msgid "Display Notifications"
 msgstr "Afficher les notifications"
 
-#: src/routes/settings.ui.tsx:158
+#: src/routes/settings.ui.tsx:179
 msgid "Send notifications when the playing track changes"
 msgstr "Envoyer des notifications lorsque la piste en cours change"
 
-#: src/routes/settings.ui.tsx:167
+#: src/routes/settings.ui.tsx:188
 msgid "Sleep mode blocker"
 msgstr "Bloqueur de mode veille"
 
-#: src/routes/settings.ui.tsx:168
+#: src/routes/settings.ui.tsx:189
 msgid "Prevent the computer from going into sleep mode when playing"
 msgstr "Empêcher l'ordinateur de passer en mode veille lors de la lecture"
 
-#: src/routes/settings.ui.tsx:178
+#: src/routes/settings.ui.tsx:199
 msgid "[Beta] Wayland compatibility enhancements"
 msgstr "[Beta] Améliorations de la compatibilité Wayland"
 
-#: src/routes/settings.ui.tsx:179
+#: src/routes/settings.ui.tsx:200
 msgid "If you face issues using Wayland, try out this option"
 msgstr "Si vous rencontrez des problèmes avec Wayland, essayez cette option"
 
-#: src/routes/settings.ui.tsx:202
+#: src/routes/settings.ui.tsx:223
 msgid "Light"
 msgstr "Clair"
 
-#: src/routes/settings.ui.tsx:204
+#: src/routes/settings.ui.tsx:225
 msgid "Dark"
 msgstr "Sombre"
 

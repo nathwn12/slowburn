@@ -265,7 +265,7 @@ msgstr "音樂庫"
 #: src/components/Navigation.tsx:40
 #: src/components/Navigation.tsx:126
 #: src/routes/playlists.tsx:94
-#: src/routes/settings.ui.tsx:151
+#: src/routes/settings.ui.tsx:172
 msgid "Playlists"
 msgstr "播放清單"
 
@@ -278,7 +278,7 @@ msgstr "播放佇列"
 #: src/components/Navigation.tsx:45
 #: src/components/Navigation.tsx:120
 #: src/routes/artists.tsx:51
-#: src/routes/settings.ui.tsx:148
+#: src/routes/settings.ui.tsx:169
 msgid "Artists"
 msgstr "藝術家"
 
@@ -982,7 +982,7 @@ msgid "Reset library?"
 msgstr "重設音樂庫？"
 
 #: src/routes/settings.library.tsx:146
-#: src/routes/settings.ui.tsx:79
+#: src/routes/settings.ui.tsx:100
 msgid "Reset"
 msgstr "重設"
 
@@ -1015,70 +1015,86 @@ msgid "System (default)"
 msgstr "系統（預設）"
 
 #: src/routes/settings.ui.tsx:67
+msgid "Mode"
+msgstr ""
+
+#: src/routes/settings.ui.tsx:68
+msgid "Minimal hides the ledger and the queue column"
+msgstr ""
+
+#: src/routes/settings.ui.tsx:79
+msgid "Minimal (default)"
+msgstr ""
+
+#: src/routes/settings.ui.tsx:82
+msgid "Full"
+msgstr ""
+
+#: src/routes/settings.ui.tsx:88
 msgid "Accent color"
 msgstr "強調色"
 
-#: src/routes/settings.ui.tsx:90
+#: src/routes/settings.ui.tsx:111
 msgid "Language"
 msgstr "語言"
 
-#: src/routes/settings.ui.tsx:114
+#: src/routes/settings.ui.tsx:135
 msgid "Tracks density"
 msgstr "音軌密度"
 
-#: src/routes/settings.ui.tsx:115
+#: src/routes/settings.ui.tsx:136
 msgid "Change the tracks spacing"
 msgstr "變更音軌間距"
 
-#: src/routes/settings.ui.tsx:126
+#: src/routes/settings.ui.tsx:147
 msgid "Normal (default)"
 msgstr "正常（預設）"
 
-#: src/routes/settings.ui.tsx:129
+#: src/routes/settings.ui.tsx:150
 msgid "Compact"
 msgstr "緊湊"
 
-#: src/routes/settings.ui.tsx:135
+#: src/routes/settings.ui.tsx:156
 msgid "Default view"
 msgstr "預設檢視"
 
-#: src/routes/settings.ui.tsx:137
+#: src/routes/settings.ui.tsx:158
 msgid "Change the default view when starting the application"
 msgstr "變更啟動應用程式時的預設檢視"
 
-#: src/routes/settings.ui.tsx:145
+#: src/routes/settings.ui.tsx:166
 msgid "Library (default)"
 msgstr "音樂庫（預設）"
 
-#: src/routes/settings.ui.tsx:157
+#: src/routes/settings.ui.tsx:178
 msgid "Display Notifications"
 msgstr "顯示通知"
 
-#: src/routes/settings.ui.tsx:158
+#: src/routes/settings.ui.tsx:179
 msgid "Send notifications when the playing track changes"
 msgstr "播放音軌變更時發送通知"
 
-#: src/routes/settings.ui.tsx:167
+#: src/routes/settings.ui.tsx:188
 msgid "Sleep mode blocker"
 msgstr "睡眠模式阻止器"
 
-#: src/routes/settings.ui.tsx:168
+#: src/routes/settings.ui.tsx:189
 msgid "Prevent the computer from going into sleep mode when playing"
 msgstr "播放時防止電腦進入睡眠模式"
 
-#: src/routes/settings.ui.tsx:178
+#: src/routes/settings.ui.tsx:199
 msgid "[Beta] Wayland compatibility enhancements"
 msgstr "[測試版] Wayland 相容性強化"
 
-#: src/routes/settings.ui.tsx:179
+#: src/routes/settings.ui.tsx:200
 msgid "If you face issues using Wayland, try out this option"
 msgstr "如果您在使用 Wayland 時遇到問題，請嘗試此選項"
 
-#: src/routes/settings.ui.tsx:202
+#: src/routes/settings.ui.tsx:223
 msgid "Light"
 msgstr "淺色"
 
-#: src/routes/settings.ui.tsx:204
+#: src/routes/settings.ui.tsx:225
 msgid "Dark"
 msgstr "深色"
 

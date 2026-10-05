@@ -3,6 +3,7 @@ import type { Config } from '../../generated/typings';
 export const MOCK_CONFIG: Config = {
   language: 'en',
   theme: 'light',
+  ui_mode: 'minimal',
   ui_accent_color: null,
   audio_volume: 1.0,
   audio_playback_rate: 1.0,

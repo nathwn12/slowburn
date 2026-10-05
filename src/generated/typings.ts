@@ -9,7 +9,7 @@
  */
 export type AbLoop = { track_id: string, start_seconds: number | null, end_seconds: number | null, };
 
-export type Config = { language: string, theme: string, ui_accent_color: string | null, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, library_sort_by: SortBy, library_sort_order: SortOrder, library_folders: Array<string>, library_autorefresh: boolean, sleepblocker: boolean, auto_update_checker: boolean, notifications: boolean, track_view_density: TrackViewDensity, wayland_compat: boolean, menu_bar_visible: boolean, };
+export type Config = { language: string, theme: string, ui_mode: UiMode, ui_accent_color: string | null, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, library_sort_by: SortBy, library_sort_order: SortOrder, library_folders: Array<string>, library_autorefresh: boolean, sleepblocker: boolean, auto_update_checker: boolean, notifications: boolean, track_view_density: TrackViewDensity, wayland_compat: boolean, menu_bar_visible: boolean, };
 
 export type DefaultView = "Library" | "Artists" | "Playlists";
 
@@ -93,3 +93,5 @@ last_played: string | null, };
 export type TrackGroup = { label: string, genres: Array<string>, duration: number, year: number | null, tracks: Array<Track>, };
 
 export type TrackViewDensity = "normal" | "compact";
+
+export type UiMode = "minimal" | "full";
