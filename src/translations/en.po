@@ -805,7 +805,7 @@ msgstr "Unmute"
 msgid "Mute"
 msgstr "Mute"
 
-#: src/routes/__root.tsx:129
+#: src/routes/__root.tsx:138
 msgid "Application main content"
 msgstr "Application main content"
 

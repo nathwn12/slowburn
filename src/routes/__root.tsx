@@ -1,5 +1,6 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { createRootRoute, Outlet, useLocation } from '@tanstack/react-router';
 import { info } from '@tauri-apps/plugin-log';
 import { useEffect } from 'react';
@@ -70,6 +71,14 @@ function isViewRoute(pathname: string): boolean {
 function ViewRoot() {
   const invalidate = useInvalidate();
   const { t } = useLingui();
+
+  // The root loader ensures the config query, and its initialData is the config
+  // injected at parse time, so this read is synchronous on first paint (no
+  // full-mode flash). Anything other than "full" — including a config written
+  // before `ui_mode` existed — falls back to minimal.
+  const config = useSuspenseQuery(configQuery).data;
+  const isFullMode = config.ui_mode === 'full';
+
   const queue = usePlayerState((state) => state.queue);
   const queueCursor = usePlayerState((state) => state.queueCursor);
 
@@ -142,7 +151,7 @@ function ViewRoot() {
             <NowPlaying />
             {/** Right column: the view stack (Queue / Library / Playlists) */}
             <div {...stylex.props(styles.rightColumn)}>
-              {showQueue ? (
+              {isFullMode && showQueue ? (
                 <Queue queue={queue} queueCursor={queueCursor} />
               ) : (
                 <div {...stylex.props(styles.routeSlot)}>
@@ -154,8 +163,8 @@ function ViewRoot() {
         )}
       </main>
 
-      {/** 26px ledger: totals, format, effects, loop, output */}
-      <StatusBar />
+      {/** 26px ledger: totals, format, effects, loop, output — full mode only */}
+      {isFullMode && <StatusBar />}
 
       {/** Out-of-the-flow UI bits */}
       <Toasts />
