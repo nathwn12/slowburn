@@ -2,9 +2,9 @@ import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 import { useCallback, type KeyboardEvent } from 'react';
 
-import Icon, { type IconName } from './Icon';
 import { usePlayerState } from '../hooks/usePlayer';
 import player from '../lib/player';
+import Icon, { type IconName } from './Icon';
 import { STEP, useWheelStep } from './wheel-step';
 
 // Volume easing - http://www.dr-lex.be/info-stuff/volumecontrols.html#about
@@ -75,14 +75,16 @@ export default function VolumeControl() {
         data-icon={icon}
         onClick={() => player.toggleMute()}
         onKeyDown={onKeyDown}
-        {...stylex.props(styles.denseTrack, muted && styles.faded)}
+        {...stylex.props(styles.denseHit, muted && styles.faded)}
       >
-        <div
-          {...stylex.props(styles.denseRange)}
-          // A runtime percentage cannot be a static StyleX rule; this matches
-          // the existing dynamic-width pattern in TrackProgress.tsx.
-          style={{ width: `${sliderValue * 100}%` }}
-        />
+        <div {...stylex.props(styles.denseTrack)}>
+          <div
+            {...stylex.props(styles.denseRange)}
+            // A runtime percentage cannot be a static StyleX rule; this matches
+            // the existing dynamic-width pattern in TrackProgress.tsx.
+            style={{ width: `${sliderValue * 100}%` }}
+          />
+        </div>
       </div>
       <span {...stylex.props(styles.readout)} aria-hidden="true">
         {readout}
@@ -109,17 +111,26 @@ const styles = stylex.create({
     borderRadius: 'var(--radius-sm)',
     color: 'var(--text-dim)',
   },
-  denseTrack: {
-    backgroundColor: 'var(--track)',
+  denseHit: {
+    // 14px transparent hit area wrapping the 4px visual track: the wheel and
+    // the pointer must be able to land on the whole strip, not just the fill.
+    display: 'flex',
+    alignItems: 'center',
     position: 'relative',
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: '56px',
     minWidth: 0,
     maxWidth: '110px',
-    borderRadius: '9999px',
-    height: '4px',
+    height: '14px',
     cursor: 'pointer',
+  },
+  denseTrack: {
+    backgroundColor: 'var(--track)',
+    position: 'relative',
+    width: '100%',
+    height: '4px',
+    borderRadius: '9999px',
   },
   denseRange: {
     position: 'absolute',

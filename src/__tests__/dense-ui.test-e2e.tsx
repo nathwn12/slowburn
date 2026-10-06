@@ -301,17 +301,26 @@ test(
     p.setEffectsConfig({ slow: 1, reverbIntensity: 0, enabled: true });
     await sleep(50);
 
-    const wheel = async (name: RegExp, deltaY: number) => {
+    // The gesture boundary is the event's own `timeStamp`, so drive it with a
+    // synthetic clock instead of real `sleep()`s: CI load cannot stretch the
+    // gap and re-arm the gesture mid-flick.
+    let wheelStamp = 0;
+    const wheel = async (name: RegExp, deltaY: number, gapMs = 20) => {
+      wheelStamp += gapMs;
       const el = page.getByRole('slider', { name }).element();
-      el.dispatchEvent(
-        new WheelEvent('wheel', {
-          deltaY,
-          deltaMode: 0,
-          bubbles: true,
-          cancelable: true,
-        }),
-      );
-      // Real wheel events are separate turns; let React flush between them.
+      const event = new WheelEvent('wheel', {
+        deltaY,
+        deltaMode: 0,
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(event, 'timeStamp', {
+        value: wheelStamp,
+        configurable: true,
+      });
+      el.dispatchEvent(event);
+      // Let React flush the resulting state update before the next event; this
+      // wait is for the render, not the gesture boundary.
       await sleep(20);
     };
 
@@ -328,20 +337,22 @@ test(
     await wheel(/Playback speed/, 100);
     expect(p.getEffectsConfig().slow).toBeCloseTo(slowBefore - 0.01, 5);
 
-    // A trackpad flick of small deltas accumulates: 3 × 10px is < one notch
-    // and must not move the value at all.
-    const slowMid = p.getEffectsConfig().slow;
-    await wheel(/Playback speed/, 10);
-    await wheel(/Playback speed/, 10);
-    await wheel(/Playback speed/, 10);
-    expect(p.getEffectsConfig().slow).toBeCloseTo(slowMid, 5);
+    // An accumulating flick - a trackpad's many small deltas summing to one
+    // notch - steps exactly once, no matter how the travel is split. It follows
+    // the notch above within the same gesture, so the accumulator starts empty.
+    const flickBefore = p.getEffectsConfig().slow;
+    for (let i = 0; i < 10; i += 1) await wheel(/Playback speed/, 10);
+    expect(p.getEffectsConfig().slow).toBeCloseTo(flickBefore - 0.01, 5);
 
-    // Completing the notch (7 more × 10px down) applies at most one step down;
-    // a flick must never move more than one step per notch-equivalent.
-    for (let i = 0; i < 7; i += 1) await wheel(/Playback speed/, 10);
-    const afterFlick = p.getEffectsConfig().slow;
-    expect(afterFlick).toBeLessThanOrEqual(slowMid + 1e-9);
-    expect(afterFlick).toBeGreaterThanOrEqual(slowMid - 0.01 - 1e-9);
+    // A longer flick (two notches of travel, 20 * 10px) steps twice: bounded and
+    // proportional to distance, never a burst and never collapsed to one step.
+    // The first event is stamped past the gesture gap, which ends the previous
+    // gesture so this measures one flick on its own.
+    const longBefore = p.getEffectsConfig().slow;
+    for (let i = 0; i < 20; i += 1) {
+      await wheel(/Playback speed/, 10, i === 0 ? 250 : 20);
+    }
+    expect(p.getEffectsConfig().slow).toBeCloseTo(longBefore - 0.02, 5);
 
     // A wheel nowhere near a slider changes nothing.
     const noHoverBefore = p.getEffectsConfig().slow;
