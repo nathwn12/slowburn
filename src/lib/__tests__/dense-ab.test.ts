@@ -17,7 +17,9 @@ function hasUsableGap(
   duration: number,
 ): boolean {
   if (a == null || b == null) return true; // half-set regions are not dead
-  return a >= 0 && b <= duration && b > a && b - a >= duration * MIN_GAP_RATIO - 1e-9;
+  return (
+    a >= 0 && b <= duration && b > a && b - a >= duration * MIN_GAP_RATIO - 1e-9
+  );
 }
 
 describe('resolveSetA (typed A)', () => {

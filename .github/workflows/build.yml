@@ -3,7 +3,7 @@ name: build
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
   pull_request:
     branches:
       - '**'
@@ -73,7 +73,7 @@ jobs:
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/specifications-for-github-hosted-runners
 
   binaries:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login == github.repository_owner
+    if: github.event_name != 'pull_request'
 
     needs: qa
 
@@ -83,14 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          [
-            macos-14,
-            windows-latest,
-            windows-11-arm,
-            ubuntu-24.04,
-            'ubuntu-24.04-arm',
-          ]
+        platform: [windows-latest, windows-11-arm]
 
     runs-on: ${{ matrix.platform }}
     steps:

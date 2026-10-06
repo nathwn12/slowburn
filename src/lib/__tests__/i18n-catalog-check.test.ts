@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { afterEach, describe, expect, test } from 'vite-plus/test';
 
 const SCRIPT = join(process.cwd(), 'scripts', 'check-i18n-catalog.mjs');
@@ -28,7 +29,7 @@ function makeFixture(fixture: Fixture): string {
   const en = fixture.en ?? { [ID]: ['Slowburn'] };
   const locales: Record<string, Record<string, unknown>> = {
     es: en,
-    ...(fixture.locales ?? {}),
+    ...fixture.locales,
   };
   const writeEn = fixture.writeEn ?? true;
   const writeAssets = fixture.writeAssets ?? true;
@@ -75,7 +76,8 @@ function run(dir: string): { status: number; out: string } {
 
 const dirs: string[] = [];
 afterEach(() => {
-  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const dir of dirs.splice(0))
+    rmSync(dir, { recursive: true, force: true });
 });
 
 function fixture(options: Fixture = {}): string {
@@ -115,9 +117,7 @@ describe('check-i18n-catalog', () => {
   });
 
   test('fails when a locale catalog does not match en', () => {
-    const result = run(
-      fixture({ locales: { es: { [OTHER_ID]: ['x'] } } }),
-    );
+    const result = run(fixture({ locales: { es: { [OTHER_ID]: ['x'] } } }));
     expect(result.status).toBe(1);
     expect(result.out).toContain('does not match en');
   });

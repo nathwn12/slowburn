@@ -66,4 +66,3 @@ const sizeVariants = stylex.create({
     fontSize: '10px',
   },
 });
-

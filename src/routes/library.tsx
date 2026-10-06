@@ -1,6 +1,6 @@
+import * as stylex from '@stylexjs/stylex';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import * as stylex from '@stylexjs/stylex';
 
 import TrackList from '../components/TrackList';
 import TrackListStates from '../components/TrackListStates';

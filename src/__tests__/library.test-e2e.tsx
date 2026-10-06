@@ -211,8 +211,9 @@ test('Column headers should sort tracks in the library', async () => {
 });
 
 test('a scan that drops unreadable files warns instead of staying silent', async () => {
-  (globalThis as { __MUSEEKS_MOCK_SCAN_FAILURES?: number })
-    .__MUSEEKS_MOCK_SCAN_FAILURES = 1;
+  (
+    globalThis as { __MUSEEKS_MOCK_SCAN_FAILURES?: number }
+  ).__MUSEEKS_MOCK_SCAN_FAILURES = 1;
 
   await setupScannedLibrary();
 

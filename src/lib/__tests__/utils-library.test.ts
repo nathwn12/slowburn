@@ -108,9 +108,10 @@ describe('sortTracks', () => {
       makeTrack({ id: 'amy', modified: 500, artists: ['Amy'] }),
     ];
 
-    expect(ids(sortTracks(tracks, [MODIFIED_DESC, ARTIST_ASC]))).toStrictEqual(
-      ['amy', 'zed'],
-    );
+    expect(ids(sortTracks(tracks, [MODIFIED_DESC, ARTIST_ASC]))).toStrictEqual([
+      'amy',
+      'zed',
+    ]);
   });
 
   it('honours a per-key descending direction independently', () => {

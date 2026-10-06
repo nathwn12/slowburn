@@ -68,9 +68,7 @@ function ViewSettingsUI() {
           description={t`Minimal hides the ledger and the queue column`}
           value={config.ui_mode}
           onChange={(e) =>
-            SettingsAPI.setUIMode(
-              e.currentTarget.value as Config['ui_mode'],
-            )
+            SettingsAPI.setUIMode(e.currentTarget.value as Config['ui_mode'])
               .then(invalidate)
               .catch(logAndNotifyError)
           }

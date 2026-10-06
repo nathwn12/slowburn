@@ -22,7 +22,9 @@ export function clampSeconds(value: number, duration: number): number {
 }
 
 function minGap(duration: number): number {
-  return Number.isFinite(duration) && duration > 0 ? duration * MIN_GAP_RATIO : 0;
+  return Number.isFinite(duration) && duration > 0
+    ? duration * MIN_GAP_RATIO
+    : 0;
 }
 
 function pushAmount(duration: number): number {
@@ -49,7 +51,10 @@ export function resolveSetA(
     // ...but there is no room left after A (A is at/near the end). Rather than
     // collapse to a zero-width `{duration, duration}` loop, pin B to the end
     // and pull A back far enough to leave a usable region.
-    return { a: Math.min(a, clampSeconds(duration - gap, duration)), b: duration };
+    return {
+      a: Math.min(a, clampSeconds(duration - gap, duration)),
+      b: duration,
+    };
   }
   return { a, b };
 }

@@ -22,7 +22,7 @@
 
 ## Review Focus
 
-The spec fixes the *look* of the volume strip but not these conditions; each is a way a person's
+The spec fixes the _look_ of the volume strip but not these conditions; each is a way a person's
 real use breaks a bar that looks correct in a screenshot:
 
 1. **Volume 0 vs muted.** Spec §3.6 requires them to be visually distinguishable. A bar at 0% and
@@ -41,11 +41,13 @@ real use breaks a bar that looks correct in a screenshot:
 ### Task 1: The slim bar, with its tests
 
 **Files:**
+
 - Modify: `src/components/VolumeControl.tsx` (283 lines; the dense branch is `57-95`, styles `155-283`)
 - Modify: `src/components/PlayerControls.tsx:84` (call site)
 - Test: `src/components/__tests__/volume-control.test.tsx` (create)
 
 **Interfaces:**
+
 - Consumes: `player` singleton — `setVolume(volume: number): void` (`src/lib/player.ts:714`),
   `toggleMute(): Promise<void>` (`:732`), `unmute(): Promise<void>` (`:738`);
   `usePlayerState` reads `state.volume: number` (`:56`) and `state.muted: boolean` (`:57`).
@@ -84,6 +86,7 @@ Keep, unchanged: the `smoothifyVolume` / `unsmoothifyVolume` pair (`:14-19`), `g
 (`:50-51`), `wheelRef` (`:53-55`).
 
 Replace, entirely:
+
 - the dense early-return (`:57-95`) — the `Slider.Root/Control/Track/Indicator/Thumb` tree becomes
   one fill element: an outer div carrying `denseTrack` (empty track colour) containing an inner div
   carrying `denseRange` (accent fill) at `width: ${sliderValue * 100}%`.
@@ -95,11 +98,12 @@ Replace, entirely:
 - the `Popover` and `Slider` imports, and the `dense` prop from the `Props` type.
 
 Behaviour to attach to the bar element:
+
 - `onClick` → `player.toggleMute()`
 - `ref={wheelRef}` so the wheel adjusts
 - `tabIndex={0}`, `role="button"`, an `aria-label` from the existing `t` macro, and `onKeyDown`
   handling ArrowUp/ArrowRight (+STEP) and ArrowDown/ArrowLeft (−STEP) — Review Focus item 4.
-- a muted marker distinct from 0%: apply the existing `faded` style *and* render the muted icon via
+- a muted marker distinct from 0%: apply the existing `faded` style _and_ render the muted icon via
   the existing `getVolumeIcon(volume, muted)` — Review Focus item 1.
 
 Then update `src/components/PlayerControls.tsx:84` from `<VolumeControl dense />` to
@@ -134,9 +138,11 @@ git commit -m "feat(volume): slim fill bar + percentage, drop the slider and dea
 ### Task 2: Prove the strip never disappears
 
 **Files:**
+
 - Test: `src/__tests__/dense-ui.test-e2e.tsx` (extend)
 
 **Interfaces:**
+
 - Consumes: `VolumeControl` default export from Task 1 (no props).
 - Produces: nothing other code depends on.
 
@@ -179,7 +185,7 @@ git commit -m "test(volume): volume strip survives the empty state"
   AC8 — Task 1 steps 1 and 4. §3.4 invariant 1, as it applies to this band — Task 2.
 - **Not covered by this plan, deliberately:** the "no accent ring" requirement is satisfied by
   deleting `denseThumb`; there is no other ring on the bar. Review Focus item 4 is an addition the
-  spec does not demand, and it is the one place this plan goes *beyond* the spec — noted so it is a
+  spec does not demand, and it is the one place this plan goes _beyond_ the spec — noted so it is a
   decision rather than a surprise.
 - **Type consistency:** `VolumeControl` takes no props in both tasks; `player.toggleMute()`,
   `player.setVolume()`, `useWheelStep`, `STEP`, `sliderValue` and the style names all come from the

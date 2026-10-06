@@ -45,11 +45,13 @@
 ### Task 1: The header sort control
 
 **Files:**
+
 - Modify: `src/components/TrackListHeaderCell.tsx:26-31,33-52,54-63`
 - Modify: `src/components/TrackListHeader.tsx:26-50`
 - Test: `src/components/__tests__/sort-header.test-e2e.tsx` (create)
 
 **Interfaces:**
+
 - Consumes: `Config.library_sort_keys: SortKey[]` and `SortKey = { field: SortField; direction: SortOrder }`
   from the sorting-data-model plan; `ConfigBridge.multiSet` (`src/lib/bridge-config.ts:45`).
 - Produces: nothing other tasks import; the control writes config only.
@@ -94,11 +96,13 @@ git commit -m "feat(sort): numbered multi-key header control with cycle and shif
 ### Task 2: Presets
 
 **Files:**
+
 - Create: `src/lib/sort-presets.ts` (named key stacks)
 - Modify: `src/components/TrackListHeader.tsx` (mount the preset control)
 - Test: `src/components/__tests__/sort-header.test-e2e.tsx` (extend)
 
 **Interfaces:**
+
 - Consumes: `SortKey` from the sorting-data-model plan.
 - Produces: `export type SortPreset = { id: string; labelKey: string; keys: SortKey[] }` and
   `export const SORT_PRESETS: SortPreset[]` — the six from spec §3.5: recently modified, recently
@@ -145,10 +149,12 @@ git commit -m "feat(sort): presets, with badges updating on apply"
 ### Task 3: The queue's sort-before-pagination fix
 
 **Files:**
+
 - Modify: `src/components/QueueList.tsx:37-49`
 - Test: `src/components/__tests__/queue-sort.test-e2e.tsx` (create)
 
 **Interfaces:**
+
 - Consumes: `Track.play_count` (`src/generated/typings.ts`), and the existing `mostPlayed` state in
   `src/components/Queue.tsx:26`.
 - Produces: nothing.

@@ -128,7 +128,10 @@ function hitOf(selector: string): string {
   if (el == null) return 'missing';
   const b = el.getBoundingClientRect();
   if (b.width < 1 || b.height < 1) return 'empty';
-  const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+  const hit = document.elementFromPoint(
+    b.left + b.width / 2,
+    b.top + b.height / 2,
+  );
   if (hit == null) return 'none';
   if (el.contains(hit) || hit.contains(el)) return 'self';
   return hit.getAttribute('aria-label') ?? hit.tagName.toLowerCase();
@@ -189,7 +192,9 @@ for (const vp of VIEWPORTS) {
 
       // 2. Both lie inside the now-playing scroll container's box.
       expect(tech.top, 'metadata top').toBeGreaterThanOrEqual(col.top - 1);
-      expect(tech.bottom, 'metadata bottom').toBeLessThanOrEqual(col.bottom + 1);
+      expect(tech.bottom, 'metadata bottom').toBeLessThanOrEqual(
+        col.bottom + 1,
+      );
       expect(seek.top, 'seek top').toBeGreaterThanOrEqual(col.top - 1);
       expect(seek.bottom, 'seek bottom').toBeLessThanOrEqual(col.bottom + 1);
 

@@ -4,12 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import useEffectsConfig from '../hooks/useEffectsConfig';
-import usePlayingTrack from '../hooks/usePlayingTrack';
+import { parseDuration } from '../hooks/useFormattedDuration';
 import { usePlayerState } from '../hooks/usePlayer';
-import { NO_VALUE, audioFormatLabel, formatFileSize, isLosslessFormat } from '../lib/dense-format';
+import usePlayingTrack from '../hooks/usePlayingTrack';
+import {
+  NO_VALUE,
+  audioFormatLabel,
+  formatFileSize,
+  isLosslessFormat,
+} from '../lib/dense-format';
 import { allTracksQuery } from '../lib/queries';
 import useLibraryStore from '../lib/store';
-import { parseDuration } from '../hooks/useFormattedDuration';
 import Icon from './Icon';
 
 /**
@@ -30,7 +35,8 @@ export default function StatusBar() {
     [allTracks],
   );
   const totalSize = useMemo(
-    () => (allTracks ?? []).reduce((acc, track) => acc + (track.file_size ?? 0), 0),
+    () =>
+      (allTracks ?? []).reduce((acc, track) => acc + (track.file_size ?? 0), 0),
     [allTracks],
   );
 
@@ -77,10 +83,7 @@ export default function StatusBar() {
     : t`No A–B loop`;
 
   return (
-    <footer
-      aria-label={t`Status bar`}
-      {...stylex.props(styles.status)}
-    >
+    <footer aria-label={t`Status bar`} {...stylex.props(styles.status)}>
       <span {...stylex.props(styles.st)}>
         {refreshing
           ? t`scanning tracks…`
@@ -190,4 +193,3 @@ const styles = stylex.create({
     color: 'var(--pink-text-soft)',
   },
 });
-

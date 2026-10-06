@@ -108,7 +108,9 @@ export default function ShortcutsPanel() {
           ))}
         </div>
 
-        <div {...stylex.props(styles.hint)}>{t`Press ? any time to reopen`}</div>
+        <div
+          {...stylex.props(styles.hint)}
+        >{t`Press ? any time to reopen`}</div>
       </div>
     </div>
   );
@@ -134,7 +136,8 @@ const styles = stylex.create({
     borderColor: 'var(--border-soft)',
     borderRadius: 'var(--radius)',
     boxShadow: '0 24px 70px rgba(0,0,0,.65)',
-    padding: '16px 18px',
+    paddingBlock: '16px',
+    paddingInline: '18px',
   },
   head: {
     display: 'flex',

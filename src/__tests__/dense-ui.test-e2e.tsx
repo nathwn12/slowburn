@@ -139,10 +139,7 @@ test(
     expect(p.getEffectsConfig().reverbIntensity).toBeCloseTo(0.02, 5);
 
     // eslint-disable-next-line no-console
-    console.log(
-      'DENSE_EFFECTS_READBACK',
-      JSON.stringify(p.getEffectsConfig()),
-    );
+    console.log('DENSE_EFFECTS_READBACK', JSON.stringify(p.getEffectsConfig()));
 
     // The chip restates the same values (one source of truth, no drift).
     await expect
@@ -159,47 +156,53 @@ test(
   },
 );
 
-test('A-B buttons and keyboard drive the real loop engine', { timeout: 30_000 }, async () => {
-  await playFirstTrack();
-  const p = player();
+test(
+  'A-B buttons and keyboard drive the real loop engine',
+  { timeout: 30_000 },
+  async () => {
+    await playFirstTrack();
+    const p = player();
 
-  p.pause();
-  p.setCurrentTime(10);
-  await page.getByRole('button', { name: 'Set loop point A' }).click();
-  await waitFor(() => p.getAbLoop().startSeconds != null, 3000);
-  expect(p.getAbLoop().startSeconds).toBeGreaterThan(9);
-  expect(p.getAbLoop().startSeconds).toBeLessThan(11);
+    p.pause();
+    p.setCurrentTime(10);
+    await page.getByRole('button', { name: 'Set loop point A' }).click();
+    await waitFor(() => p.getAbLoop().startSeconds != null, 3000);
+    expect(p.getAbLoop().startSeconds).toBeGreaterThan(9);
+    expect(p.getAbLoop().startSeconds).toBeLessThan(11);
 
-  p.setCurrentTime(20);
-  await page.getByRole('button', { name: 'Set loop point B' }).click();
-  await waitFor(() => p.getAbLoop().endSeconds != null, 3000);
-  expect(p.getAbLoop().endSeconds).toBeGreaterThan(19);
-  expect(p.getAbLoop().endSeconds).toBeLessThan(21);
-  expect(p.getAbLoop().active).toBe(true);
+    p.setCurrentTime(20);
+    await page.getByRole('button', { name: 'Set loop point B' }).click();
+    await waitFor(() => p.getAbLoop().endSeconds != null, 3000);
+    expect(p.getAbLoop().endSeconds).toBeGreaterThan(19);
+    expect(p.getAbLoop().endSeconds).toBeLessThan(21);
+    expect(p.getAbLoop().active).toBe(true);
 
-  // eslint-disable-next-line no-console
-  console.log('DENSE_AB_READBACK', JSON.stringify(p.getAbLoop()));
+    // eslint-disable-next-line no-console
+    console.log('DENSE_AB_READBACK', JSON.stringify(p.getAbLoop()));
 
-  // The LOOPING pill is only rendered while the region is actually running.
-  await p.play();
-  await waitFor(() => !p.getState().isPaused, 3000);
-  await expect.element(page.getByText('● LOOPING')).toBeVisible();
+    // The LOOPING pill is only rendered while the region is actually running.
+    await p.play();
+    await waitFor(() => !p.getState().isPaused, 3000);
+    await expect.element(page.getByText('● LOOPING')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Clear the A-B region for this track' }).click();
-  await waitFor(() => p.getAbLoop().startSeconds === null, 3000);
-  expect(p.getAbLoop().endSeconds).toBeNull();
+    await page
+      .getByRole('button', { name: 'Clear the A-B region for this track' })
+      .click();
+    await waitFor(() => p.getAbLoop().startSeconds === null, 3000);
+    expect(p.getAbLoop().endSeconds).toBeNull();
 
-  // Keyboard: [ sets A, \ clears. (Dispatched on <body>, bubbling to the
-  // document where the app's Keybinding listens.)
-  p.pause();
-  p.setCurrentTime(15);
-  pressKey('[');
-  await waitFor(() => p.getAbLoop().startSeconds != null, 3000);
-  expect(p.getAbLoop().startSeconds).toBeGreaterThan(14);
-  expect(p.getAbLoop().startSeconds).toBeLessThan(16);
-  pressKey('\\');
-  await waitFor(() => p.getAbLoop().startSeconds === null, 3000);
-});
+    // Keyboard: [ sets A, \ clears. (Dispatched on <body>, bubbling to the
+    // document where the app's Keybinding listens.)
+    p.pause();
+    p.setCurrentTime(15);
+    pressKey('[');
+    await waitFor(() => p.getAbLoop().startSeconds != null, 3000);
+    expect(p.getAbLoop().startSeconds).toBeGreaterThan(14);
+    expect(p.getAbLoop().startSeconds).toBeLessThan(16);
+    pressKey('\\');
+    await waitFor(() => p.getAbLoop().startSeconds === null, 3000);
+  },
+);
 
 test(
   'a saved region auto-applies and loops when the track is reopened',
@@ -261,7 +264,9 @@ test('the breadcrumb drives the right-column view stack', async () => {
   // Library (all tracks) is the routed view for /library.
   await expect.element(getTrackList()).toBeInTheDocument();
 
-  const switchView = async (name: 'Queue' | 'All tracks' | 'Artists' | 'Playlists') => {
+  const switchView = async (
+    name: 'Queue' | 'All tracks' | 'Artists' | 'Playlists',
+  ) => {
     await nav.getByRole('button', { name: 'Switch view' }).click();
     await page.getByRole('menuitem', { name }).click();
   };
@@ -301,17 +306,26 @@ test(
     p.setEffectsConfig({ slow: 1, reverbIntensity: 0, enabled: true });
     await sleep(50);
 
-    const wheel = async (name: RegExp, deltaY: number) => {
+    // The gesture boundary is the event's own `timeStamp`, so drive it with a
+    // synthetic clock instead of real `sleep()`s: CI load cannot stretch the
+    // gap and re-arm the gesture mid-flick.
+    let wheelStamp = 0;
+    const wheel = async (name: RegExp, deltaY: number, gapMs = 20) => {
+      wheelStamp += gapMs;
       const el = page.getByRole('slider', { name }).element();
-      el.dispatchEvent(
-        new WheelEvent('wheel', {
-          deltaY,
-          deltaMode: 0,
-          bubbles: true,
-          cancelable: true,
-        }),
-      );
-      // Real wheel events are separate turns; let React flush between them.
+      const event = new WheelEvent('wheel', {
+        deltaY,
+        deltaMode: 0,
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(event, 'timeStamp', {
+        value: wheelStamp,
+        configurable: true,
+      });
+      el.dispatchEvent(event);
+      // Let React flush the resulting state update before the next event; this
+      // wait is for the render, not the gesture boundary.
       await sleep(20);
     };
 
@@ -328,20 +342,22 @@ test(
     await wheel(/Playback speed/, 100);
     expect(p.getEffectsConfig().slow).toBeCloseTo(slowBefore - 0.01, 5);
 
-    // A trackpad flick of small deltas accumulates: 3 × 10px is < one notch
-    // and must not move the value at all.
-    const slowMid = p.getEffectsConfig().slow;
-    await wheel(/Playback speed/, 10);
-    await wheel(/Playback speed/, 10);
-    await wheel(/Playback speed/, 10);
-    expect(p.getEffectsConfig().slow).toBeCloseTo(slowMid, 5);
+    // An accumulating flick - a trackpad's many small deltas summing to one
+    // notch - steps exactly once, no matter how the travel is split. It follows
+    // the notch above within the same gesture, so the accumulator starts empty.
+    const flickBefore = p.getEffectsConfig().slow;
+    for (let i = 0; i < 10; i += 1) await wheel(/Playback speed/, 10);
+    expect(p.getEffectsConfig().slow).toBeCloseTo(flickBefore - 0.01, 5);
 
-    // Completing the notch (7 more × 10px down) applies at most one step down;
-    // a flick must never move more than one step per notch-equivalent.
-    for (let i = 0; i < 7; i += 1) await wheel(/Playback speed/, 10);
-    const afterFlick = p.getEffectsConfig().slow;
-    expect(afterFlick).toBeLessThanOrEqual(slowMid + 1e-9);
-    expect(afterFlick).toBeGreaterThanOrEqual(slowMid - 0.01 - 1e-9);
+    // A longer flick (two notches of travel, 20 * 10px) steps twice: bounded and
+    // proportional to distance, never a burst and never collapsed to one step.
+    // The first event is stamped past the gesture gap, which ends the previous
+    // gesture so this measures one flick on its own.
+    const longBefore = p.getEffectsConfig().slow;
+    for (let i = 0; i < 20; i += 1) {
+      await wheel(/Playback speed/, 10, i === 0 ? 250 : 20);
+    }
+    expect(p.getEffectsConfig().slow).toBeCloseTo(longBefore - 0.02, 5);
 
     // A wheel nowhere near a slider changes nothing.
     const noHoverBefore = p.getEffectsConfig().slow;
@@ -367,9 +383,7 @@ test('a saved loop pins the row with the ◆ mark', async () => {
   await p.setAbPoint('A', 3);
   await p.setAbPoint('B', 6);
 
-  await expect
-    .element(getTrackByName(/Whiskey Blues/))
-    .toHaveTextContent('◆');
+  await expect.element(getTrackByName(/Whiskey Blues/)).toHaveTextContent('◆');
 });
 
 test('the playing row is magenta and the cursor selection is info blue', async () => {
@@ -380,9 +394,7 @@ test('the playing row is magenta and the cursor selection is info blue', async (
 
   const playingRow = getTrackByName(/Whiskey Blues/);
 
-  const playingBorder = getComputedStyle(
-    playingRow.element(),
-  ).borderLeftColor;
+  const playingBorder = getComputedStyle(playingRow.element()).borderLeftColor;
   const selectedBorder = getComputedStyle(
     selectedRow.element(),
   ).borderLeftColor;
@@ -542,24 +554,20 @@ test(
   },
 );
 
-test(
-  'A == B == 0 is refused as a dead loop',
-  { timeout: 30_000 },
-  async () => {
-    await playFirstTrack();
-    const p = player();
+test('A == B == 0 is refused as a dead loop', { timeout: 30_000 }, async () => {
+  await playFirstTrack();
+  const p = player();
 
-    await commitField(loopField('Loop point A'), '0');
-    await commitField(loopField('Loop point B'), '0');
-    await waitFor(() => p.getAbLoop().endSeconds != null, 3000);
+  await commitField(loopField('Loop point A'), '0');
+  await commitField(loopField('Loop point B'), '0');
+  await waitFor(() => p.getAbLoop().endSeconds != null, 3000);
 
-    const loop = p.getAbLoop();
-    expect(loop.startSeconds).not.toBeNull();
-    expect(loop.endSeconds).not.toBeNull();
-    // The old `{0, 0}` zero-width region must never be persisted.
-    expect(loop.endSeconds! - loop.startSeconds!).toBeGreaterThan(0);
-  },
-);
+  const loop = p.getAbLoop();
+  expect(loop.startSeconds).not.toBeNull();
+  expect(loop.endSeconds).not.toBeNull();
+  // The old `{0, 0}` zero-width region must never be persisted.
+  expect(loop.endSeconds! - loop.startSeconds!).toBeGreaterThan(0);
+});
 
 test('the breadcrumb crumb link ellipsizes instead of overflowing', async () => {
   await setupScannedLibrary();
