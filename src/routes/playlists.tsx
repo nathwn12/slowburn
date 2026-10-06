@@ -62,7 +62,8 @@ function ViewPlaylists() {
       <div {...stylex.props(styles.head)}>
         <h2 {...stylex.props(styles.title)}>{t`PLAYLISTS`}</h2>
         <span {...stylex.props(styles.count)}>
-          {playlists.length} {playlists.length === 1 ? t`playlist` : t`playlists`}
+          {playlists.length}{' '}
+          {playlists.length === 1 ? t`playlist` : t`playlists`}
         </span>
         <button
           type="button"

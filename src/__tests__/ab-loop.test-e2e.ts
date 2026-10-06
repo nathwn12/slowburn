@@ -72,7 +72,10 @@ async function waitFor(
 }
 
 /** Polls `currentTime` and records every backward seek as a jump event. */
-async function recordJumps(player: Player, durationMs: number): Promise<Jump[]> {
+async function recordJumps(
+  player: Player,
+  durationMs: number,
+): Promise<Jump[]> {
   const jumps: Jump[] = [];
   let previous = player.getCurrentTime();
   const start = performance.now();

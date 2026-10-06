@@ -34,7 +34,7 @@ reality rather than in a screenshot:
    matching `—` is the whole point; a test matching "not empty" would pass on `undefined`.
 3. **The same state in both modes.** Full mode renders the ledger and the queue column; minimal
    renders neither. An invariant asserted only in one mode is half-tested — the suite runs both.
-4. **An empty *playlist*, not just an empty library.** The invariant set is about surfaces, and the
+4. **An empty _playlist_, not just an empty library.** The invariant set is about surfaces, and the
    playlist route is a different component with a different totals line.
 5. **A window too narrow for the content.** §3.4 exists because the owner's acceptance test is
    visual. A band can be present and still collapse to nothing at 720px.
@@ -44,11 +44,13 @@ reality rather than in a screenshot:
 ### Task 1: The invariant suite (probe, then work list)
 
 **Files:**
+
 - Test: `src/__tests__/empty-state.test-e2e.tsx` (create)
 - Read (not modified): `src/lib/__mocks__/bridge-database.ts`, `src/lib/__mocks__/bridge-config.ts`,
   `src/__tests__/e2e-helpers.tsx`
 
 **Interfaces:**
+
 - Consumes: the mocks — an empty track list from the database bridge, and a config whose
   `ui_mode` is set per test (the UI-mode plan supplies that key; if it has not landed, assert the
   current shell and note it).
@@ -97,6 +99,7 @@ git commit -m "test(shell): pin the seven never-looks-empty invariants"
 ### Task 2: Fix what actually failed
 
 **Files:**
+
 - Modify: only the components Task 1's results name. Candidates by invariant, from the recon tree:
   - 2, 3, 7 → `src/components/NowPlaying.tsx:100-117` and its children (`Cover`, `PlayingBarInfo`,
     `TrackProgress.tsx`, `LoopControls.tsx`, `EffectControls.tsx`)
@@ -104,6 +107,7 @@ git commit -m "test(shell): pin the seven never-looks-empty invariants"
   - 6 → whichever band holds the import action
 
 **Interfaces:**
+
 - Consumes: Task 1's recorded pass/fail list.
 - Produces: nothing other code depends on.
 
@@ -139,9 +143,11 @@ Expected: both PASS; typings exit 0.
 ### Task 3: The narrow-window guard
 
 **Files:**
+
 - Test: `src/__tests__/empty-state.test-e2e.tsx` (extend)
 
 **Interfaces:**
+
 - Consumes: Task 1's suite.
 - Produces: nothing.
 
@@ -167,6 +173,6 @@ rather than to paper over by widening the viewport.
   fixes first would encode the author's assumptions about which bands are broken, and the suite would
   then prove only that the author was right. The probe-then-fix order is the point of the plan.
 - **Not covered:** invariant coverage for the ledger's vertical clipping defect. Phase 1 found it,
-  and it was deliberately not fixed blind; if Task 1's invariant 4 or 5 fails *because* of clipping,
+  and it was deliberately not fixed blind; if Task 1's invariant 4 or 5 fails _because_ of clipping,
   record it as that known defect rather than rediscovering it as new.
 - **Type consistency:** none needed — this plan adds no signatures.

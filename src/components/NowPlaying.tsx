@@ -57,12 +57,15 @@ export default function NowPlaying() {
 
           {libraryEmpty ? (
             <>
-              <h3 {...stylex.props(styles.emptyTitle)}>{t`Your library is empty`}</h3>
+              <h3
+                {...stylex.props(styles.emptyTitle)}
+              >{t`Your library is empty`}</h3>
               <p {...stylex.props(styles.emptyText)}>
                 {t`Slowburn plays files you already own. Nothing is streamed, nothing leaves this machine.`}
               </p>
               <div {...stylex.props(styles.emptyRules)}>
-                <b>{t`Drag`}</b> FLAC · MP3 · M4A · OGG · WAV {t`onto the window`}
+                <b>{t`Drag`}</b> FLAC · MP3 · M4A · OGG · WAV{' '}
+                {t`onto the window`}
                 <br />
                 <button
                   type="button"
@@ -232,4 +235,3 @@ const styles = stylex.create({
     cursor: 'pointer',
   },
 });
-

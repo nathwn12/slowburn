@@ -23,8 +23,8 @@ import ShortcutsPanel from '../components/ShortcutsPanel';
 import StatusBar from '../components/StatusBar';
 import Toasts from '../components/Toasts';
 import { useViewStack } from '../components/view-stack';
-import { usePlayerState } from '../hooks/usePlayer';
 import useInvalidate from '../hooks/useInvalidate';
+import { usePlayerState } from '../hooks/usePlayer';
 import { configQuery } from '../lib/queries';
 import queryClient from '../lib/query-client';
 import { logAndNotifyError } from '../lib/utils';
@@ -136,10 +136,7 @@ function ViewRoot() {
 
       <main
         aria-label={t`Application main content`}
-        {...stylex.props(
-          styles.main,
-          isSettingsRoute && styles.mainFullWidth,
-        )}
+        {...stylex.props(styles.main, isSettingsRoute && styles.mainFullWidth)}
       >
         {isSettingsRoute ? (
           <div {...stylex.props(styles.settingsSlot)}>

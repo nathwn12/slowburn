@@ -12,4 +12,3 @@ const styles = stylex.create({
     color: 'var(--danger)',
   },
 });
-

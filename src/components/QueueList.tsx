@@ -117,7 +117,10 @@ export default function QueueList(props: Props) {
               type="button"
               onClick={() =>
                 setQueueSize(
-                  Math.min(queueSize + INITIAL_QUEUE_SIZE, incomingQueue.length),
+                  Math.min(
+                    queueSize + INITIAL_QUEUE_SIZE,
+                    incomingQueue.length,
+                  ),
                 )
               }
               {...stylex.props(styles.more)}
@@ -151,7 +154,9 @@ function NowRow({ track }: { track: Track }) {
         <PlayingIndicator />
       </span>
       <span {...stylex.props(styles.meta)}>
-        <span {...stylex.props(styles.t1, styles.t1Playing)}>{track.title}</span>
+        <span {...stylex.props(styles.t1, styles.t1Playing)}>
+          {track.title}
+        </span>
         <span {...stylex.props(styles.t2)}>
           {track.artists.join(', ')} · {track.album}
         </span>
@@ -276,4 +281,3 @@ const styles = stylex.create({
     cursor: 'pointer',
   },
 });
-

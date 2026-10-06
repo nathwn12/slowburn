@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { info } from '@tauri-apps/plugin-log';
+import { useEffect, useState } from 'react';
 
 import type { Track } from '../generated/typings';
 
@@ -32,8 +32,11 @@ const cache = new Map<string, Peaks>();
 function getDecoder(): OfflineAudioContext | null {
   const Ctor =
     window.OfflineAudioContext ??
-    (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
-      .webkitOfflineAudioContext;
+    (
+      window as unknown as {
+        webkitOfflineAudioContext?: typeof OfflineAudioContext;
+      }
+    ).webkitOfflineAudioContext;
   if (Ctor == null) return null;
   return new Ctor(1, 1, 44_100);
 }
@@ -94,7 +97,10 @@ export function useWaveform(track: Track): Peaks | null {
     setPeaks(null);
 
     // Fall back to the ruler for very long tracks before spending the memory.
-    if (!Number.isFinite(track.duration) || track.duration > WAVEFORM_MAX_SECONDS) {
+    if (
+      !Number.isFinite(track.duration) ||
+      track.duration > WAVEFORM_MAX_SECONDS
+    ) {
       return;
     }
 

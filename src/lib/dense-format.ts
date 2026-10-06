@@ -43,7 +43,8 @@ export function isLosslessFormat(label: string): boolean {
 
 /** `m:ss` (no padding on minutes), e.g. `0:42`, `3:17`. */
 export function formatClock(seconds: number | null | undefined): string {
-  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return '--:--';
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0)
+    return '--:--';
   const total = Math.round(seconds);
   const m = Math.floor(total / 60);
   const s = total % 60;
@@ -52,7 +53,8 @@ export function formatClock(seconds: number | null | undefined): string {
 
 /** `m:ss.mmm` for the detail panel, e.g. `0:37.240`. */
 export function formatClockMs(seconds: number | null | undefined): string {
-  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return NO_VALUE;
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0)
+    return NO_VALUE;
   const m = Math.floor(seconds / 60);
   const s = seconds - m * 60;
   return `${m}:${s < 10 ? '0' : ''}${s.toFixed(3)}`;
@@ -130,7 +132,9 @@ export function formatPlayed(
 }
 
 /** Two-character stand-in glyph for the art tile, from an album/title string. */
-export function artInitials(...sources: Array<string | null | undefined>): string {
+export function artInitials(
+  ...sources: Array<string | null | undefined>
+): string {
   for (const source of sources) {
     if (!source) continue;
     const words = source.trim().split(/\s+/).filter(Boolean);

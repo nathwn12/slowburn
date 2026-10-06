@@ -107,7 +107,7 @@ export default function TrackRow(props: Props) {
       style={props.style}
     >
       <span {...stylex.props(cellStyles.index)}>
-        {props.isPlaying === true ? <PlayingIndicator /> : (index + 1)}
+        {props.isPlaying === true ? <PlayingIndicator /> : index + 1}
       </span>
 
       <span {...stylex.props(cellStyles.meta)}>
@@ -155,7 +155,8 @@ const trackStyles = stylex.create({
     minWidth: 0,
     maxWidth: '100%',
     height: '100%',
-    paddingInline: '10px 12px',
+    paddingInlineStart: '10px',
+    paddingInlineEnd: '12px',
     borderLeftWidth: '3px',
     borderLeftStyle: 'solid',
     borderLeftColor: 'transparent',
@@ -269,4 +270,3 @@ const cellStyles = stylex.create({
     textAlign: 'right',
   },
 });
-

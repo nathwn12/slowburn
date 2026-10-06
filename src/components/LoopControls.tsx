@@ -134,9 +134,7 @@ export default function LoopControls({ trackPlaying }: Props) {
               ? t`Set loop point A at the playhead (key: [)`
               : t`Set loop point B at the playhead (key: ])`
           }
-          aria-label={
-            point === 'A' ? t`Set loop point A` : t`Set loop point B`
-          }
+          aria-label={point === 'A' ? t`Set loop point A` : t`Set loop point B`}
           {...stylex.props(styles.abBtn, armed && styles.abBtnArmed)}
         >
           {point}
@@ -433,4 +431,3 @@ const styles = stylex.create({
     opacity: 0.6,
   },
 });
-

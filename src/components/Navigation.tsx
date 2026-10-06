@@ -34,20 +34,40 @@ export default function Navigation() {
 
   const trail: Segment[] = [];
   if (pathname.startsWith('/settings')) {
-    trail.push({ key: 'library', label: t`Library`, to: '/library', view: 'library' });
+    trail.push({
+      key: 'library',
+      label: t`Library`,
+      to: '/library',
+      view: 'library',
+    });
     trail.push({ key: 'settings', label: t`Settings`, view: 'library' });
   } else if (pathname.startsWith('/playlists')) {
     trail.push({ key: 'playlists', label: t`Playlists`, view: 'playlists' });
   } else if (pathname.startsWith('/queue')) {
     trail.push({ key: 'queue', label: t`Queue`, view: 'queue' });
   } else if (pathname.startsWith('/artists')) {
-    trail.push({ key: 'library', label: t`Library`, to: '/library', view: 'library' });
+    trail.push({
+      key: 'library',
+      label: t`Library`,
+      to: '/library',
+      view: 'library',
+    });
     trail.push({ key: 'artists', label: t`Artists`, view: 'library' });
   } else if (pathname.startsWith('/tracks')) {
-    trail.push({ key: 'library', label: t`Library`, to: '/library', view: 'library' });
+    trail.push({
+      key: 'library',
+      label: t`Library`,
+      to: '/library',
+      view: 'library',
+    });
     trail.push({ key: 'track', label: t`Track`, view: 'library' });
   } else {
-    trail.push({ key: 'library', label: t`Library`, to: '/library', view: 'library' });
+    trail.push({
+      key: 'library',
+      label: t`Library`,
+      to: '/library',
+      view: 'library',
+    });
     trail.push({ key: 'all-tracks', label: t`All tracks`, view: 'library' });
   }
 
@@ -263,4 +283,3 @@ const styles = stylex.create({
     whiteSpace: 'nowrap',
   },
 });
-

@@ -62,7 +62,8 @@ export default function TrackListHeaderCell(props: Props) {
   const keys = config.library_sort_keys;
   const keyIndex =
     field == null ? -1 : keys.findIndex((key) => key.field === field);
-  const activeKey: SortKey | undefined = keyIndex >= 0 ? keys[keyIndex] : undefined;
+  const activeKey: SortKey | undefined =
+    keyIndex >= 0 ? keys[keyIndex] : undefined;
   const position = keyIndex >= 0 ? keyIndex + 1 : null;
 
   const icon =

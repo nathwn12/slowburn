@@ -93,7 +93,9 @@ export default function TrackDetails({ trackPlaying }: Props) {
         />
         <FactRow
           label={t`Saved`}
-          value={saved ? t`auto · stored with file` : t`none stored for this file`}
+          value={
+            saved ? t`auto · stored with file` : t`none stored for this file`
+          }
         />
         <FactRow
           label={t`On open`}
@@ -213,4 +215,3 @@ const styles = stylex.create({
     color: 'var(--text-faint)',
   },
 });
-
