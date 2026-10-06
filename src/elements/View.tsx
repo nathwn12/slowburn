@@ -47,7 +47,7 @@ const styles = stylex.create({
     position: 'relative',
   },
   hasPadding: {
-    padding: 'clamp(16px, 4vw, 40px)',
+    padding: 'clamp(16px,4vw,40px)',
   },
 });
 

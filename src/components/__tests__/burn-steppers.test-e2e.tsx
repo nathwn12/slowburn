@@ -29,7 +29,6 @@ import { page } from 'vite-plus/test/browser';
 import { cleanup, render } from 'vitest-browser-react';
 
 import { messages } from '../../translations/en.po';
-
 import EffectControls from '../EffectControls';
 
 /** 1px rounding tolerance for sub-pixel layout. */
@@ -106,7 +105,13 @@ function steppersOf(decreaseLabel: string): {
   const plus = readout?.nextElementSibling;
   const id = row?.firstElementChild;
   const reset = row?.querySelector<HTMLElement>('button[aria-label^="Reset"]');
-  if (row == null || readout == null || plus == null || id == null || reset == null) {
+  if (
+    row == null ||
+    readout == null ||
+    plus == null ||
+    id == null ||
+    reset == null
+  ) {
     throw new Error(`incomplete Burn row for "${decreaseLabel}"`);
   }
   return {
@@ -186,7 +191,9 @@ beforeEach(() => {
     reverbEnabled: true,
     reverbIntensity: 0,
   };
-  harness.player.getEffectsConfig.mockImplementation(() => ({ ...harness.config }));
+  harness.player.getEffectsConfig.mockImplementation(() => ({
+    ...harness.config,
+  }));
 });
 
 afterEach(async () => {
@@ -312,7 +319,16 @@ test('wide (1400x900): each Burn row keeps the same internal control offsets', a
   const reverb = offsets(m.reverb, m.rowLeft.reverb);
 
   expect(m.slow.idW, 'label column width').toBe(m.reverb.idW);
-  expect(Math.abs(slow.minus - reverb.minus), '− offset differs').toBeLessThanOrEqual(WIDE_TOL);
-  expect(Math.abs(slow.readout - reverb.readout), 'readout offset differs').toBeLessThanOrEqual(WIDE_TOL);
-  expect(Math.abs(slow.plus - reverb.plus), '+ offset differs').toBeLessThanOrEqual(WIDE_TOL);
+  expect(
+    Math.abs(slow.minus - reverb.minus),
+    '− offset differs',
+  ).toBeLessThanOrEqual(WIDE_TOL);
+  expect(
+    Math.abs(slow.readout - reverb.readout),
+    'readout offset differs',
+  ).toBeLessThanOrEqual(WIDE_TOL);
+  expect(
+    Math.abs(slow.plus - reverb.plus),
+    '+ offset differs',
+  ).toBeLessThanOrEqual(WIDE_TOL);
 });

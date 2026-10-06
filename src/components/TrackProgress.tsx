@@ -5,8 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Track } from '../generated/typings';
 import useFormattedDuration from '../hooks/useFormattedDuration';
-import usePlayingTrackCurrentTime from '../hooks/usePlayingTrackCurrentTime';
 import { usePlayerState } from '../hooks/usePlayer';
+import usePlayingTrackCurrentTime from '../hooks/usePlayingTrackCurrentTime';
 import { clampSeconds } from '../lib/dense-ab';
 import { formatClock } from '../lib/dense-format';
 import player from '../lib/player';
@@ -125,14 +125,18 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
             <Waveform peaks={peaks} />
             <div
               {...stylex.props(styles.waveElapsed)}
-              style={{ width: `${(Math.min(shownTime, denom) / denom) * 100}%` }}
+              style={{
+                width: `${(Math.min(shownTime, denom) / denom) * 100}%`,
+              }}
             />
           </>
         ) : (
           <div {...stylex.props(styles.gutter)}>
             <div
               {...stylex.props(styles.seekElapsed)}
-              style={{ width: `${(Math.min(shownTime, denom) / denom) * 100}%` }}
+              style={{
+                width: `${(Math.min(shownTime, denom) / denom) * 100}%`,
+              }}
             />
           </div>
         )}

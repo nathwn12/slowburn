@@ -19,7 +19,6 @@ import { cleanup, render } from 'vitest-browser-react';
 
 import type { Track } from '../../generated/typings';
 import { messages } from '../../translations/en.po';
-
 import Queue from '../Queue';
 
 vi.mock('../../lib/player', () => ({
@@ -75,13 +74,12 @@ function makeTrack(index: number): Track {
 }
 
 /** More upcoming rows than one page (INITIAL_QUEUE_SIZE = 20). */
-const QUEUE: Track[] = Array.from({ length: 25 }, (_, index) => makeTrack(index));
+const QUEUE: Track[] = Array.from({ length: 25 }, (_, index) =>
+  makeTrack(index),
+);
 
 const rowAt = (index: number) =>
-  page
-    .getByRole('listbox', { name: 'Queue' })
-    .getByRole('option')
-    .nth(index);
+  page.getByRole('listbox', { name: 'Queue' }).getByRole('option').nth(index);
 
 async function mount(): Promise<void> {
   await render(

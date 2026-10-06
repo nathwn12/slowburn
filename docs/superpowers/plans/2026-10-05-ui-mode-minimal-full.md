@@ -46,9 +46,11 @@ The spec fixes what the two modes contain but not these conditions:
 ### Task 1: The `ui_mode` config field (Rust)
 
 **Files:**
+
 - Modify: `src-tauri/src/plugins/config.rs` (struct `Config` `:59-88`, defaults `:96`)
 
 **Interfaces:**
+
 - Consumes: nothing from earlier tasks.
 - Produces: `pub enum UiMode { Minimal, Full }` with `#[serde(rename_all = "lowercase")]` and
   `impl Default for UiMode` returning `Minimal`; a new field `pub ui_mode: UiMode` on `Config`,
@@ -96,12 +98,14 @@ git commit -m "feat(config): add ui_mode (minimal|full), default minimal"
 ### Task 2: Regenerate types, then surface the setting
 
 **Files:**
+
 - Regenerate: `src/generated/typings.ts` (never by hand)
 - Modify: `src/lib/__mocks__/bridge-config.ts:3-31` (`MOCK_CONFIG`)
 - Modify: `src/api/SettingsAPI.ts` (add beside `setTracksDensity` `:115-119`, export in the object `:161-172`)
 - Modify: `src/routes/settings.ui.tsx:45-63` (beside the Theme `Setting.Select`)
 
 **Interfaces:**
+
 - Consumes: `UiMode` and `Config.ui_mode` from Task 1.
 - Produces: generated union `ui_mode: "minimal" | "full"` in `Config`
   (`src/generated/typings.ts:12`); `SettingsAPI.setUIMode(mode: Config['ui_mode']): Promise<void>`
@@ -148,9 +152,11 @@ git commit -m "feat(settings): ui_mode select, typed through the generated contr
 ### Task 3: The shell conditional
 
 **Files:**
+
 - Modify: `src/routes/__root.tsx:139-158`
 
 **Interfaces:**
+
 - Consumes: `ui_mode` from the config (Task 2). Prefer the synchronous read
   `ConfigBridge.getInitial('ui_mode')` (`src/lib/bridge-config.ts:15`) for the first paint; the
   `useSuspenseQuery(configQuery)` form (`src/routes/settings.ui.tsx:29`) is the pattern for reacting
@@ -191,9 +197,11 @@ git commit -m "feat(shell): minimal mode drops the ledger and queue column; play
 ### Task 4: Prove the mode behaves
 
 **Files:**
+
 - Test: `src/__tests__/ui-mode.test-e2e.tsx` (create)
 
 **Interfaces:**
+
 - Consumes: the mock `MOCK_CONFIG` (Task 2) and the shell conditional (Task 3).
 - Produces: nothing.
 

@@ -43,6 +43,7 @@
 ### Task 1: The `modified` column, end to end
 
 **Files:**
+
 - Create: `src-tauri/src/migrations/06_track_modified.sql`
 - Modify: `src-tauri/src/libs/track.rs` (struct `:25-70`; stat block `:241-247`; literal `:258-300`)
 - Modify: `src-tauri/src/libs/database.rs` (insert `:300-305` + bind `:328`; update paths `:154-200` bind `:199`, `:350-398` bind `:395`)
@@ -50,6 +51,7 @@
 - Regenerate: `src/generated/typings.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `Track.modified: Option<i64>` — epoch milliseconds, with
   `#[ts(type = "number | null")]` (matching `file_size`'s pin, so ts-rs emits `number`, not `bigint`);
@@ -109,10 +111,12 @@ git commit -m "feat(library): store file modified time as epoch millis"
 ### Task 2: `SortField`, `SortKey`, and the config field
 
 **Files:**
+
 - Modify: `src-tauri/src/plugins/config.rs` (beside `SortBy` `:25-31`; struct `:59-88`; defaults `:92-127`)
 - Regenerate: `src/generated/typings.ts`
 
 **Interfaces:**
+
 - Consumes: nothing from Task 1.
 - Produces:
   - `pub enum SortField { Artist, Album, Title, Duration, Genre, DiskNo, TrackNo, PlayCount, DateAdded, FileModified }` — `#[serde(rename_all = "camelCase")]`, ts-rs exported.
@@ -163,12 +167,14 @@ git commit -m "feat(config): ordered multi-key sort field, additive to the legac
 ### Task 3: The comparator
 
 **Files:**
+
 - Modify: `src/lib/utils-library.ts` (`sortTracks` `:27-34`, `SortConfig`/`SORT_ORDERS`/`getSortOrder` `:95-109`)
 - Modify: `src/lib/__tests__/utils-library.test.ts` (44 lines, currently covers neither)
 - Modify: `src/hooks/useFilteredTracks.ts:33-37,69` and `src/routes/library.tsx:39-43` (call sites)
 - Modify: `src/components/TrackListHeaderCell.tsx:54-63` (the header click must write the new field)
 
 **Interfaces:**
+
 - Consumes: `SortKey` and `Track.modified` from Tasks 1-2.
 - Produces: `export function sortTracks(tracks: Track[], keys: SortKey[]): Track[]` — replacing the
   old `(tracks, sortBy: SortConfig, sortOrder: SortOrder)` signature. The old `getSortOrder` and the
@@ -242,14 +248,14 @@ git commit -m "feat(sort): ordered multi-key comparator, missing values last"
 - **Deliberately NOT in this plan:** the header badge / click-cycle / shift-click UI, the presets,
   the ignore-articles toggle's settings control, and the `mostPlayed` pagination fix. All of that is
   **Plan B**, which depends on Task 3's signature and cannot start before it lands.
-- **Ignoring articles** is left out because it changes the comparator's *output* for every text
+- **Ignoring articles** is left out because it changes the comparator's _output_ for every text
   comparison, and the spec fixes it as a toggle with no stated default. That is a decision to make
   with the spec's author, not to smuggle into a comparator.
 - **Type consistency:** `SortField` → `SortKey.field` → `Track.modified` → `sortTracks(tracks, keys)`
   → `config.library_sort_keys`. One spelling each, no variants.
 - **Known risk, resolved in the plan rather than left downstream:** deleting `getSortOrder` and
   `SORT_ORDERS` is safe — `SORT_ORDERS` is unexported, and recon found no call site for
-  `getSortOrder`. The real break was the *write* side: `TrackListHeaderCell` persists the legacy
+  `getSortOrder`. The real break was the _write_ side: `TrackListHeaderCell` persists the legacy
   pair, which nothing would read after Task 3, making the header buttons dead. Task 3 now rewrites
   that write path in the same task, so the UI never regresses between plans.
 - **Legacy fields are left as dead weight on purpose.** `library_sort_by` / `library_sort_order`

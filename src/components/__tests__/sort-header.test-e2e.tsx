@@ -23,7 +23,6 @@ import { configQuery } from '../../lib/queries';
 import { SORT_PRESETS } from '../../lib/sort-presets';
 import { sortTracks } from '../../lib/utils-library';
 import { messages } from '../../translations/en.po';
-
 import TrackListHeader from '../TrackListHeader';
 
 const harness = vi.hoisted(() => ({
@@ -96,10 +95,9 @@ test('clicking a field not in the stack appends it as the last key', async () =>
 
   await sortButton('Title').click();
 
-  await expect.poll(lastWrittenKeys).toStrictEqual([
-    ARTIST_ASC,
-    { field: 'title', direction: 'Asc' },
-  ]);
+  await expect
+    .poll(lastWrittenKeys)
+    .toStrictEqual([ARTIST_ASC, { field: 'title', direction: 'Asc' }]);
   await expect.element(badge('Artist', '1')).toBeVisible();
   await expect.element(badge('Title', '2')).toBeVisible();
 });
@@ -115,7 +113,10 @@ test('clicking the active ascending field makes it descending', async () => {
 });
 
 test('clicking the active descending field removes it', async () => {
-  await mount([{ field: 'artist', direction: 'Dsc' }, { field: 'album', direction: 'Asc' }]);
+  await mount([
+    { field: 'artist', direction: 'Dsc' },
+    { field: 'album', direction: 'Asc' },
+  ]);
 
   await sortButton('Artist').click();
 

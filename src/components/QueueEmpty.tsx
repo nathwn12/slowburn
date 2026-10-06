@@ -49,4 +49,3 @@ const styles = stylex.create({
     maxWidth: '230px',
   },
 });
-

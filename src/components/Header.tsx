@@ -80,8 +80,7 @@ const styles = stylex.create({
     paddingBlock: 0,
     paddingInline: '10px',
     backgroundColor: 'var(--header-bg)',
-    backgroundImage:
-      'linear-gradient(rgba(255,255,255,.04), rgba(0,0,0,.05))',
+    backgroundImage: 'linear-gradient(rgba(255,255,255,.04), rgba(0,0,0,.05))',
     borderBottomWidth: '1px',
     borderBottomStyle: 'solid',
     borderBottomColor: 'var(--border)',
@@ -164,4 +163,3 @@ const styles = stylex.create({
     },
   },
 });
-

@@ -1,6 +1,11 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useLocation,
+} from '@tanstack/react-router';
 
 import DatabaseBridge from '../lib/bridge-database';
 
@@ -44,7 +49,9 @@ function ViewArtists() {
       </div>
 
       {empty ? (
-        <div {...stylex.props(styles.empty)}>{t`No artists in your library`}</div>
+        <div
+          {...stylex.props(styles.empty)}
+        >{t`No artists in your library`}</div>
       ) : (
         <ul
           role="listbox"
@@ -73,9 +80,7 @@ function ViewArtists() {
                 draggable={false}
                 {...stylex.props(styles.row)}
               >
-                <span {...stylex.props(styles.rowName)}>
-                  {t`Compilations`}
-                </span>
+                <span {...stylex.props(styles.rowName)}>{t`Compilations`}</span>
                 <span {...stylex.props(styles.chevron)} aria-hidden="true">
                   ›
                 </span>

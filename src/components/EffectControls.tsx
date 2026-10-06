@@ -48,7 +48,10 @@ export default function EffectControls() {
   };
 
   return (
-    <div {...stylex.props(styles.burn)} aria-label={t`Effects: slow and reverb`}>
+    <div
+      {...stylex.props(styles.burn)}
+      aria-label={t`Effects: slow and reverb`}
+    >
       <BurnControl
         label={t`SLOW`}
         engaged={slowEngaged}
@@ -415,4 +418,3 @@ const styles = stylex.create({
     borderColor: 'var(--text-dim)',
   },
 });
-

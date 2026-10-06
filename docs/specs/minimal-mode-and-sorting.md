@@ -8,7 +8,7 @@ spec; the design doc is the reasoning behind it and does not override it.
 
 Slowburn is an AIMP replacement for one owner's local FLAC library. Two of its stated
 differentiators (slowed + reverb, persistent per-file A-B) already work. What does not yet
-match the owner's expectations is the *shell around* the player:
+match the owner's expectations is the _shell around_ the player:
 
 - The layout never adapts — it is one fixed arrangement, so it is either too dense or it
   leaves the player small. The owner asked for **minimal-by-default with a full mode**.
@@ -41,7 +41,7 @@ match the owner's expectations is the *shell around* the player:
 
 > **The player is never cut. Only lists change.**
 
-`minimal` and `full` differ in *which list surfaces are present*. Cover, the 4-line info
+`minimal` and `full` differ in _which list surfaces are present_. Cover, the 4-line info
 block, transport, the waveform seek, the burn strip, the typed A-B panel, the volume strip
 and the bottom bar render in **both** modes. A change that hides any of those in `minimal`
 violates this spec.
@@ -100,7 +100,7 @@ is a **config migration with a regeneration step** — not a new field alongside
   (ascending/descending). A numbered badge (`1 2 3`) in the header shows the order.
   Clicking a header cycles asc → desc → off. Clicking a column that is not yet in the stack **appends** it as the last key; shift-click resets
   the stack to that single field. (An earlier draft, following AIMP's documented behaviour, said
-  shift-click *adds* a secondary key. The implementation adds on a plain click instead, which is more
+  shift-click _adds_ a secondary key. The implementation adds on a plain click instead, which is more
   discoverable and reserves the modifier for "sort by only this". The AIMP claim itself was never
   verified against a running AIMP — that capture was cancelled — so it should not outweigh a working,
   tested implementation.)
@@ -113,7 +113,7 @@ is a **config migration with a regeneration step** — not a new field alongside
   stored list. (AIMP does rewrite; we explicitly do not.)
 - **Ignore-articles** is a toggle affecting text-key comparison.
 - **The `mostPlayed` chip is already a real sort, applied in the wrong place.** It sorts by
-  `play_count` descending, but *after* pagination, so it ranks only the first 20 upcoming
+  `play_count` descending, but _after_ pagination, so it ranks only the first 20 upcoming
   rows: "most played" currently means "most played among the rows already on screen", and
   the top row is not reliably the most-played track. Fix it to sort the whole queue before
   paginating. (An earlier draft of this spec recorded this as "a filter pretending to be a

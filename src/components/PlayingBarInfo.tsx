@@ -5,8 +5,8 @@ import Link from '../elements/Link';
 import type { Repeat, Track } from '../generated/typings';
 import useEffectsConfig from '../hooks/useEffectsConfig';
 import useFormattedDuration from '../hooks/useFormattedDuration';
-import usePlayingTrackCurrentTime from '../hooks/usePlayingTrackCurrentTime';
 import { usePlayerState } from '../hooks/usePlayer';
+import usePlayingTrackCurrentTime from '../hooks/usePlayingTrackCurrentTime';
 import {
   audioFormatLabel,
   formatBitDepth,
@@ -86,9 +86,7 @@ export default function PlayingBarInfo(props: Props) {
           {...stylex.props(styles.tech)}
           aria-label={t`Technical format information`}
         >
-          <span
-            {...stylex.props(styles.techCell, lossless && styles.lossless)}
-          >
+          <span {...stylex.props(styles.techCell, lossless && styles.lossless)}>
             {format}
           </span>
           <span {...stylex.props(styles.techCell)}>
@@ -354,4 +352,3 @@ const styles = stylex.create({
     opacity: 0.7,
   },
 });
-
