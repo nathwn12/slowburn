@@ -19,6 +19,8 @@ import {
 
 beforeEachSetup();
 
+const PLATFORM = import.meta.env.PLATFORM as string;
+
 type Player = (typeof window)['__MUSEEKS_PLAYER'];
 
 function player(): Player {
@@ -240,18 +242,40 @@ test(
   },
 );
 
-test('the header carries the logo, brand and the Main navigation breadcrumb', async () => {
-  await setupScannedLibrary();
-  const banner = page.getByRole('banner');
+test.runIf(PLATFORM === 'windows')(
+  'the title bar carries the brand and the header keeps the Main navigation breadcrumb',
+  async () => {
+    await setupScannedLibrary();
+    // S9 folded the header logo + brand into the frameless TitleBar above,
+    // so on Windows the mark lives on the toolbar surface, not in the banner.
+    const bar = page.getByRole('toolbar', { name: 'Window title bar' });
+    await expect.element(bar).toBeVisible();
+    await expect.element(bar.getByText('Slowburn')).toBeVisible();
+    await expect
+      .element(
+        page
+          .getByRole('banner')
+          .getByRole('navigation', { name: 'Main navigation' }),
+      )
+      .toBeVisible();
+  },
+);
 
-  await expect
-    .element(banner.getByRole('img', { name: 'Slowburn logo' }))
-    .toBeVisible();
-  await expect.element(banner.getByText('Slowburn')).toBeVisible();
-  await expect
-    .element(banner.getByRole('navigation', { name: 'Main navigation' }))
-    .toBeVisible();
-});
+test.runIf(PLATFORM !== 'windows')(
+  'the header carries the logo, brand and the Main navigation breadcrumb',
+  async () => {
+    await setupScannedLibrary();
+    const banner = page.getByRole('banner');
+
+    await expect
+      .element(banner.getByRole('img', { name: 'Slowburn logo' }))
+      .toBeVisible();
+    await expect.element(banner.getByText('Slowburn')).toBeVisible();
+    await expect
+      .element(banner.getByRole('navigation', { name: 'Main navigation' }))
+      .toBeVisible();
+  },
+);
 
 test('the breadcrumb drives the right-column view stack', async () => {
   // The "right column" view stack is a Full-mode surface; the default is now

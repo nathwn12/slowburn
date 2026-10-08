@@ -81,6 +81,23 @@ async function addLibraryFolders(paths: Array<string>): Promise<void> {
   }
 }
 
+/**
+ * Whether `trackPath` lives inside `folder` (or is the folder itself).
+ *
+ * Matches on a path-separator boundary so removing `/music/rock` does not
+ * prune a sibling such as `/music/rockabilly`. Backslashes are normalised
+ * to `/`, trailing separators are stripped, and the comparison is
+ * case-insensitive (Windows/macOS file systems).
+ */
+export function isPathUnderFolder(trackPath: string, folder: string): boolean {
+  const normalize = (value: string): string =>
+    value.replace(/\\/g, '/').replace(/\/+$/u, '').toLowerCase();
+  const track = normalize(trackPath);
+  const root = normalize(folder);
+
+  return track === root || track.startsWith(`${root}/`);
+}
+
 async function removeLibraryFolder(path: string): Promise<void> {
   const musicFolders = await ConfigBridge.get('library_folders');
   const updatedMusicFolders = musicFolders.filter(
@@ -93,6 +110,22 @@ async function removeLibraryFolder(path: string): Promise<void> {
   }
 
   await ConfigBridge.set('library_folders', updatedMusicFolders);
+
+  // Prune tracks that lived under the removed root so they disappear
+  // without waiting for the next scan (which would not re-add them anyway,
+  // as the root is no longer scanned).
+  try {
+    const tracks = await DatabaseBridge.getAllTracks();
+    const orphanIDs = tracks
+      .filter((track) => isPathUnderFolder(track.path, path))
+      .map((track) => track.id);
+
+    if (orphanIDs.length > 0) {
+      await DatabaseBridge.removeTracks(orphanIDs);
+    }
+  } catch (err) {
+    logAndNotifyError(err);
+  }
 }
 
 function setRefresh(current: number, total: number): void {

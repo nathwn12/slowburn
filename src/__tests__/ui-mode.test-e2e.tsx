@@ -176,14 +176,16 @@ test('switches mode without remounting the player bands', async () => {
   expect(p.getState().isPaused).toBe(false);
 });
 
-// Review Focus 2: a pre-existing config (no key) yields minimal.
-test('falls back to minimal when ui_mode is absent', async () => {
-  await setMode('full');
-  await expect.element(ledger()).toBeVisible();
+// Review Focus 2: a pre-existing config (no key) yields full, the fresh
+// default since S8 (stored `minimal`/`full`/`mini` choices are still honored
+// verbatim; only absent-or-unknown falls back to full).
+test('falls back to full when ui_mode is absent', async () => {
+  await setMode('minimal');
+  await expect.element(ledger()).not.toBeInTheDocument();
 
   await clearMode();
 
-  await expect.element(ledger()).not.toBeInTheDocument();
+  await expect.element(ledger()).toBeVisible();
   await expect
     .element(page.getByRole('region', { name: 'Now playing' }))
     .toBeVisible();
@@ -200,7 +202,7 @@ test('still renders the settings screen in minimal mode', async () => {
   const mode = page.getByRole('combobox', { name: 'Mode' });
   await expect.element(mode).toBeVisible();
 
-  await mode.selectOptions('Full');
+  await mode.selectOptions('full');
 
   // The settings control persists the mode; the shell picks it up.
   await getMainNavigation().getByRole('link', { name: 'Library' }).click();

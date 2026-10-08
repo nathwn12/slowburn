@@ -90,6 +90,27 @@ function GlobalKeyBindings() {
         ) != null;
       if (interactive) return;
 
+      // S8 mini-mode toggle (Ctrl+M): flips Mini (condensed player above the
+      // queue) against Full through the same `ui_mode` key the settings
+      // select persists. Deliberately below the interactive guard above, so a
+      // focused control keeps its own keys; the Ctrl+K/Ctrl+O shortcuts above
+      // stay guard-exempt.
+      if (isCtrlKey(e) && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          const current = await ConfigBridge.get('ui_mode');
+          await ConfigBridge.set(
+            'ui_mode',
+            current === 'mini' ? 'full' : 'mini',
+          );
+          await invalidate();
+        } catch (error) {
+          logAndNotifyError(error);
+        }
+        return;
+      }
+
       const duration = player.getTrack()?.duration ?? 0;
 
       switch (e.key) {

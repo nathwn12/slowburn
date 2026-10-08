@@ -7,6 +7,7 @@ import { useCallback } from 'react';
 import type { Track } from '../generated/typings';
 import useFormattedDuration from '../hooks/useFormattedDuration';
 import player from '../lib/player';
+import Icon from './Icon';
 import { useIsSavedLoop } from './saved-loops';
 
 type Props = {
@@ -39,6 +40,10 @@ export default function QueueListItem(props: Props) {
     // holds its absolute queue index for display.
     player.removeFromQueue(index - props.queueCursor - 1);
   }, [index, props.queueCursor]);
+
+  const playNext = useCallback(() => {
+    player.addNextInQueue([track]);
+  }, [track]);
 
   const play = useCallback(async () => {
     await player.startFromQueue(index);
@@ -74,6 +79,15 @@ export default function QueueListItem(props: Props) {
           </span>
         )}
         <span {...stylex.props(styles.dur)}>{duration}</span>
+        <button
+          type="button"
+          {...stylex.props(styles.action)}
+          onClick={playNext}
+          aria-label={t`Play next`}
+          title={t`Play next`}
+        >
+          <Icon name="skipForward" size={12} />
+        </button>
         <button
           type="button"
           {...stylex.props(styles.remove)}
@@ -180,9 +194,20 @@ const styles = stylex.create({
     padding: 0,
     fontSize: '14px',
     textDecoration: 'none',
-    visibility: {
-      default: 'hidden',
-      [stylex.when.ancestor(':hover')]: 'visible',
+  },
+  action: {
+    color: {
+      default: 'var(--text-faint)',
+      ':hover': 'var(--text-bright)',
     },
+    borderStyle: 'none',
+    backgroundColor: 'transparent',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '18px',
+    height: '18px',
+    padding: 0,
+    cursor: 'pointer',
   },
 });

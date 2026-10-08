@@ -141,6 +141,7 @@ export default function TrackListDefault(props: Props) {
                   track={track}
                   isPlaying={trackPlayingID === track.id}
                   index={virtualItem.index}
+                  setSize={tracks.length}
                   onTrackSelect={onTrackSelect}
                   onContextMenu={onContextMenu}
                   onPlaybackStart={onPlaybackStart}

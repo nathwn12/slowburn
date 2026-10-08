@@ -21,10 +21,12 @@ import Queue from '../components/Queue';
 import { useSavedLoopsSync } from '../components/saved-loops';
 import ShortcutsPanel from '../components/ShortcutsPanel';
 import StatusBar from '../components/StatusBar';
+import TitleBar from '../components/TitleBar';
 import Toasts from '../components/Toasts';
 import { useViewStack } from '../components/view-stack';
 import useInvalidate from '../hooks/useInvalidate';
 import { usePlayerState } from '../hooks/usePlayer';
+import { enterMiniWindow, exitMiniWindow } from '../lib/mini-window';
 import { configQuery } from '../lib/queries';
 import queryClient from '../lib/query-client';
 import { logAndNotifyError } from '../lib/utils';
@@ -74,13 +76,33 @@ function ViewRoot() {
 
   // The root loader ensures the config query, and its initialData is the config
   // injected at parse time, so this read is synchronous on first paint (no
-  // full-mode flash). Anything other than "full" — including a config written
-  // before `ui_mode` existed — falls back to minimal.
+  // full-mode flash). Anything other than a known mode - including a config
+  // written before `ui_mode` existed - falls back to full, the fresh default.
+  // Stored choices (`minimal`, `full`, `mini`) are honored verbatim.
   const config = useSuspenseQuery(configQuery).data;
-  const isFullMode = config.ui_mode === 'full';
+  const rawMode = (config as { ui_mode?: unknown }).ui_mode;
+  const uiMode =
+    rawMode === 'minimal' || rawMode === 'full' || rawMode === 'mini'
+      ? rawMode
+      : 'full';
+  const isFullMode = uiMode === 'full';
+  const isMiniMode = uiMode === 'mini';
 
   const queue = usePlayerState((state) => state.queue);
   const queueCursor = usePlayerState((state) => state.queueCursor);
+
+  // Mini mode also drives the *native* window: entering shrinks it to the
+  // compact AIMP-like footprint, leaving restores the exact prior size, and
+  // the window stays freely resizable in both modes. Both toggle sites (the
+  // header button and Ctrl+M) flip `ui_mode`, so reacting here covers both.
+  // No-op outside Tauri (browser tests).
+  useEffect(() => {
+    if (isMiniMode) {
+      void enterMiniWindow();
+    } else {
+      void exitMiniWindow();
+    }
+  }, [isMiniMode]);
 
   useSavedLoopsSync();
 
@@ -131,12 +153,19 @@ function ViewRoot() {
       <EffectsPersistence />
       <GlobalKeyBindings />
 
-      {/** 40px header: logo, brand, breadcrumb, search, settings */}
+      {/** Frameless window chrome (Windows-only, null elsewhere) */}
+      <TitleBar />
+
+      {/** 40px header: breadcrumb, search, settings (logo/brand fold into the title bar on Windows) */}
       <Header />
 
       <main
         aria-label={t`Application main content`}
-        {...stylex.props(styles.main, isSettingsRoute && styles.mainFullWidth)}
+        {...stylex.props(
+          styles.main,
+          isSettingsRoute && styles.mainFullWidth,
+          isMiniMode && styles.mainMini,
+        )}
       >
         {isSettingsRoute ? (
           <div {...stylex.props(styles.settingsSlot)}>
@@ -144,11 +173,22 @@ function ViewRoot() {
           </div>
         ) : (
           <>
-            {/** Left column: now playing — never changes */}
+            {/** Left column: now playing - never changes, never remounts */}
             <NowPlaying />
-            {/** Right column: the view stack (Queue / Library / Playlists) */}
-            <div {...stylex.props(styles.rightColumn)}>
-              {isFullMode && showQueue ? (
+            {/**
+             * Right column: the view stack (Queue / Library / Playlists), the
+             * full-mode Queue column, or - in mini mode - always the Queue,
+             * stacked below the condensed player card. NowPlaying and this
+             * column keep their tree positions in every mode, so a mode
+             * toggle never remounts the player.
+             */}
+            <div
+              {...stylex.props(
+                styles.rightColumn,
+                isMiniMode && styles.rightColumnMini,
+              )}
+            >
+              {isMiniMode || (isFullMode && showQueue) ? (
                 <Queue queue={queue} queueCursor={queueCursor} />
               ) : (
                 <div {...stylex.props(styles.routeSlot)}>
@@ -194,6 +234,24 @@ const styles = stylex.create({
   },
   mainFullWidth: {
     gridTemplateColumns: 'minmax(0, 1fr)',
+  },
+  /**
+   * S8 mini mode: the same two children (NowPlaying, right column) stacked
+   * vertically - condensed player card above, queue below - via grid rows
+   * instead of columns. Same tree positions, so no remount; the bounding
+   * order (player bottom above queue top) falls out of the row order.
+   */
+  mainMini: {
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gridTemplateRows: 'auto minmax(0, 1fr)',
+    overflowY: 'auto',
+  },
+  rightColumnMini: {
+    borderLeftWidth: 0,
+    borderLeftStyle: 'none',
+    borderTopWidth: '1px',
+    borderTopStyle: 'solid',
+    borderTopColor: 'var(--border)',
   },
   settingsSlot: {
     minHeight: 0,

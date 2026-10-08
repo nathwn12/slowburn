@@ -102,7 +102,11 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
   );
 
   return (
-    <div {...stylex.props(styles.seek)}>
+    <div
+      role="group"
+      aria-label={t`Seek bar with A-B loop region`}
+      {...stylex.props(styles.seek)}
+    >
       <div {...stylex.props(styles.seekTimes)}>
         <span {...stylex.props(styles.elapsedText)}>
           {formatClock(Math.min(shownTime, duration))}
@@ -112,8 +116,6 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
 
       <div
         ref={trackRef}
-        role="group"
-        aria-label={t`Seek bar with A-B loop region`}
         onPointerDown={onTrackPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}

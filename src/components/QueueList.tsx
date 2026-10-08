@@ -31,6 +31,44 @@ type Props = {
   trackPlaying: Track | null;
 };
 
+/**
+ * Reorder `queue` from a drag performed in the rendered upcoming list.
+ *
+ * Positions are derived from `visibleIds` - the ids actually rendered - not
+ * from full-queue indices, so filtered-out rows, the playing row, and rows
+ * beyond the page can never be a drag endpoint. The mutation is confined to
+ * indices after `queueCursor`, and the cursor track is verified still in
+ * place; otherwise the queue is left untouched (`null`). Pure so it is
+ * unit-testable without the drag layer.
+ */
+export function reorderQueue(
+  queue: Track[],
+  queueCursor: number,
+  visibleIds: Array<string>,
+  activeId: string,
+  overId: string,
+): Track[] | null {
+  if (activeId === overId) return null;
+  const fromVisible = visibleIds.indexOf(activeId);
+  const toVisible = visibleIds.indexOf(overId);
+  if (fromVisible === -1 || toVisible === -1) return null;
+
+  const moved = queue.find((track) => track.id === activeId);
+  if (moved === undefined) return null;
+
+  const next = queue.filter((track) => track.id !== activeId);
+  const anchor = next.findIndex((track) => track.id === overId);
+  // Mirror arrayMove on the rendered order: after the drop target when
+  // moving down, before it when moving up.
+  const at =
+    anchor === -1 ? next.length : anchor + (fromVisible < toVisible ? 1 : 0);
+  next.splice(at, 0, moved);
+
+  // The cursor track is never draggable; if it drifted, refuse the write.
+  if (next[queueCursor]?.id !== queue[queueCursor]?.id) return null;
+  return next;
+}
+
 export default function QueueList(props: Props) {
   const { queue, queueCursor, savedOnly, mostPlayed, trackPlaying } = props;
   const { t } = useLingui();
@@ -67,16 +105,18 @@ export default function QueueList(props: Props) {
   const onDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
-      if (over == null || active.id === over.id) return;
+      if (over == null) return;
 
-      const activeIndex = queue.findIndex((track) => track.id === active.id);
-      const overIndex = queue.findIndex((track) => track.id === over.id);
-      const newQueue = [...queue];
-      const movedTrack = newQueue.splice(activeIndex, 1)[0];
-      newQueue.splice(overIndex, 0, movedTrack);
-      player.setQueue(newQueue);
+      const next = reorderQueue(
+        queue,
+        queueCursor,
+        visibleUpcoming.map((track) => track.id),
+        String(active.id),
+        String(over.id),
+      );
+      if (next !== null) player.setQueue(next);
     },
-    [queue],
+    [queue, queueCursor, visibleUpcoming],
   );
 
   return (

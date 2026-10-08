@@ -5,6 +5,7 @@ export const MOCK_CONFIG: Config = {
   theme: 'light',
   ui_mode: 'minimal',
   ui_accent_color: null,
+  ui_art_tint: false,
   audio_volume: 1.0,
   audio_playback_rate: 1.0,
   audio_follow_playing_track: false,

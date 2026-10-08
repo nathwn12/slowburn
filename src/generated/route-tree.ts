@@ -18,6 +18,7 @@ import { Route as TracksTrackIDRouteImport } from './../routes/tracks.$trackID'
 import { Route as SettingsUiRouteImport } from './../routes/settings.ui'
 import { Route as SettingsLibraryRouteImport } from './../routes/settings.library'
 import { Route as SettingsAudioRouteImport } from './../routes/settings.audio'
+import { Route as SettingsAdvancedRouteImport } from './../routes/settings.advanced'
 import { Route as SettingsAboutRouteImport } from './../routes/settings.about'
 import { Route as PlaylistsPlaylistIDRouteImport } from './../routes/playlists.$playlistID'
 import { Route as ArtistsArtistIDRouteImport } from './../routes/artists.$artistID'
@@ -68,6 +69,11 @@ const SettingsAudioRoute = SettingsAudioRouteImport.update({
   path: '/audio',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsAdvancedRoute = SettingsAdvancedRouteImport.update({
+  id: '/advanced',
+  path: '/advanced',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsAboutRoute = SettingsAboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/artists/$artistID': typeof ArtistsArtistIDRoute
   '/playlists/$playlistID': typeof PlaylistsPlaylistIDRoute
   '/settings/about': typeof SettingsAboutRoute
+  '/settings/advanced': typeof SettingsAdvancedRoute
   '/settings/audio': typeof SettingsAudioRoute
   '/settings/library': typeof SettingsLibraryRoute
   '/settings/ui': typeof SettingsUiRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/artists/$artistID': typeof ArtistsArtistIDRoute
   '/playlists/$playlistID': typeof PlaylistsPlaylistIDRoute
   '/settings/about': typeof SettingsAboutRoute
+  '/settings/advanced': typeof SettingsAdvancedRoute
   '/settings/audio': typeof SettingsAudioRoute
   '/settings/library': typeof SettingsLibraryRoute
   '/settings/ui': typeof SettingsUiRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/artists/$artistID': typeof ArtistsArtistIDRoute
   '/playlists/$playlistID': typeof PlaylistsPlaylistIDRoute
   '/settings/about': typeof SettingsAboutRoute
+  '/settings/advanced': typeof SettingsAdvancedRoute
   '/settings/audio': typeof SettingsAudioRoute
   '/settings/library': typeof SettingsLibraryRoute
   '/settings/ui': typeof SettingsUiRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/artists/$artistID'
     | '/playlists/$playlistID'
     | '/settings/about'
+    | '/settings/advanced'
     | '/settings/audio'
     | '/settings/library'
     | '/settings/ui'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/artists/$artistID'
     | '/playlists/$playlistID'
     | '/settings/about'
+    | '/settings/advanced'
     | '/settings/audio'
     | '/settings/library'
     | '/settings/ui'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/artists/$artistID'
     | '/playlists/$playlistID'
     | '/settings/about'
+    | '/settings/advanced'
     | '/settings/audio'
     | '/settings/library'
     | '/settings/ui'
@@ -258,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsAudioRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/advanced': {
+      id: '/settings/advanced'
+      path: '/advanced'
+      fullPath: '/settings/advanced'
+      preLoaderRoute: typeof SettingsAdvancedRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/about': {
       id: '/settings/about'
       path: '/about'
@@ -316,6 +335,7 @@ const PlaylistsRouteWithChildren = PlaylistsRoute._addFileChildren(
 
 interface SettingsRouteChildren {
   SettingsAboutRoute: typeof SettingsAboutRoute
+  SettingsAdvancedRoute: typeof SettingsAdvancedRoute
   SettingsAudioRoute: typeof SettingsAudioRoute
   SettingsLibraryRoute: typeof SettingsLibraryRoute
   SettingsUiRoute: typeof SettingsUiRoute
@@ -323,6 +343,7 @@ interface SettingsRouteChildren {
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAboutRoute: SettingsAboutRoute,
+  SettingsAdvancedRoute: SettingsAdvancedRoute,
   SettingsAudioRoute: SettingsAudioRoute,
   SettingsLibraryRoute: SettingsLibraryRoute,
   SettingsUiRoute: SettingsUiRoute,

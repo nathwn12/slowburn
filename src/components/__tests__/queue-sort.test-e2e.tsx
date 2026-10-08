@@ -36,6 +36,8 @@ vi.mock('../../lib/player', () => ({
     }),
     on: vi.fn<() => void>(),
     off: vi.fn<() => void>(),
+    // S4: Queue reads queueOrigin/shuffle via usePlayerState -> getState.
+    getState: () => ({ queueOrigin: null, shuffle: false }),
   },
 }));
 

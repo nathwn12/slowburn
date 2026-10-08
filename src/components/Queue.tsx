@@ -1,23 +1,42 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useCallback, useMemo, useState } from 'react';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
 import type { Track } from '../generated/typings';
+import useFilteredTracks from '../hooks/useFilteredTracks';
+import { usePlayerState } from '../hooks/usePlayer';
+import DatabaseBridge from '../lib/bridge-database';
 import player from '../lib/player';
+import { allTracksQuery, configQuery } from '../lib/queries';
+import type { QueueOrigin } from '../types/museeks';
 import Icon from './Icon';
 import QueueEmpty from './QueueEmpty';
 import QueueList from './QueueList';
 import { useSavedLoopsStore } from './saved-loops';
+import TrackList from './TrackList';
+import TrackListStates from './TrackListStates';
 
 type Props = {
   queue: Track[];
   queueCursor: number | null;
 };
 
+type Source = 'queue' | 'library' | 'playlist';
+
+const LIBRARY_ORIGIN: QueueOrigin = { type: 'library' };
+
 /**
- * The Dense queue panel (design §1/§5): head with the track count, a filter
- * sub-bar (`◆ Saved loops`, sorted: manual) and dense 40 px rows. The playing
- * row leads the list; the left column owns the transport.
+ * The Dense queue panel (design §1/§5): head with the track count, an
+ * explicit Up Next statement (the queue is separate from playlists;
+ * starting a playlist replaces the queue), an origin badge, a filter
+ * sub-bar (`◆ Saved loops`, sorted: manual) and dense 40 px rows. The
+ * playing row leads the list; the left column owns the transport.
+ *
+ * S4 keeps the legacy QUEUE heading (other views assert on it) and states
+ * the split explicitly right below it. No engine change: shuffle goes
+ * through `player.toggleShuffle` so the pre-shuffle order survives in the
+ * engine's `oldQueue` backup.
  */
 export default function Queue(props: Props) {
   const { queue, queueCursor } = props;
@@ -26,32 +45,75 @@ export default function Queue(props: Props) {
   const [mostPlayed, setMostPlayed] = useState(false);
 
   const savedIds = useSavedLoopsStore((state) => state.ids);
+  const queueOrigin = usePlayerState((state) => state.queueOrigin);
+  const shuffle = usePlayerState((state) => state.shuffle);
 
   const trackPlaying =
     queueCursor != null ? (queue[queueCursor] ?? null) : null;
+
+  // S5 read-only ReplayGain display: the engine carries no gain tags yet, so
+  // this surfaces the file's tag value when present and an em-dash otherwise
+  // (the same "no data" convention as the Track Details panel).
+  const replayGainDb =
+    (trackPlaying as unknown as { replay_gain_db?: number | null } | null)
+      ?.replay_gain_db ?? null;
 
   const upcoming = useMemo(
     () => (queueCursor != null ? queue.slice(queueCursor + 1) : queue),
     [queue, queueCursor],
   );
 
-  /** Reorder only the upcoming slice; the cursor and the playing track stay. */
-  const shuffleQueue = useCallback(() => {
-    if (queueCursor == null) return;
-    const tail = queue.slice(queueCursor + 1);
-    for (let i = tail.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [tail[i], tail[j]] = [tail[j], tail[i]];
-    }
-    player.setQueue([...queue.slice(0, queueCursor + 1), ...tail]);
-  }, [queue, queueCursor]);
-
   const isQueueEmpty = queue.length === 0 || queueCursor == null;
+
+  // The panel is a general track-list surface (AIMP-style), not a queue-only
+  // view: the user's explicit tab wins; before any choice the queue shows
+  // when it has tracks and the library list shows when nothing is playing,
+  // so the panel never sits on a bare empty-queue message.
+  const [pinnedSource, setPinnedSource] = useState<Source | null>(null);
+  const playlistActive = queueOrigin?.type === 'playlist';
+  const activeSource: Source =
+    pinnedSource === 'playlist' && !playlistActive
+      ? 'queue'
+      : (pinnedSource ?? (isQueueEmpty ? 'library' : 'queue'));
   const hasVisibleRows =
     queue.length > 0 &&
     (!savedOnly ||
       (trackPlaying != null && savedIds.has(trackPlaying.id)) ||
       upcoming.some((track) => savedIds.has(track.id)));
+
+  const tablistRef = useRef<HTMLDivElement>(null);
+
+  const tabOrder: Source[] = playlistActive
+    ? ['queue', 'library', 'playlist']
+    : ['queue', 'library'];
+
+  /**
+   * WAI-APG automatic activation: Left/Right move selection and focus,
+   * Home/End jump to the ends. Roving tabindex keeps exactly one tab in
+   * the normal tab order.
+   */
+  const onTabListKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const current = tabOrder.indexOf(activeSource);
+    let next: Source | null = null;
+    if (event.key === 'ArrowRight') {
+      next = tabOrder[(current + 1) % tabOrder.length] ?? null;
+    } else if (event.key === 'ArrowLeft') {
+      next =
+        tabOrder[(current - 1 + tabOrder.length) % tabOrder.length] ?? null;
+    } else if (event.key === 'Home') {
+      next = tabOrder[0] ?? null;
+    } else if (event.key === 'End') {
+      next = tabOrder[tabOrder.length - 1] ?? null;
+    }
+    if (next == null) {
+      return;
+    }
+    event.preventDefault();
+    setPinnedSource(next);
+    tablistRef.current
+      ?.querySelector<HTMLButtonElement>(`[data-source="${next}"]`)
+      ?.focus();
+  };
 
   return (
     <div {...stylex.props(styles.queue)}>
@@ -63,8 +125,9 @@ export default function Queue(props: Props) {
         <div {...stylex.props(styles.tools)}>
           <button
             type="button"
-            onClick={shuffleQueue}
+            onClick={() => void player.toggleShuffle()}
             aria-label={t`Shuffle queue`}
+            aria-pressed={shuffle}
             title={t`Shuffle queue`}
             {...stylex.props(styles.tool)}
           >
@@ -82,47 +145,195 @@ export default function Queue(props: Props) {
         </div>
       </div>
 
-      <div {...stylex.props(styles.sub)}>
+      <div
+        role="tablist"
+        aria-label={t`Panel source`}
+        ref={tablistRef}
+        onKeyDown={onTabListKeyDown}
+        {...stylex.props(styles.tabs)}
+      >
         <button
           type="button"
-          aria-pressed={savedOnly}
-          onClick={() => setSavedOnly((value) => !value)}
-          data-on={savedOnly ? 'true' : 'false'}
-          title={t`Show only tracks with a saved A-B loop`}
-          {...stylex.props(styles.filter, savedOnly && styles.filterOn)}
+          role="tab"
+          id="queue-tab-queue"
+          data-source="queue"
+          aria-selected={activeSource === 'queue'}
+          aria-controls="queue-tabpanel"
+          tabIndex={activeSource === 'queue' ? 0 : -1}
+          onClick={() => setPinnedSource('queue')}
+          data-on={activeSource === 'queue' ? 'true' : 'false'}
+          {...stylex.props(
+            styles.tab,
+            activeSource === 'queue' && styles.tabOn,
+          )}
         >
-          <span {...stylex.props(styles.filterMark)} aria-hidden="true">
-            ◆
-          </span>
-          {t`Saved loops`}
+          {t`Queue`}
         </button>
         <button
           type="button"
-          aria-pressed={mostPlayed}
-          aria-label={t`Sort by most played`}
-          onClick={() => setMostPlayed((value) => !value)}
-          data-on={mostPlayed ? 'true' : 'false'}
-          title={t`Sort the queue by how many times each track has been played`}
-          {...stylex.props(styles.filter, mostPlayed && styles.filterOn)}
+          role="tab"
+          id="queue-tab-library"
+          data-source="library"
+          aria-selected={activeSource === 'library'}
+          aria-controls="queue-tabpanel"
+          tabIndex={activeSource === 'library' ? 0 : -1}
+          onClick={() => setPinnedSource('library')}
+          data-on={activeSource === 'library' ? 'true' : 'false'}
+          {...stylex.props(
+            styles.tab,
+            activeSource === 'library' && styles.tabOn,
+          )}
         >
-          {t`Most played`}
+          {t`Library`}
         </button>
-        <span {...stylex.props(styles.sort)}>
-          {mostPlayed ? t`sorted: most played` : t`sorted: manual`}
-        </span>
+        {playlistActive && (
+          <button
+            type="button"
+            role="tab"
+            id="queue-tab-playlist"
+            data-source="playlist"
+            aria-selected={activeSource === 'playlist'}
+            aria-controls="queue-tabpanel"
+            tabIndex={activeSource === 'playlist' ? 0 : -1}
+            onClick={() => setPinnedSource('playlist')}
+            data-on={activeSource === 'playlist' ? 'true' : 'false'}
+            title={t`The playlist now playing`}
+            {...stylex.props(
+              styles.tab,
+              activeSource === 'playlist' && styles.tabOn,
+            )}
+          >
+            {t`Playlist`}
+          </button>
+        )}
       </div>
 
-      {isQueueEmpty || !hasVisibleRows ? (
-        <QueueEmpty />
+      <div {...stylex.props(styles.explicit)}>
+        <h3 {...stylex.props(styles.explicitTitle)}>{t`Up Next`}</h3>
+        <p {...stylex.props(styles.explicitCopy)}>
+          {t`The queue is separate from playlists. Starting a playlist replaces the queue.`}
+          {queueOrigin?.type === 'playlist' && (
+            <>
+              {' '}
+              {t`From playlist`}{' '}
+              <span {...stylex.props(styles.badge)}>
+                playlist:{queueOrigin.playlistID}
+              </span>
+            </>
+          )}
+        </p>
+        <p {...stylex.props(styles.explicitCopy)}>
+          {t`Shuffle keeps the playing track first; the pre-shuffle order is preserved.`}
+        </p>
+        <p {...stylex.props(styles.explicitCopy)}>
+          {t`ReplayGain`}:{' '}
+          {replayGainDb != null ? `${replayGainDb.toFixed(1)} dB` : '-'}
+        </p>
+      </div>
+
+      {activeSource === 'queue' || activeSource === 'playlist' ? (
+        <div
+          id="queue-tabpanel"
+          role="tabpanel"
+          aria-labelledby={`queue-tab-${activeSource}`}
+          style={{ display: 'contents' }}
+        >
+          <div {...stylex.props(styles.sub)}>
+            <button
+              type="button"
+              aria-pressed={savedOnly}
+              onClick={() => setSavedOnly((value) => !value)}
+              data-on={savedOnly ? 'true' : 'false'}
+              title={t`Show only tracks with a saved A-B loop`}
+              {...stylex.props(styles.filter, savedOnly && styles.filterOn)}
+            >
+              <span {...stylex.props(styles.filterMark)} aria-hidden="true">
+                ◆
+              </span>
+              {t`Saved loops`}
+            </button>
+            <button
+              type="button"
+              aria-pressed={mostPlayed}
+              aria-label={t`Sort by most played`}
+              onClick={() => setMostPlayed((value) => !value)}
+              data-on={mostPlayed ? 'true' : 'false'}
+              title={t`Sort the queue by how many times each track has been played`}
+              {...stylex.props(styles.filter, mostPlayed && styles.filterOn)}
+            >
+              {t`Most played`}
+            </button>
+            <span {...stylex.props(styles.sort)}>
+              {mostPlayed ? t`sorted: most played` : t`sorted: manual`}
+            </span>
+          </div>
+
+          {isQueueEmpty || !hasVisibleRows ? (
+            <QueueEmpty />
+          ) : (
+            <QueueList
+              queue={queue}
+              queueCursor={queueCursor}
+              savedOnly={savedOnly}
+              mostPlayed={mostPlayed}
+              trackPlaying={trackPlaying}
+            />
+          )}
+        </div>
       ) : (
-        <QueueList
-          queue={queue}
-          queueCursor={queueCursor}
-          savedOnly={savedOnly}
-          mostPlayed={mostPlayed}
-          trackPlaying={trackPlaying}
-        />
+        <div
+          id="queue-tabpanel"
+          role="tabpanel"
+          aria-labelledby={`queue-tab-${activeSource}`}
+          {...stylex.props(styles.libraryPane)}
+        >
+          {/*
+           * The queue affordances stay reachable from the library source: with
+           * an empty queue the compact empty state (same texts and CTA the
+           * queue view asserts on) sits above the song list instead of a bare
+           * empty message.
+           */}
+          {isQueueEmpty && <QueueEmpty compact />}
+          <LibraryPane />
+        </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The library source, rendered through the existing TrackList path
+ * (same rows, per-row durations, density, search/sort) so the panel reuses
+ * the library list instead of inventing a third list. Starting a playlist
+ * replaces the queue, so the playlist source above simply reuses QueueList.
+ */
+function LibraryPane() {
+  const config = useSuspenseQuery(configQuery).data;
+  const { data: tracks, isLoading } = useQuery(allTracksQuery);
+  const { data: playlists = [] } = useQuery({
+    queryKey: ['playlists'],
+    queryFn: () => DatabaseBridge.getAllPlaylists(),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+
+  const filteredTracks = useFilteredTracks(
+    tracks ?? [],
+    config.library_sort_keys,
+  );
+
+  return (
+    <div {...stylex.props(styles.libraryList)}>
+      <TrackListStates isLoading={isLoading} tracks={filteredTracks}>
+        <TrackList
+          layout="default"
+          data={filteredTracks}
+          queueOrigin={LIBRARY_ORIGIN}
+          tracksDensity={config.track_view_density}
+          playlists={playlists}
+        />
+      </TrackListStates>
     </div>
   );
 }
@@ -194,6 +405,45 @@ const styles = stylex.create({
     borderStyle: 'none',
     padding: 0,
   },
+  explicit: {
+    display: 'flex',
+    flexDirection: 'column',
+    rowGap: '2px',
+    flexShrink: 0,
+    paddingBlock: '6px',
+    paddingInline: '10px',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'var(--border)',
+    backgroundColor: 'var(--surface)',
+  },
+  explicitTitle: {
+    margin: 0,
+    fontSize: '11px',
+    fontWeight: 800,
+    letterSpacing: '.1em',
+    color: 'var(--text-dim)',
+  },
+  explicitCopy: {
+    margin: 0,
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10px',
+    fontWeight: 600,
+    color: 'var(--text-faint)',
+  },
+  badge: {
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10px',
+    fontWeight: 600,
+    color: 'var(--info-text)',
+    backgroundColor: 'var(--info-soft)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--info-line)',
+    borderRadius: '9999px',
+    paddingBlock: '1px',
+    paddingInline: '6px',
+  },
   sub: {
     display: 'flex',
     alignItems: 'center',
@@ -208,6 +458,61 @@ const styles = stylex.create({
     fontSize: '10px',
     fontWeight: 600,
     color: 'var(--text-faint)',
+  },
+  tabs: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '6px',
+    flexShrink: 0,
+    paddingBlock: '6px',
+    paddingInline: '10px',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'var(--border)',
+    backgroundColor: 'var(--surface)',
+  },
+  tab: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: '22px',
+    paddingInline: '10px',
+    borderRadius: '9999px',
+    backgroundColor: 'var(--bg)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--border-soft)',
+    color: {
+      default: 'var(--text-dim)',
+      ':hover': 'var(--text-bright)',
+    },
+    fontFamily: 'var(--mono-font)',
+    fontSize: '10px',
+    fontWeight: 700,
+    lineHeight: 1,
+    cursor: 'pointer',
+  },
+  tabOn: {
+    color: 'var(--info-text)',
+    borderColor: 'var(--info-line)',
+    backgroundColor: 'var(--info-soft)',
+  },
+  libraryPane: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
+    minHeight: 0,
+    minWidth: 0,
+    overflowY: 'auto',
+  },
+  libraryList: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    minHeight: '240px',
   },
   filter: {
     display: 'inline-flex',

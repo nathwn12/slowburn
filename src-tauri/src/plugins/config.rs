@@ -80,12 +80,13 @@ pub enum TrackViewDensity {
     Compact,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, TS)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, TS)]
 #[ts(export, export_to = "../../src/generated/typings.ts")]
 #[serde(rename_all = "lowercase")]
 pub enum UiMode {
     Minimal,
     Full,
+    Mini,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, TS)]
@@ -96,6 +97,8 @@ pub struct Config {
     pub theme: String,
     pub ui_mode: UiMode,
     pub ui_accent_color: Option<String>,
+    #[serde(default)]
+    pub ui_art_tint: bool,
     pub audio_volume: f32,
     pub audio_playback_rate: Option<f32>,
     pub audio_follow_playing_track: bool,
@@ -134,8 +137,9 @@ impl Default for Config {
         Config {
             language: "en".to_owned(),
             theme: SYSTEM_THEME.to_owned(),
-            ui_mode: UiMode::Minimal,
+            ui_mode: UiMode::Full,
             ui_accent_color: None,
+            ui_art_tint: false,
             audio_volume: 1.0,
             audio_playback_rate: Some(1.0),
             audio_follow_playing_track: false,
@@ -303,8 +307,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ui_mode_defaults_to_minimal() {
-        assert!(matches!(Config::default().ui_mode, UiMode::Minimal));
+    fn ui_mode_defaults_to_full() {
+        assert!(matches!(Config::default().ui_mode, UiMode::Full));
     }
 
     #[test]
@@ -314,6 +318,17 @@ mod tests {
             "\"minimal\""
         );
         assert_eq!(serde_json::to_string(&UiMode::Full).unwrap(), "\"full\"");
+        assert_eq!(serde_json::to_string(&UiMode::Mini).unwrap(), "\"mini\"");
+    }
+
+    #[test]
+    fn stored_ui_modes_still_deserialize_verbatim() {
+        // Stored user choices are preserved verbatim: every shipped variant
+        // must keep deserializing after the fresh-default flip to Full.
+        for mode in [UiMode::Minimal, UiMode::Full, UiMode::Mini] {
+            let json = serde_json::to_string(&mode).unwrap();
+            assert_eq!(serde_json::from_str::<UiMode>(&json).unwrap(), mode);
+        }
     }
 
     #[test]
@@ -366,12 +381,24 @@ mod tests {
         // Simulate an existing config file: serialize the default, drop the new
         // key, and confirm the whole Config still loads (additive-only change).
         let mut value = serde_json::to_value(Config::default()).unwrap();
-        value
-            .as_object_mut()
-            .unwrap()
-            .remove("library_sort_keys");
+        value.as_object_mut().unwrap().remove("library_sort_keys");
 
         let loaded: Config = serde_json::from_value(value).unwrap();
-        assert_eq!(loaded.library_sort_keys, Config::default().library_sort_keys);
+        assert_eq!(
+            loaded.library_sort_keys,
+            Config::default().library_sort_keys
+        );
+    }
+
+    #[test]
+    fn art_tint_defaults_to_off_and_old_configs_still_deserialize() {
+        assert!(!Config::default().ui_art_tint);
+
+        // Simulate an existing config file without the new key.
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        value.as_object_mut().unwrap().remove("ui_art_tint");
+
+        let loaded: Config = serde_json::from_value(value).unwrap();
+        assert!(!loaded.ui_art_tint);
     }
 }

@@ -1,8 +1,8 @@
 import { t as tMacro } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
+import * as stylex from '@stylexjs/stylex';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { relaunch } from '@tauri-apps/plugin-process';
 import { debounce } from 'lodash-es';
 import { useMemo } from 'react';
 
@@ -31,6 +31,10 @@ function ViewSettingsUI() {
 
   const invalidate = useInvalidate();
 
+  const selectTheme = (themeID: string) => {
+    SettingsAPI.setTheme(themeID).then(invalidate).catch(logAndNotifyError);
+  };
+
   const setUIMainColorThrottled = useMemo(() => {
     return debounce((value: string) => {
       SettingsAPI.setUIMainColor(value)
@@ -42,30 +46,77 @@ function ViewSettingsUI() {
   return (
     <>
       <Setting.Section>
-        <Setting.Select
-          label={t`Theme`}
-          description={t`Change the appearance of the interface`}
-          value={config.theme}
-          onChange={(e) =>
-            SettingsAPI.setTheme(e.currentTarget.value)
-              .then(invalidate)
-              .catch(logAndNotifyError)
-          }
-        >
-          <option value="__system">{t`System (default)`}</option>
-          {Object.values(themes).map((theme) => {
-            return (
-              <option key={theme._id} value={theme._id}>
-                {getTranslatedThemeName(theme.name)}
-              </option>
-            );
-          })}
-        </Setting.Select>
+        <Setting.Title>{t`Theme`}</Setting.Title>
+        <Setting.Description>{t`Change the appearance of the interface`}</Setting.Description>
+        <div {...stylex.props(styles.gallery)}>
+          <label
+            {...stylex.props(
+              styles.card,
+              config.theme === '__system' && styles.cardActive,
+            )}
+          >
+            <input
+              type="radio"
+              name="theme"
+              checked={config.theme === '__system'}
+              onChange={() => selectTheme('__system')}
+              {...stylex.props(styles.radio)}
+            />
+            <span
+              aria-hidden
+              {...stylex.props(styles.swatchRow)}
+              style={{
+                background: 'linear-gradient(90deg, #fff 50%, #2a2a2a 50%)',
+              }}
+            />
+            {t`System (default)`}
+          </label>
+          {GALLERY_THEMES.map((theme) => (
+            <label
+              key={theme._id}
+              {...stylex.props(
+                styles.card,
+                config.theme === theme._id && styles.cardActive,
+              )}
+            >
+              <input
+                type="radio"
+                name="theme"
+                checked={config.theme === theme._id}
+                onChange={() => selectTheme(theme._id)}
+                {...stylex.props(styles.radio)}
+              />
+              <span aria-hidden {...stylex.props(styles.swatchRow)}>
+                <span
+                  {...stylex.props(styles.swatch)}
+                  style={{ backgroundColor: theme.variables['--background'] }}
+                />
+                <span
+                  {...stylex.props(styles.swatch)}
+                  style={{ backgroundColor: theme.variables['--surface'] }}
+                />
+                <span
+                  {...stylex.props(styles.swatch)}
+                  style={{ backgroundColor: theme.variables['--accent'] }}
+                />
+              </span>
+              {getTranslatedThemeName(theme.name)}
+            </label>
+          ))}
+        </div>
+      </Setting.Section>
+      <Setting.Section>
+        <CheckboxSetting
+          title={t`Tint accent from cover art`}
+          description={t`Use the current track's artwork as the accent color`}
+          value={config.ui_art_tint}
+          onChange={useInvalidateCallback(SettingsAPI.setArtTint)}
+        />
       </Setting.Section>
       <Setting.Section>
         <Setting.Select
           label={t`Mode`}
-          description={t`Minimal hides the ledger and the queue column`}
+          description={t`Minimal hides the ledger and the queue column; Mini stacks the player above the queue`}
           value={config.ui_mode}
           onChange={(e) =>
             SettingsAPI.setUIMode(e.currentTarget.value as Config['ui_mode'])
@@ -74,10 +125,13 @@ function ViewSettingsUI() {
           }
         >
           <option value="minimal">
-            <Trans>Minimal (default)</Trans>
+            <Trans>Minimal</Trans>
           </option>
           <option value="full">
-            <Trans>Full</Trans>
+            <Trans>Full (default)</Trans>
+          </option>
+          <option value="mini">
+            <Trans>Mini</Trans>
           </option>
         </Setting.Select>
       </Setting.Section>
@@ -191,26 +245,18 @@ function ViewSettingsUI() {
           )}
         />
       </Setting.Section>
-      {window.__MUSEEKS_PLATFORM === 'linux' && (
-        <Setting.Section>
-          <CheckboxSetting
-            title={t`[Beta] Wayland compatibility enhancements`}
-            description={t`If you face issues using Wayland, try out this option`}
-            value={config.wayland_compat}
-            onChange={() =>
-              SettingsBridge.toggleWaylandCompat(!config.wayland_compat).then(
-                async () => {
-                  await invalidate();
-                  await relaunch();
-                },
-              )
-            }
-          />
-        </Setting.Section>
-      )}
     </>
   );
 }
+
+/**
+ * Gallery order: System (__system) stays first as the default, then flavors.
+ */
+const GALLERY_ORDER = ['light', 'dark', 'dark-warm', 'amoled'];
+
+const GALLERY_THEMES = Object.values(themes).sort(
+  (a, b) => GALLERY_ORDER.indexOf(a._id) - GALLERY_ORDER.indexOf(b._id),
+);
 
 /**
  * Get the theme name in the current language
@@ -221,7 +267,62 @@ export function getTranslatedThemeName(themeName: string) {
       return tMacro`Light`;
     case 'Dark':
       return tMacro`Dark`;
+    case 'Dark Warm':
+      return tMacro`Dark Warm`;
+    case 'AMOLED':
+      return tMacro`AMOLED`;
   }
 
   return themeName;
 }
+
+const styles = stylex.create({
+  gallery: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    rowGap: '8px',
+    columnGap: '8px',
+  },
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    rowGap: '6px',
+    columnGap: '6px',
+    paddingTop: '10px',
+    paddingBottom: '10px',
+    paddingLeft: '12px',
+    paddingRight: '12px',
+    minWidth: '96px',
+    backgroundColor: 'var(--input-bg)',
+    color: 'var(--input-color)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: {
+      default: 'var(--border-color-softer)',
+      ':hover': 'var(--main-color)',
+    },
+    borderRadius: 'var(--border-radius)',
+    fontSize: '0.85rem',
+    cursor: 'pointer',
+  },
+  cardActive: {
+    borderColor: 'var(--main-color)',
+  },
+  radio: {
+    marginTop: 0,
+    marginBottom: 0,
+    marginLeft: 0,
+    marginRight: 0,
+  },
+  swatchRow: {
+    display: 'flex',
+    width: '100%',
+    height: '28px',
+    borderRadius: 'var(--border-radius)',
+    overflow: 'hidden',
+  },
+  swatch: {
+    width: '33.3333%',
+  },
+});

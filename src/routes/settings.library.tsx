@@ -1,18 +1,16 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { ask, open } from '@tauri-apps/plugin-dialog';
 import { useCallback } from 'react';
 
 import LibraryAPI from '../api/LibraryAPI';
-import SettingsAPI from '../api/SettingsAPI';
 import * as Setting from '../components/Setting';
-import CheckboxSetting from '../components/SettingCheckbox';
 import Button from '../elements/Button';
 import Flexbox from '../elements/Flexbox';
 import useInvalidate, { useInvalidateCallback } from '../hooks/useInvalidate';
-import { configQuery } from '../lib/queries';
+import { allTracksQuery, configQuery } from '../lib/queries';
 import useLibraryStore from '../lib/store';
 
 export const Route = createFileRoute('/settings/library')({
@@ -22,8 +20,10 @@ export const Route = createFileRoute('/settings/library')({
 function ViewSettingsLibrary() {
   const config = useSuspenseQuery(configQuery).data;
   const libraryFolders = config.library_folders;
+  const allTracks = useQuery(allTracksQuery).data ?? [];
 
   const isLibraryRefreshing = useLibraryStore((state) => state.refreshing);
+  const refresh = useLibraryStore((state) => state.refresh);
   const invalidate = useInvalidate();
   const { t } = useLingui();
 
@@ -49,19 +49,30 @@ function ViewSettingsLibrary() {
         </Setting.Title>
         {libraryFolders.length === 0 && (
           <Setting.Description>
-            <Trans>There are no folders in your library.</Trans>
+            <Trans>No library folders yet.</Trans>
           </Setting.Description>
         )}
         {libraryFolders.length > 0 && (
-          <ul {...stylex.props(styles.libraryFolders)}>
+          <ul
+            aria-label={t`Library folders`}
+            {...stylex.props(styles.libraryFolders)}
+          >
             {config.library_folders.map((folder) => {
+              const trackCount = allTracks.filter(
+                (track) =>
+                  track.path === folder ||
+                  track.path.startsWith(`${folder}/`) ||
+                  track.path.startsWith(folder),
+              ).length;
+
               return (
-                <li key={folder}>
+                <li key={folder} aria-label={folder}>
                   <Flexbox align="center">
                     <button
                       type="button"
                       {...stylex.props(styles.libraryFoldersRemove)}
                       title={t`Remove`}
+                      aria-label={t`Remove folder ${folder}`}
                       data-museeks-action
                       onClick={() =>
                         LibraryAPI.removeLibraryFolder(folder).then(invalidate)
@@ -70,6 +81,14 @@ function ViewSettingsLibrary() {
                       &times;
                     </button>
                     <span>{folder}</span>
+                    <span>
+                      {trackCount} {trackCount === 1 ? t`track` : t`tracks`}
+                    </span>
+                    <span>
+                      {isLibraryRefreshing
+                        ? t`Scanning ${refresh.current}/${refresh.total}`
+                        : t`Up to date`}
+                    </span>
                   </Flexbox>
                 </li>
               );
@@ -87,7 +106,7 @@ function ViewSettingsLibrary() {
             disabled={isLibraryRefreshing || libraryFolders.length === 0}
             onClick={useInvalidateCallback(() => LibraryAPI.scan())}
           >
-            <Trans>Scan</Trans>
+            <Trans>Rescan all</Trans>
           </Button>
           <Button
             disabled={isLibraryRefreshing || libraryFolders.length === 0}
@@ -116,45 +135,6 @@ function ViewSettingsLibrary() {
             <code>.m3u</code> files will also be imported as playlists.
           </Trans>
         </Setting.Description>
-      </Setting.Section>
-      <Setting.Section>
-        <CheckboxSetting
-          title={t`Automatically refresh library on startup`}
-          value={config.library_autorefresh}
-          onChange={useInvalidateCallback(SettingsAPI.toggleLibraryAutorefresh)}
-        />
-      </Setting.Section>
-      <Setting.Section>
-        <Setting.Title>
-          <Trans>Danger zone</Trans>
-        </Setting.Title>
-        <Setting.Description>
-          <Trans>Delete all tracks and playlists from Slowburn.</Trans>
-        </Setting.Description>
-        <Flexbox>
-          <Button
-            relevancy="danger"
-            title={t`Fully reset the library`}
-            disabled={isLibraryRefreshing}
-            onClick={useInvalidateCallback(async () => {
-              const confirm = await ask(
-                t`All your tracks and playlists will be deleted from Slowburn.`,
-                {
-                  title: t`Reset library?`,
-                  kind: 'warning',
-                  cancelLabel: t`Cancel`,
-                  okLabel: t`Reset`,
-                },
-              );
-
-              if (confirm) {
-                await LibraryAPI.reset();
-              }
-            })}
-          >
-            <Trans>Reset library</Trans>
-          </Button>
-        </Flexbox>
       </Setting.Section>
     </>
   );

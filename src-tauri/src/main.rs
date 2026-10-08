@@ -131,10 +131,16 @@ fn main() {
                     .resizable(true)
                     .zoom_hotkeys_enabled(true);
 
-            // TODO: Windows drag-n-drop on windows does not work :|
-            // https://github.com/tauri-apps/wry/issues/904
+            // Frameless on Windows: the app draws its own title bar
+            // (`src/components/TitleBar.tsx`) instead of the OS chrome.
+            // Resizing still works - Tauri keeps the native resize borders
+            // on borderless windows - and so do minimize/maximize/close,
+            // wired to the Tauri window API from the custom bar.
             #[cfg(target_os = "windows")]
-            window_builder.disable_drag_drop_handler().build()?;
+            window_builder
+                .decorations(false)
+                .disable_drag_drop_handler()
+                .build()?;
 
             // On macOS, we hide the native frame and use overlay controls as they're nicer
             #[cfg(target_os = "macos")]

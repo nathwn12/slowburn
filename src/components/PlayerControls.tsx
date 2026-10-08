@@ -4,21 +4,17 @@ import * as stylex from '@stylexjs/stylex';
 import { usePlayerState } from '../hooks/usePlayer';
 import player from '../lib/player';
 import Icon from './Icon';
+import { useStopAfterCurrentStore } from './PlayerEvents';
 import VolumeControl from './VolumeControl';
 
-type Props = {
-  /**
-   * Kept for call-site compatibility. The Dense layout homes the transport in
-   * the now-playing column, and the header no longer mounts PlayerControls at
-   * all, so there is exactly one transport in the tree.
-   */
-  dense?: boolean;
-};
-
-export default function PlayerControls(_props: Props = {}) {
+export default function PlayerControls() {
   const isPaused = usePlayerState((state) => state.isPaused);
   const shuffle = usePlayerState((state) => state.shuffle);
   const repeat = usePlayerState((state) => state.repeat);
+  const stopAfterCurrent = useStopAfterCurrentStore((state) => state.armed);
+  const toggleStopAfterCurrent = useStopAfterCurrentStore(
+    (state) => state.toggle,
+  );
   const { t } = useLingui();
 
   return (
@@ -52,6 +48,46 @@ export default function PlayerControls(_props: Props = {}) {
       >
         <Icon name="skipForward" size={18} />
       </button>
+
+      <button
+        type="button"
+        onClick={() => player.stop()}
+        aria-label={t`Stop`}
+        title={t`Stop`}
+        {...stylex.props(styles.tbtn)}
+      >
+        <span aria-hidden="true" {...stylex.props(styles.tstop)}>
+          ■
+        </span>
+      </button>
+
+      {/**
+       * S5 stop-after-current: a permanently rendered (never a closed
+       * dropdown) menu so the action is one press away and discoverable
+       * without opening anything. Arming pauses at the end of the current
+       * track instead of auto-advancing (see `PlayerEvents`).
+       */}
+      <div role="menu" aria-label={t`Stop options`}>
+        <div
+          role="menuitem"
+          aria-label={t`Stop after current`}
+          title={t`Stop after the current track instead of playing the next one`}
+          data-on={stopAfterCurrent ? 'true' : 'false'}
+          onClick={() => toggleStopAfterCurrent()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              toggleStopAfterCurrent();
+            }
+          }}
+          tabIndex={0}
+          {...stylex.props(styles.tstopAfter, stopAfterCurrent && styles.on)}
+        >
+          {stopAfterCurrent
+            ? t`Stop after current :white_check_mark:`
+            : t`Stop after current`}
+        </div>
+      </div>
 
       <span {...stylex.props(styles.tsep)} aria-hidden="true" />
 
@@ -147,5 +183,29 @@ const styles = stylex.create({
     backgroundColor: 'var(--border-soft)',
     marginBlock: 0,
     marginInline: '3px',
+  },
+  tstop: {
+    fontSize: '11px',
+    lineHeight: 1,
+  },
+  tstopAfter: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: '22px',
+    paddingInline: '8px',
+    borderRadius: 'var(--radius-sm)',
+    fontSize: '10px',
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
+    cursor: 'pointer',
+    color: 'var(--text-faint)',
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
+  },
+  on: {
+    color: 'var(--accent)',
+    backgroundColor: 'var(--pink-soft)',
   },
 });

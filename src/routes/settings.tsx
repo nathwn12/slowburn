@@ -41,6 +41,9 @@ function ViewSettings() {
           <SettingsNavLink to="/settings/about">
             <Trans>About</Trans>
           </SettingsNavLink>
+          <SettingsNavLink to="/settings/advanced">
+            <Trans>Advanced</Trans>
+          </SettingsNavLink>
         </SettingsNav>
       </div>
 

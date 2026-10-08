@@ -4,6 +4,7 @@ import { info } from '@tauri-apps/plugin-log';
 import type { Config } from '../generated/typings';
 import ConfigBridge from '../lib/bridge-config';
 import SettingsBridge from '../lib/bridge-settings';
+import { getCover, sampleCoverAccent } from '../lib/cover';
 import { loadTranslation } from '../lib/i18n';
 import player from '../lib/player';
 import { getTheme } from '../lib/themes';
@@ -42,6 +43,11 @@ async function init(then: () => void): Promise<void> {
 
   applyThemeToUI(theme);
   applyUIMainColorToUI(color);
+
+  // Keep the art-tinted accent in sync when the track changes
+  player.on('trackChange', () => {
+    refreshArtTint().catch(logAndNotifyError);
+  });
 
   // Show the app and apply persisted menu bar visibility
   await SettingsBridge.showWindow();
@@ -95,7 +101,13 @@ const setTheme = async (themeID: string): Promise<void> => {
 
   const theme = (await getCurrentWindow().theme()) ?? 'light';
 
-  applyThemeToUI(theme);
+  if (themeID === '__system') {
+    applyThemeToUI(theme);
+  } else {
+    // A picked flavor paints its own variables; the window theme above only
+    // drives the native chrome (and the __system case).
+    applyThemeToUI(themeID);
+  }
 };
 
 /**
@@ -131,6 +143,56 @@ const setUIMainColor = async (
 const applyUIMainColorToUI = (mainColor: Config['ui_accent_color']) => {
   document.documentElement.style.setProperty('--main-color', mainColor);
 };
+
+const setArtTint = async (enabled: Config['ui_art_tint']): Promise<void> => {
+  await ConfigBridge.set('ui_art_tint', enabled);
+  await refreshArtTint();
+};
+
+/**
+ * Monotonic art-tint request id. Cover reads are unordered: a slow read for
+ * an older track must not paint over a newer one, so only the newest
+ * `refreshArtTint` call is allowed to apply.
+ */
+let artTintRequest = 0;
+
+/**
+ * Recompute `--main-color`: the sampled cover accent when art tint is on and
+ * the current track has readable artwork, otherwise the persisted accent.
+ */
+async function refreshArtTint(): Promise<void> {
+  const request = ++artTintRequest;
+  const [tintEnabled, accent] = await Promise.all([
+    ConfigBridge.get('ui_art_tint').catch(() => false),
+    ConfigBridge.get('ui_accent_color').catch(() => null),
+  ]);
+  if (request !== artTintRequest) return;
+  const fallback = accent ?? DEFAULT_MAIN_COLOR;
+
+  if (!tintEnabled) {
+    applyUIMainColorToUI(fallback);
+    return;
+  }
+
+  const track = player.getTrack();
+
+  if (track === null) {
+    applyUIMainColorToUI(fallback);
+    return;
+  }
+
+  const cover = await getCover(track.path).catch(() => null);
+  if (request !== artTintRequest) return;
+
+  if (cover === null) {
+    applyUIMainColorToUI(fallback);
+    return;
+  }
+
+  const sampled = await sampleCoverAccent(cover).catch(() => null);
+  if (request !== artTintRequest) return;
+  applyUIMainColorToUI(sampled ?? fallback);
+}
 
 /**
  * Toggle library refresh on startup
@@ -169,6 +231,8 @@ const SettingsAPI = {
   applyThemeToUI,
   setUIMainColor,
   applyUIMainColorToUI,
+  setArtTint,
+  refreshArtTint,
   setTracksDensity,
   setUIMode,
   toggleLibraryAutorefresh,

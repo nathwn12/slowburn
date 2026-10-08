@@ -58,6 +58,10 @@ export default function ShortcutsPanel() {
       ],
     },
     {
+      title: t`View`,
+      bindings: [{ keys: ['Ctrl', 'M'], label: t`Toggle mini mode` }],
+    },
+    {
       title: t`Window`,
       bindings: [{ keys: ['Alt'], label: t`Toggle the menu bar` }],
     },

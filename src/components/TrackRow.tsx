@@ -27,6 +27,7 @@ type Props = {
   hasSelectedAbove?: boolean;
   track: Track;
   index: number;
+  setSize?: number;
   isPlaying?: boolean;
   draggable?: boolean;
   simplified?: boolean;
@@ -93,6 +94,8 @@ export default function TrackRow(props: Props) {
       // accessibility
       aria-disabled="false" // required
       aria-selected={selected}
+      aria-posinset={index + 1}
+      aria-setsize={props.setSize}
       role="option" // technically already given by attributes, but that'll make the linter happy
       // styles
       {...stylex.props(

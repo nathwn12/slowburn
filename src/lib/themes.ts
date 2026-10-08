@@ -1,15 +1,25 @@
-import darkTheme from '../themes/dark.json' with { type: 'json' };
-import lightTheme from '../themes/light.json' with { type: 'json' };
-// IMPROVE ME: scan the directory for all json files instead
 import type { Theme } from '../types/museeks';
 import { logAndNotifyError } from './utils';
 
-export const themes: Record<string, Theme> = {
-  light: lightTheme as Theme,
-  dark: darkTheme as Theme,
-};
+// Every `src/themes/*.json` file is a theme; adding a file ships a theme with
+// no code change. The frontend has no runtime fs access, so the scan happens
+// at build time through Vite's eager glob.
+const themeModules = import.meta.glob<{ default: Theme }>('../themes/*.json', {
+  eager: true,
+});
+
+export const themes: Record<string, Theme> = {};
+
+for (const mod of Object.values(themeModules)) {
+  const theme = mod.default;
+  themes[theme._id] = theme;
+}
 
 const DEFAULT_THEME = themes.light;
+
+if (DEFAULT_THEME === undefined) {
+  throw new Error('Default "light" theme is missing from src/themes');
+}
 
 /**
  * Given a theme ID, return the corresponding theme variables

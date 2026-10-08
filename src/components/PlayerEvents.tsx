@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { sendNotification } from '@tauri-apps/plugin-notification';
 import { useEffect, useRef } from 'react';
+import { create } from 'zustand';
 
 import { usePlayerState } from '../hooks/usePlayer';
 import ConfigBridge from '../lib/bridge-config';
@@ -21,6 +22,36 @@ const AUDIO_ERRORS = {
     'The track file could not be found. It may be due to a file move or an unmounted partition.',
   unknown: 'An unknown error occurred.',
 };
+
+/**
+ * How far before the end of the track stop-after-current engages (seconds).
+ * Pausing ahead of `ended` keeps the engine from auto-advancing, which this
+ * layer cannot preempt (the engine's own `ended` listener runs first).
+ * The epsilon dwarfs the ~4 Hz `timeupdate` cadence so the window cannot be
+ * skipped while playing normally.
+ */
+const STOP_BEFORE_END_SECONDS = 0.5;
+
+type StopAfterCurrentState = {
+  armed: boolean;
+  arm: () => void;
+  disarm: () => void;
+  toggle: () => void;
+};
+
+/**
+ * Session-ephemeral stop-after-current flag (S5). Deliberately unpersisted:
+ * it describes this listen, not a preference. Co-located with the only
+ * behaviour that reads it, the `ended` stop path below.
+ */
+export const useStopAfterCurrentStore = create<StopAfterCurrentState>()(
+  (set) => ({
+    armed: false,
+    arm: () => set({ armed: true }),
+    disarm: () => set({ armed: false }),
+    toggle: () => set((state) => ({ armed: !state.armed })),
+  }),
+);
 
 /**
  * Handle player events for notifications and error handling
@@ -111,12 +142,56 @@ function PlayerEvents() {
       const track = player.getTrack();
       if (track == null || !(track.duration > 0)) return;
       if (player.getCurrentTime() >= track.duration * 0.75) creditPlay();
+
+      // Stop-after-current engages ahead of `ended` so the engine never
+      // auto-advances: pause on the current track and stand down.
+      if (
+        useStopAfterCurrentStore.getState().armed &&
+        track.duration - player.getCurrentTime() <= STOP_BEFORE_END_SECONDS
+      ) {
+        useStopAfterCurrentStore.getState().disarm();
+        player.pause();
+      }
     }
 
     function onEnded() {
       void onTrackEnded();
       creditPlay();
+
+      // Fallback for a path that skipped the preemption window (e.g. a seek
+      // past it): at minimum halt audibly and stand down. The engine's own
+      // `ended` listener auto-advances after this synchronous emit returns,
+      // so pull back to the ended track and hold paused instead of pausing
+      // the wrong (next) track.
+      if (useStopAfterCurrentStore.getState().armed) {
+        useStopAfterCurrentStore.getState().disarm();
+        const cursor = player.getQueueCursor();
+        player.pause();
+        if (cursor !== null) {
+          queueMicrotask(() => {
+            if (player.getQueueCursor() !== cursor) {
+              void player.startFromQueue(cursor).then(() => player.pause());
+            }
+          });
+        }
+      }
     }
+
+    // A seek can jump past the preemption window without a `timeupdate`
+    // landing inside it. `seeked` fires synchronously on seek completion,
+    // before any `ended` the seek may have caused, so engaging here keeps
+    // the stop on the current track deterministically.
+    function onSeeked() {
+      if (!useStopAfterCurrentStore.getState().armed) return;
+      const track = player.getTrack();
+      if (track == null || !(track.duration > 0)) return;
+      if (track.duration - player.getCurrentTime() <= STOP_BEFORE_END_SECONDS) {
+        useStopAfterCurrentStore.getState().disarm();
+        player.pause();
+      }
+    }
+
+    const audio = player.getAudioElement();
 
     // Bind player events
     player.on('play', notifyTrackChange);
@@ -124,6 +199,7 @@ function PlayerEvents() {
     player.on('ended', onEnded);
     player.on('trackChange', onTrackChange);
     player.on('timeupdate', onTimeUpdate);
+    audio.addEventListener('seeked', onSeeked);
 
     return function cleanup() {
       player.off('play', notifyTrackChange);
@@ -131,6 +207,7 @@ function PlayerEvents() {
       player.off('ended', onEnded);
       player.off('trackChange', onTrackChange);
       player.off('timeupdate', onTimeUpdate);
+      audio.removeEventListener('seeked', onSeeked);
     };
   }, [queueOrigin, navigate]);
 

@@ -16,6 +16,7 @@ export default defineConfig({
       name: 'main',
       path: '<rootDir>/src/translations/{locale}',
       include: ['src'],
+      exclude: ['src/**/__screenshots__/**'],
     },
   ],
   orderBy: 'origin',

@@ -131,6 +131,9 @@ class Player extends EventEmitter<PlayerEvents> {
     };
 
     this.audio = new Audio();
+    // Best-effort gapless (S5): hint the element to buffer ahead. Set before
+    // any `src` is assigned, alongside `crossOrigin` below.
+    this.audio.preload = 'auto';
     // Asset-protocol media (`http://asset.localhost/...`) is cross-origin to
     // the app. Without an anonymous crossOrigin request the browser routes the
     // element into the Web Audio graph as silence (`createMediaElementSource`
@@ -187,6 +190,16 @@ class Player extends EventEmitter<PlayerEvents> {
     this.toggleMute = this.toggleMute.bind(this);
     this.unmute = this.unmute.bind(this);
     this.setPlaybackRate = this.setPlaybackRate.bind(this);
+  }
+
+  /**
+   * The single backing media element, exposed read-only so a shell-level
+   * component can host it in the document. This keeps exactly one audio node
+   * in the tree (no decoys) while letting checks observe the real element's
+   * `preload` attribute.
+   */
+  getAudioElement(): HTMLAudioElement {
+    return this.audio;
   }
 
   /**

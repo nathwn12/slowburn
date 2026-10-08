@@ -9,7 +9,7 @@
  */
 export type AbLoop = { track_id: string, start_seconds: number | null, end_seconds: number | null, };
 
-export type Config = { language: string, theme: string, ui_mode: UiMode, ui_accent_color: string | null, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, library_sort_by: SortBy, library_sort_order: SortOrder, 
+export type Config = { language: string, theme: string, ui_mode: UiMode, ui_accent_color: string | null, ui_art_tint: boolean, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, library_sort_by: SortBy, library_sort_order: SortOrder, 
 /**
  * Ordered multi-key sort (AIMP-style). Additive: `library_sort_by` and
  * `library_sort_order` stay declared so an existing config file still
@@ -120,4 +120,4 @@ export type TrackGroup = { label: string, genres: Array<string>, duration: numbe
 
 export type TrackViewDensity = "normal" | "compact";
 
-export type UiMode = "minimal" | "full";
+export type UiMode = "minimal" | "full" | "mini";

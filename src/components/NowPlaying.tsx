@@ -91,7 +91,7 @@ export default function NowPlaying() {
         {/* Kept so the idle now-playing column still offers the one global
             transport affordance the app has always had (e2e asserts it). */}
         <div {...stylex.props(styles.transportWrap)}>
-          <PlayerControls dense />
+          <PlayerControls />
         </div>
       </section>
     );
@@ -112,7 +112,7 @@ export default function NowPlaying() {
       <div {...stylex.props(styles.transportWrap)}>
         <TrackProgress trackPlaying={trackPlaying} dense />
         <LoopControls trackPlaying={trackPlaying} />
-        <PlayerControls dense />
+        <PlayerControls />
       </div>
 
       <EffectControls />
