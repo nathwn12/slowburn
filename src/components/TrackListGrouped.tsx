@@ -147,9 +147,9 @@ function TrackListGroup(props: TrackListGroupProps) {
 const styles = stylex.create({
   group: {
     display: 'flex',
-    rowGap: '16px',
-    columnGap: '16px',
-    paddingBlock: '12px',
+    rowGap: 'var(--space-4)',
+    columnGap: 'var(--space-4)',
+    paddingBlock: 'var(--space-3)',
     paddingInline: '14px',
     alignItems: 'flex-start',
     position: 'relative',
@@ -159,11 +159,11 @@ const styles = stylex.create({
     // the two-line rows almost no room. Keep it a fixed narrow ledger.
     width: '120px',
     position: 'sticky',
-    top: '12px',
+    top: 'var(--space-3)',
     display: 'flex',
     flexDirection: 'column',
-    rowGap: '8px',
-    columnGap: '8px',
+    rowGap: 'var(--space-2)',
+    columnGap: 'var(--space-2)',
     flexShrink: 0,
   },
   label: {
@@ -172,11 +172,11 @@ const styles = stylex.create({
     margin: 0,
   },
   metadata: {
-    color: 'var(--text-muted)',
+    color: 'var(--text-dim)',
     display: 'flex',
     flexDirection: 'column',
-    rowGap: '4px',
-    columnGap: '4px',
+    rowGap: 'var(--space-1)',
+    columnGap: 'var(--space-1)',
   },
   rows: {
     flexGrow: 1,

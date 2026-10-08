@@ -26,36 +26,64 @@ export const Route = createFileRoute('/settings')({
 
 function ViewSettings() {
   return (
-    <View hasPadding layout="centered">
-      <div {...stylex.props(styles.nav)}>
-        <SettingsNav>
-          <SettingsNavLink to="/settings/library">
-            <Trans>Library</Trans>
-          </SettingsNavLink>
-          <SettingsNavLink to="/settings/audio">
-            <Trans>Audio</Trans>
-          </SettingsNavLink>
-          <SettingsNavLink to="/settings/ui">
-            <Trans>Interface</Trans>
-          </SettingsNavLink>
-          <SettingsNavLink to="/settings/about">
-            <Trans>About</Trans>
-          </SettingsNavLink>
-          <SettingsNavLink to="/settings/advanced">
-            <Trans>Advanced</Trans>
-          </SettingsNavLink>
-        </SettingsNav>
-      </div>
+    <View hasPadding layout="centered" xstyle={styles.viewWide}>
+      <div {...stylex.props(styles.shell)}>
+        <nav aria-label="Settings sections" {...stylex.props(styles.nav)}>
+          <SettingsNav>
+            <SettingsNavLink to="/settings/library">
+              <Trans>Library</Trans>
+            </SettingsNavLink>
+            <SettingsNavLink to="/settings/audio">
+              <Trans>Audio</Trans>
+            </SettingsNavLink>
+            <SettingsNavLink to="/settings/ui">
+              <Trans>Interface</Trans>
+            </SettingsNavLink>
+            <SettingsNavLink to="/settings/about">
+              <Trans>About</Trans>
+            </SettingsNavLink>
+            <SettingsNavLink to="/settings/advanced">
+              <Trans>Advanced</Trans>
+            </SettingsNavLink>
+          </SettingsNav>
+        </nav>
 
-      <Outlet />
+        <div {...stylex.props(styles.content)}>
+          <Outlet />
+        </div>
+      </div>
     </View>
   );
 }
 
 const styles = stylex.create({
+  viewWide: {
+    gridTemplateColumns: 'minmax(0, 620px)',
+  },
+  shell: {
+    display: 'flex',
+    flexDirection: {
+      default: 'row',
+      '@media (max-width: 560px)': 'column',
+    },
+    columnGap: 'var(--space-6)',
+    rowGap: 'var(--space-4)',
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflowX: 'clip',
+  },
   nav: {
-    position: 'absolute',
-    right: '100%',
-    marginRight: '60px',
+    flexShrink: 0,
+    minWidth: 0,
+  },
+  content: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
+    minWidth: 0,
+    maxWidth: '100%',
+    display: 'flex',
+    flexDirection: 'column',
   },
 });

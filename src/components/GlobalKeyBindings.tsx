@@ -1,12 +1,11 @@
-import { open } from '@tauri-apps/plugin-dialog';
 import { useCallback } from 'react';
 import Keybinding from 'react-keybinding-component';
 
-import LibraryAPI from '../api/LibraryAPI';
 import useInvalidate from '../hooks/useInvalidate';
 import ConfigBridge from '../lib/bridge-config';
 import SettingsBridge from '../lib/bridge-settings';
 import { resolveSetA, resolveSetB } from '../lib/dense-ab';
+import importFolders from '../lib/import-folders';
 import player from '../lib/player';
 import { logAndNotifyError } from '../lib/utils';
 import { isCtrlKey } from '../lib/utils-events';
@@ -22,23 +21,6 @@ function focusSearch(): void {
   const input = document.querySelector<HTMLInputElement>('header input');
   input?.focus();
   input?.select();
-}
-
-/** Ctrl+O: pick folders and import them, the same path the dropzone takes. */
-async function importFolders(
-  invalidate: () => Promise<unknown>,
-): Promise<void> {
-  try {
-    const selection = await open({ directory: true, multiple: true });
-    if (selection == null) return;
-    const folders = Array.isArray(selection) ? selection : [selection];
-    if (folders.length === 0) return;
-    await LibraryAPI.addLibraryFolders(folders);
-    await LibraryAPI.scan();
-    await invalidate();
-  } catch (error) {
-    logAndNotifyError(error);
-  }
 }
 
 /**

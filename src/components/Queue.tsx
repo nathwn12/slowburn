@@ -1,9 +1,15 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 
-import type { Track } from '../generated/typings';
+import type { Playlist, Track } from '../generated/typings';
 import useFilteredTracks from '../hooks/useFilteredTracks';
 import { usePlayerState } from '../hooks/usePlayer';
 import DatabaseBridge from '../lib/bridge-database';
@@ -30,7 +36,8 @@ const LIBRARY_ORIGIN: QueueOrigin = { type: 'library' };
  * The Dense queue panel (design §1/§5): head with the track count, an
  * explicit Up Next statement (the queue is separate from playlists;
  * starting a playlist replaces the queue), an origin badge, a filter
- * sub-bar (`◆ Saved loops`, sorted: manual) and dense 40 px rows. The
+ * sub-bar (`◆ Saved loops` plus a `Sort: <order>` menu button naming the
+ * active queue order) and dense 40 px rows. The
  * playing row leads the list; the left column owns the transport.
  *
  * S4 keeps the legacy QUEUE heading (other views assert on it) and states
@@ -43,10 +50,60 @@ export default function Queue(props: Props) {
   const { t } = useLingui();
   const [savedOnly, setSavedOnly] = useState(false);
   const [mostPlayed, setMostPlayed] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortTriggerRef = useRef<HTMLButtonElement>(null);
+  const sortWrapRef = useRef<HTMLDivElement>(null);
+
+  const closeSort = (refocusTrigger: boolean) => {
+    setSortOpen(false);
+    if (refocusTrigger) sortTriggerRef.current?.focus();
+  };
+
+  // An outside pointer or Escape closes the sort menu; Tab lets focus
+  // travel on instead of dragging it back to the trigger.
+  useEffect(() => {
+    if (!sortOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!sortWrapRef.current?.contains(event.target as Node)) {
+        setSortOpen(false);
+      }
+    };
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') closeSort(true);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [sortOpen]);
+
+  // Mini mode gives the panel a short row (~145px in the compact window), so
+  // the informational Up Next block is omitted there: it otherwise consumes
+  // half the row and the library/queue tabpanel - the only shrinkable child -
+  // collapses to height 0, losing the song list.
+  const config = useSuspenseQuery(configQuery).data;
+  const isMini = (config as { ui_mode?: unknown }).ui_mode === 'mini';
 
   const savedIds = useSavedLoopsStore((state) => state.ids);
   const queueOrigin = usePlayerState((state) => state.queueOrigin);
   const shuffle = usePlayerState((state) => state.shuffle);
+
+  // Resolve the origin playlist's display name so the badge never leaks the
+  // raw `playlist:<id>` internal id into visible UI (unknown ids keep the
+  // legacy `playlist:<id>` fallback).
+  const { data: playlists = [] } = useQuery({
+    queryKey: ['playlists'],
+    queryFn: () => DatabaseBridge.getAllPlaylists(),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const originPlaylistName =
+    queueOrigin?.type === 'playlist'
+      ? resolveQueueOriginName(playlists, queueOrigin.playlistID)
+      : null;
 
   const trackPlaying =
     queueCursor != null ? (queue[queueCursor] ?? null) : null;
@@ -131,7 +188,7 @@ export default function Queue(props: Props) {
             title={t`Shuffle queue`}
             {...stylex.props(styles.tool)}
           >
-            <Icon name="shuffle" size={12} />
+            <Icon name="shuffle" size={16} />
           </button>
           <button
             type="button"
@@ -208,28 +265,32 @@ export default function Queue(props: Props) {
         )}
       </div>
 
-      <div {...stylex.props(styles.explicit)}>
-        <h3 {...stylex.props(styles.explicitTitle)}>{t`Up Next`}</h3>
-        <p {...stylex.props(styles.explicitCopy)}>
-          {t`The queue is separate from playlists. Starting a playlist replaces the queue.`}
-          {queueOrigin?.type === 'playlist' && (
-            <>
-              {' '}
-              {t`From playlist`}{' '}
-              <span {...stylex.props(styles.badge)}>
-                playlist:{queueOrigin.playlistID}
-              </span>
-            </>
-          )}
-        </p>
-        <p {...stylex.props(styles.explicitCopy)}>
-          {t`Shuffle keeps the playing track first; the pre-shuffle order is preserved.`}
-        </p>
-        <p {...stylex.props(styles.explicitCopy)}>
-          {t`ReplayGain`}:{' '}
-          {replayGainDb != null ? `${replayGainDb.toFixed(1)} dB` : '-'}
-        </p>
-      </div>
+      {!isMini && (
+        <div {...stylex.props(styles.explicit)}>
+          <h3 {...stylex.props(styles.explicitTitle)}>{t`Up Next`}</h3>
+          <p {...stylex.props(styles.explicitCopy)}>
+            {t`The queue is separate from playlists. Starting a playlist replaces the queue.`}
+            {queueOrigin?.type === 'playlist' && (
+              <>
+                {' '}
+                {t`From playlist`}{' '}
+                <span {...stylex.props(styles.badge)}>
+                  {originPlaylistName ?? `playlist:${queueOrigin.playlistID}`}
+                </span>
+              </>
+            )}
+          </p>
+          <p {...stylex.props(styles.explicitCopy)}>
+            {t`Shuffle keeps the playing track first; the pre-shuffle order is preserved.`}
+          </p>
+          <p {...stylex.props(styles.explicitCopy)}>
+            {t`ReplayGain`}:{' '}
+            {replayGainDb != null
+              ? `${replayGainDb.toFixed(1)} dB`
+              : t`No ReplayGain tag`}
+          </p>
+        </div>
+      )}
 
       {activeSource === 'queue' || activeSource === 'playlist' ? (
         <div
@@ -252,24 +313,87 @@ export default function Queue(props: Props) {
               </span>
               {t`Saved loops`}
             </button>
-            <button
-              type="button"
-              aria-pressed={mostPlayed}
-              aria-label={t`Sort by most played`}
-              onClick={() => setMostPlayed((value) => !value)}
-              data-on={mostPlayed ? 'true' : 'false'}
-              title={t`Sort the queue by how many times each track has been played`}
-              {...stylex.props(styles.filter, mostPlayed && styles.filterOn)}
-            >
-              {t`Most played`}
-            </button>
-            <span {...stylex.props(styles.sort)}>
-              {mostPlayed ? t`sorted: most played` : t`sorted: manual`}
-            </span>
+            {/*
+             * One sort control, never a static readout: the trigger button
+             * names the active queue order in words (`Sort: Manual` is the
+             * queue's own play order, the default; `Sort: Most played` is
+             * `play_count` descending across the whole queue) and opens a
+             * menu with exactly those two orders. The library header's
+             * SortControl is deliberately not reused here: it drives the
+             * library's `library_sort_keys` config, while this is local
+             * queue view state. `Saved loops` stays a separate filter chip.
+             */}
+            <div ref={sortWrapRef} {...stylex.props(styles.sortWrap)}>
+              <button
+                type="button"
+                ref={sortTriggerRef}
+                aria-haspopup="menu"
+                aria-expanded={sortOpen}
+                aria-label={mostPlayed ? t`Sort: Most played` : t`Sort: Manual`}
+                onClick={() => setSortOpen((value) => !value)}
+                title={t`Sort the queue`}
+                {...stylex.props(styles.filter, mostPlayed && styles.filterOn)}
+              >
+                {mostPlayed ? t`Sort: Most played` : t`Sort: Manual`}
+              </button>
+              {sortOpen && (
+                <div
+                  role="menu"
+                  aria-label={t`Queue sort options`}
+                  {...stylex.props(styles.sortMenu)}
+                >
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={!mostPlayed}
+                    onClick={() => {
+                      setMostPlayed(false);
+                      closeSort(true);
+                    }}
+                    {...stylex.props(
+                      styles.sortItem,
+                      !mostPlayed && styles.sortItemOn,
+                    )}
+                  >
+                    {t`Manual`}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={mostPlayed}
+                    onClick={() => {
+                      setMostPlayed(true);
+                      closeSort(true);
+                    }}
+                    {...stylex.props(
+                      styles.sortItem,
+                      mostPlayed && styles.sortItemOn,
+                    )}
+                  >
+                    {t`Most played`}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          {isQueueEmpty || !hasVisibleRows ? (
+          {/*
+           * A filter hiding every row is not an empty queue: the filtered
+           * state names the active filter, shows the result count, and
+           * offers a way out instead of the generic "Queue is empty" dead
+           * end.
+           */}
+          {isQueueEmpty ? (
             <QueueEmpty />
+          ) : !hasVisibleRows ? (
+            <QueueFilteredEmpty
+              filterName={savedOnly ? t`Saved loops` : t`Most played`}
+              total={queue.length}
+              onClear={() => {
+                setSavedOnly(false);
+                setMostPlayed(false);
+              }}
+            />
           ) : (
             <QueueList
               queue={queue}
@@ -297,6 +421,51 @@ export default function Queue(props: Props) {
           <LibraryPane />
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Resolve a queue origin's display name from the playlists query. Pure so
+ * the badge lookup is unit-testable without the query layer; unknown ids
+ * resolve to `null` and the caller falls back to the legacy `playlist:<id>`.
+ */
+export function resolveQueueOriginName(
+  playlists: Array<Playlist>,
+  playlistID: string,
+): string | null {
+  return playlists.find((playlist) => playlist.id === playlistID)?.name ?? null;
+}
+
+/**
+ * Filtered-empty state: the queue has tracks but the active filter hides
+ * every row. Names the filter, states the 0-of-N result count, and offers a
+ * clear-filter action back to the full queue.
+ */
+function QueueFilteredEmpty(props: {
+  filterName: string;
+  total: number;
+  onClear: () => void;
+}) {
+  const { filterName, total, onClear } = props;
+  const { t } = useLingui();
+
+  return (
+    <div {...stylex.props(styles.filteredEmpty)}>
+      <div {...stylex.props(styles.filteredBig)}>
+        {t`No ${filterName} tracks in the queue`}
+      </div>
+      <div {...stylex.props(styles.filteredSmall)}>
+        {t`0 of ${total} ${total === 1 ? 'track' : 'tracks'} match. Clear the filter to see everything.`}
+      </div>
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={t`Clear filter`}
+        {...stylex.props(styles.filteredCta)}
+      >
+        {t`Clear filter`}
+      </button>
     </div>
   );
 }
@@ -352,8 +521,8 @@ const styles = stylex.create({
   head: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
-    height: '38px',
+    columnGap: 'var(--space-2)',
+    height: 'var(--row)',
     flexShrink: 0,
     paddingInline: '10px',
     borderBottomWidth: '1px',
@@ -363,14 +532,14 @@ const styles = stylex.create({
   },
   title: {
     margin: 0,
-    fontSize: '11px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 800,
     letterSpacing: '.1em',
     color: 'var(--text-dim)',
   },
   count: {
     fontFamily: 'var(--mono-font)',
-    fontSize: '10px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--text-faint)',
     backgroundColor: 'var(--bg)',
@@ -388,22 +557,34 @@ const styles = stylex.create({
     columnGap: '2px',
   },
   tool: {
-    width: '24px',
-    height: '24px',
-    borderRadius: 'var(--radius-sm)',
+    width: 'var(--space-5)',
+    height: 'var(--space-5)',
+    borderRadius: 'var(--radius)',
     display: 'grid',
     placeItems: 'center',
+    // A visible bordered affordance with a bright default glyph: these two
+    // header controls must read as buttons at rest, not grey squares that
+    // only reveal themselves on hover. The accessible name stays on
+    // `aria-label` (+ `title` for the pointer tooltip), never hover-only.
     color: {
-      default: 'var(--text-faint)',
+      default: 'var(--text-dim)',
       ':hover': 'var(--text-bright)',
     },
     backgroundColor: {
+      default: 'var(--bg)',
       ':hover': 'var(--surface-hover)',
     },
-    fontSize: '14px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: {
+      default: 'var(--border-soft)',
+      ':hover': 'var(--control-border)',
+    },
+    fontSize: 'var(--text-lg)',
+    fontWeight: 700,
     lineHeight: 1,
-    borderStyle: 'none',
     padding: 0,
+    cursor: 'pointer',
   },
   explicit: {
     display: 'flex',
@@ -419,7 +600,7 @@ const styles = stylex.create({
   },
   explicitTitle: {
     margin: 0,
-    fontSize: '11px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 800,
     letterSpacing: '.1em',
     color: 'var(--text-dim)',
@@ -427,13 +608,13 @@ const styles = stylex.create({
   explicitCopy: {
     margin: 0,
     fontFamily: 'var(--mono-font)',
-    fontSize: '10px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--text-faint)',
   },
   badge: {
     fontFamily: 'var(--mono-font)',
-    fontSize: '10px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--info-text)',
     backgroundColor: 'var(--info-soft)',
@@ -447,7 +628,7 @@ const styles = stylex.create({
   sub: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
+    columnGap: 'var(--space-2)',
     height: '34px',
     flexShrink: 0,
     paddingInline: '10px',
@@ -455,7 +636,7 @@ const styles = stylex.create({
     borderBottomStyle: 'solid',
     borderBottomColor: 'var(--border)',
     fontFamily: 'var(--mono-font)',
-    fontSize: '10px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--text-faint)',
   },
@@ -486,7 +667,7 @@ const styles = stylex.create({
       ':hover': 'var(--text-bright)',
     },
     fontFamily: 'var(--mono-font)',
-    fontSize: '10px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 700,
     lineHeight: 1,
     cursor: 'pointer',
@@ -495,6 +676,7 @@ const styles = stylex.create({
     color: 'var(--info-text)',
     borderColor: 'var(--info-line)',
     backgroundColor: 'var(--info-soft)',
+    boxShadow: '0 0 8px var(--info-soft)',
   },
   libraryPane: {
     display: 'flex',
@@ -529,7 +711,7 @@ const styles = stylex.create({
       default: 'var(--text-dim)',
       ':hover': 'var(--text-bright)',
     },
-    fontSize: '10px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     lineHeight: 1,
   },
@@ -540,9 +722,92 @@ const styles = stylex.create({
   },
   filterMark: {
     fontSize: '8px',
-    color: 'var(--deep-pink)',
+    color: 'var(--accent)',
   },
-  sort: {
+  sortWrap: {
+    position: 'relative',
     marginLeft: 'auto',
+  },
+  sortMenu: {
+    position: 'absolute',
+    top: 'calc(100% + 4px)',
+    right: 0,
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    rowGap: '2px',
+    minWidth: '140px',
+    padding: '4px',
+    borderRadius: 'var(--radius)',
+    backgroundColor: 'var(--surface)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--border)',
+    boxShadow: '0 8px 24px var(--bg)',
+  },
+  sortItem: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '6px',
+    paddingBlock: '6px',
+    paddingInline: '8px',
+    borderRadius: 'var(--radius)',
+    borderStyle: 'none',
+    backgroundColor: 'transparent',
+    color: 'var(--text-dim)',
+    fontSize: 'var(--text-xs)',
+    fontWeight: 600,
+    lineHeight: 1,
+    cursor: 'pointer',
+  },
+  sortItemOn: {
+    color: 'var(--info-text)',
+    backgroundColor: 'var(--info-soft)',
+  },
+  filteredEmpty: {
+    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    rowGap: 'var(--space-2)',
+    height: '100%',
+    textAlign: 'center',
+    color: 'var(--text-faint)',
+    padding: 'var(--space-5)',
+  },
+  filteredBig: {
+    fontSize: 'var(--text-sm)',
+    fontWeight: 600,
+    color: 'var(--text-dim)',
+  },
+  filteredSmall: {
+    fontSize: 'var(--text-xs)',
+    lineHeight: 1.5,
+    maxWidth: '230px',
+  },
+  filteredCta: {
+    marginTop: 'var(--space-1)',
+    fontSize: 'var(--text-xs)',
+    fontWeight: 600,
+    color: 'var(--text-bright)',
+    backgroundColor: {
+      default: 'var(--surface-hover)',
+      ':hover': 'var(--bg)',
+    },
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: {
+      default: 'var(--border)',
+      ':hover': 'var(--control-border)',
+    },
+    borderRadius: 'var(--radius)',
+    paddingBlock: '6px',
+    paddingInline: 'var(--space-3)',
+    cursor: 'pointer',
+    outline: {
+      ':focus-visible': '2px solid var(--focus-color)',
+    },
+    outlineOffset: '1px',
   },
 });

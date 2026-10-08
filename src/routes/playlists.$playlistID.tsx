@@ -81,34 +81,19 @@ function ViewPlaylistDetails() {
     ];
   }, [playlistID, invalidate, t]);
 
-  if (playlistTracks.length === 0) {
-    return (
-      <ViewMessage.Notice>
-        <p>
-          <Trans>Empty playlist</Trans>
-        </p>
-        <ViewMessage.Sub>
-          <Trans>
-            You can add tracks from the{' '}
-            <Link linkOptions={{ to: '/library' }}>library view</Link>
-          </Trans>
-        </ViewMessage.Sub>
-      </ViewMessage.Notice>
-    );
-  }
-
-  if (filteredTracks.length === 0 && search.length > 0) {
-    return (
-      <ViewMessage.Notice>
-        <p>
-          <Trans>Your search returned no results</Trans>
-        </p>
-      </ViewMessage.Notice>
-    );
-  }
-
-  // A bit hacky though
-  if (filteredTracks && filteredTracks.length === 0) {
+  // One empty state: a playlist with no tracks at all, and a search that
+  // matches nothing inside a non-empty playlist, share this branch instead
+  // of two stacked branches rendering identical copy.
+  if (filteredTracks.length === 0) {
+    if (search.length > 0 && playlistTracks.length > 0) {
+      return (
+        <ViewMessage.Notice>
+          <p>
+            <Trans>Your search returned no results</Trans>
+          </p>
+        </ViewMessage.Notice>
+      );
+    }
     return (
       <ViewMessage.Notice>
         <p>

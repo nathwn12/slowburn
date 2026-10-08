@@ -36,7 +36,7 @@ const styles = stylex.create({
   view: {
     height: '100%',
     maxHeight: '100%',
-    backgroundColor: 'var(--background)',
+    backgroundColor: 'var(--bg)',
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 'auto',

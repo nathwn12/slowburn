@@ -1,7 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
 
-import ConfigBridge from './bridge-config';
-
 /**
  * Bridge for various Settings-related actions.
  * Grouped here so they're easier to mock in E2E tests.
@@ -46,13 +44,6 @@ const SettingsBridge = {
     } else {
       await invoke('plugin:sleepblocker|disable');
     }
-  },
-
-  /**
-   * Enable Wayland potential compatibility fixes
-   */
-  async toggleWaylandCompat(value: boolean): Promise<void> {
-    await ConfigBridge.set('wayland_compat', value);
   },
 };
 

@@ -93,8 +93,6 @@ function ViewTrackDetails() {
               setFormData({ ...formData, title: e.currentTarget.value });
             }}
           />
-        </Setting.Section>
-        <Setting.Section>
           <Setting.Input
             label={t`Album`}
             name="album"
@@ -104,8 +102,6 @@ function ViewTrackDetails() {
               setFormData({ ...formData, album: e.currentTarget.value });
             }}
           />
-        </Setting.Section>
-        <Setting.Section>
           <Setting.Input
             label={t`Album Artist`}
             name="album_artist"
@@ -133,8 +129,6 @@ function ViewTrackDetails() {
               });
             }}
           />
-        </Setting.Section>
-        <Setting.Section>
           <Setting.Input
             label={t`Genre`}
             description={t`You can add multiple genres with commas`}
@@ -156,74 +150,81 @@ function ViewTrackDetails() {
             type="number"
             min="0"
             step="1"
-            value={Number(formData.year)}
+            value={formData.year ?? ''}
             onChange={(e) => {
-              setFormData({ ...formData, year: Number(e.currentTarget.value) });
+              setFormData({
+                ...formData,
+                year: parseNullableNumber(e.currentTarget.value),
+              });
             }}
           />
-        </Setting.Section>
-        <Setting.Section>
-          <Flexbox direction="horizontal" gap={16}>
-            <Setting.Input
-              label={t`Track Nº`}
-              name="track"
-              type="number"
-              min="0"
-              step="1"
-              value={formData.track_no ?? ''}
-              onChange={(e) => {
-                setFormData({
-                  ...formData,
-                  track_no: parseNullableNumber(e.currentTarget.value),
-                });
-              }}
-            />
-            <Setting.Input
-              label={t`Of`}
-              name="trackOf"
-              type="number"
-              min="0"
-              step="1"
-              value={formData.track_of ?? ''}
-              onChange={(e) => {
-                setFormData({
-                  ...formData,
-                  track_of: parseNullableNumber(e.currentTarget.value),
-                });
-              }}
-            />
+          <Flexbox direction="horizontal" gap="space-4">
+            <div {...stylex.props(styles.detailsField)}>
+              <Setting.Input
+                label={t`Track Nº`}
+                name="track"
+                type="number"
+                min="0"
+                step="1"
+                value={formData.track_no ?? ''}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    track_no: parseNullableNumber(e.currentTarget.value),
+                  });
+                }}
+              />
+            </div>
+            <div {...stylex.props(styles.detailsField)}>
+              <Setting.Input
+                label={t`Of`}
+                name="trackOf"
+                type="number"
+                min="0"
+                step="1"
+                value={formData.track_of ?? ''}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    track_of: parseNullableNumber(e.currentTarget.value),
+                  });
+                }}
+              />
+            </div>
           </Flexbox>
-        </Setting.Section>
-        <Setting.Section>
-          <Flexbox direction="horizontal" gap={16}>
-            <Setting.Input
-              label={t`Disk Nº`}
-              name="disk"
-              type="number"
-              min="0"
-              step="1"
-              value={formData.disk_no ?? ''}
-              onChange={(e) => {
-                setFormData({
-                  ...formData,
-                  disk_no: parseNullableNumber(e.currentTarget.value),
-                });
-              }}
-            />
-            <Setting.Input
-              label={t`Of`}
-              name="diskOf"
-              type="number"
-              min="0"
-              step="1"
-              value={formData.disk_of ?? ''}
-              onChange={(e) => {
-                setFormData({
-                  ...formData,
-                  disk_of: parseNullableNumber(e.currentTarget.value),
-                });
-              }}
-            />
+          <Flexbox direction="horizontal" gap="space-4">
+            <div {...stylex.props(styles.detailsField)}>
+              <Setting.Input
+                label={t`Disk Nº`}
+                name="disk"
+                type="number"
+                min="0"
+                step="1"
+                value={formData.disk_no ?? ''}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    disk_no: parseNullableNumber(e.currentTarget.value),
+                  });
+                }}
+              />
+            </div>
+            <div {...stylex.props(styles.detailsField)}>
+              <Setting.Input
+                label={t`Of`}
+                name="diskOf"
+                type="number"
+                min="0"
+                step="1"
+                value={formData.disk_of ?? ''}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    disk_of: parseNullableNumber(e.currentTarget.value),
+                  });
+                }}
+              />
+            </div>
           </Flexbox>
         </Setting.Section>
         <Setting.Section>
@@ -235,16 +236,12 @@ function ViewTrackDetails() {
               setFormData({ ...formData, is_compilation: value });
             }}
           />
-        </Setting.Section>
-        <Setting.Section>
           <Setting.Input
             label={t`Duration`}
             type="text"
             disabled
             value={parseDuration(track.duration)}
           />
-        </Setting.Section>
-        <Setting.Section>
           <Setting.Input
             label={t`Path`}
             type="text"
@@ -256,7 +253,7 @@ function ViewTrackDetails() {
           <Button type="button" onClick={handleCancel}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button type="submit">
+          <Button type="submit" relevancy="primary">
             <Trans>Save</Trans>
           </Button>
         </div>
@@ -285,11 +282,17 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
   },
+  detailsField: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+  },
   detailsActions: {
     display: 'flex',
     justifyContent: 'flex-end',
-    rowGap: '8px',
-    columnGap: '8px',
-    marginBottom: '16px',
+    rowGap: 'var(--space-2)',
+    columnGap: 'var(--space-2)',
+    marginBottom: 'var(--space-4)',
   },
 });

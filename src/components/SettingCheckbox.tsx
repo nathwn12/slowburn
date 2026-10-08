@@ -32,7 +32,9 @@ export default function CheckboxSetting(props: Props) {
           {title}
         </Setting.Label>
       </Flexbox>
-      <Setting.Description>{description}</Setting.Description>
+      {description != null && description !== '' && (
+        <Setting.Description>{description}</Setting.Description>
+      )}
     </Flexbox>
   );
 }
@@ -42,23 +44,28 @@ const styles = stylex.create({
     display: 'grid',
     placeContent: 'center',
     appearance: 'none',
+    width: 'var(--space-4)',
+    height: 'var(--space-4)',
+    flexShrink: 0,
+    margin: 0,
+    cursor: 'pointer',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: 'var(--border-color-softer)',
-    borderRadius: 'var(--border-radius)',
-    backgroundColor: 'var(--checkbox-bg)',
+    borderColor: 'var(--control-border)',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: 'var(--surface-inset)',
     '::after': {
       content: '""',
       visibility: 'hidden',
-      width: '14px',
-      height: '14px',
-      boxShadow: 'inset 1em 1em var(--form-control-color)',
-      backgroundColor: 'white',
+      width: 'var(--space-3)',
+      height: 'var(--space-3)',
+      boxShadow: 'inset 1em 1em var(--on-accent-ink)',
+      backgroundColor: 'var(--on-accent-ink)',
     },
   },
   checkboxChecked: {
-    borderColor: 'var(--button-border)',
-    backgroundColor: 'var(--main-color)',
+    borderColor: 'var(--accent)',
+    backgroundColor: 'var(--accent)',
     '::after': {
       visibility: 'visible',
       clipPath: 'polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 79% 0%, 43% 62%)',

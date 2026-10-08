@@ -132,7 +132,7 @@ const styles = stylex.create({
     position: 'relative',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: 'var(--border-color)',
+    borderColor: 'var(--border)',
   },
   image: {
     position: 'absolute',
@@ -154,7 +154,7 @@ const styles = stylex.create({
     borderBottomWidth: 0,
   },
   note: {
-    color: 'var(--text-muted)',
+    color: 'var(--text-dim)',
     fontSize: '1rem',
     lineHeight: 1,
   },
@@ -166,7 +166,7 @@ const styles = stylex.create({
     borderRadius: 'var(--radius)',
     overflow: 'hidden',
     backgroundImage:
-      'radial-gradient(120% 120% at 20% 15%, #ff5fb4 0%, rgba(255,20,147,0) 58%), radial-gradient(120% 110% at 85% 90%, #2563eb 0%, rgba(37,99,235,0) 60%), linear-gradient(150deg, #2b1b3a 0%, #161a2b 55%, #0f1015 100%)',
+      'radial-gradient(120% 120% at 20% 15%, var(--accent) 0%, transparent 58%), radial-gradient(120% 110% at 85% 90%, var(--info) 0%, transparent 60%), linear-gradient(150deg, var(--surface-3) 0%, var(--surface-2) 55%, var(--surface-inset) 100%)',
     boxShadow:
       '0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05)',
     width: {

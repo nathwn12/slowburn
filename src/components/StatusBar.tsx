@@ -84,10 +84,10 @@ export default function StatusBar() {
 
   return (
     <footer aria-label={t`Status bar`} {...stylex.props(styles.status)}>
-      <span {...stylex.props(styles.st)}>
+      <span {...stylex.props(styles.st, styles.stLibrary)}>
         {refreshing
-          ? t`scanning tracks…`
-          : `${count.toLocaleString()} ${count === 1 ? t`track` : t`tracks`} · ${formatFileSize(totalSize)} · ${parseDuration(totalDuration)}`}
+          ? t`scanning tracks...`
+          : `${count.toLocaleString()} ${count === 1 ? t`track` : t`tracks`} . ${formatFileSize(totalSize)} . ${parseDuration(totalDuration)}`}
       </span>
 
       <span {...stylex.props(styles.sep)} aria-hidden="true" />
@@ -99,7 +99,11 @@ export default function StatusBar() {
       <span {...stylex.props(styles.spacer)} />
 
       <span
-        {...stylex.props(styles.st, effectsEngaged && styles.stEff)}
+        {...stylex.props(
+          styles.st,
+          effectsEngaged && styles.stEff,
+          styles.collapseEffects,
+        )}
         title={effectsText}
       >
         <span
@@ -109,7 +113,10 @@ export default function StatusBar() {
         {effectsEngaged ? t`Effects engaged` : t`Effects neutral`}
       </span>
 
-      <span {...stylex.props(styles.sep)} aria-hidden="true" />
+      <span
+        {...stylex.props(styles.sep, styles.collapseEffectsSep)}
+        aria-hidden="true"
+      />
 
       <span {...stylex.props(styles.st)} title={loopText}>
         <span
@@ -119,10 +126,13 @@ export default function StatusBar() {
         {loopText}
       </span>
 
-      <span {...stylex.props(styles.sep)} aria-hidden="true" />
+      <span
+        {...stylex.props(styles.sep, styles.collapseOutputSep)}
+        aria-hidden="true"
+      />
 
       <span
-        {...stylex.props(styles.st)}
+        {...stylex.props(styles.st, styles.collapseOutput)}
         title={t`This webview renders through the operating system's default output device.`}
       >
         <Icon name="volumeHigh" size={12} />
@@ -164,6 +174,40 @@ const styles = stylex.create({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
+  // The library totals are the lowest-priority wide cell: the one cell
+  // allowed to shrink, with ellipsis, instead of shoving trailing cells
+  // off-screen at narrow widths.
+  stLibrary: {
+    flexShrink: 1,
+    minWidth: 0,
+    whiteSpace: 'nowrap',
+  },
+  // Low-priority cells collapse under breakpoints, Output first, then
+  // Effects; each takes its adjacent separator with it.
+  collapseOutput: {
+    display: {
+      default: 'inline-flex',
+      '@media (max-width: 760px)': 'none',
+    },
+  },
+  collapseOutputSep: {
+    display: {
+      default: 'block',
+      '@media (max-width: 760px)': 'none',
+    },
+  },
+  collapseEffects: {
+    display: {
+      default: 'inline-flex',
+      '@media (max-width: 600px)': 'none',
+    },
+  },
+  collapseEffectsSep: {
+    display: {
+      default: 'block',
+      '@media (max-width: 600px)': 'none',
+    },
+  },
   spacer: {
     flexGrow: 1,
     flexShrink: 1,
@@ -183,13 +227,13 @@ const styles = stylex.create({
     backgroundColor: 'var(--text-faint)',
   },
   dotEff: {
-    backgroundColor: 'var(--deep-pink)',
-    boxShadow: '0 0 6px var(--deep-pink)',
+    backgroundColor: 'var(--accent)',
+    boxShadow: '0 0 6px var(--accent)',
   },
   dotLoop: {
-    backgroundColor: 'var(--deep-pink)',
+    backgroundColor: 'var(--accent)',
   },
   stEff: {
-    color: 'var(--pink-text-soft)',
+    color: 'var(--accent-text)',
   },
 });

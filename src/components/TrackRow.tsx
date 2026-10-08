@@ -55,6 +55,16 @@ export default function TrackRow(props: Props) {
 
   const duration = useFormattedDuration(track.duration);
   const savedLoop = useIsSavedLoop(track.id);
+  // The row ellipsizes, so the tooltip carries the whole visible line for
+  // discoverability. The accessible name (element content) is untouched.
+  const titleTip =
+    props.showArtistInTitle === true && track.artists.length > 0
+      ? `${track.title} - ${track.artists.join(', ')}`
+      : track.title;
+  const subtitleTip =
+    props.showArtistInTitle === true
+      ? track.album || track.artists.join(', ')
+      : `${track.artists.join(', ')} . ${track.album}`;
 
   // Drag-and-Drop for playlists
   const {
@@ -102,6 +112,9 @@ export default function TrackRow(props: Props) {
         trackStyles.track,
         selected && trackStyles.trackSelected,
         props.isPlaying === true && trackStyles.trackPlaying,
+        selected &&
+          props.isPlaying === true &&
+          trackStyles.trackSelectedPlaying,
         isDragging && trackStyles.isDragging,
         isDropIndicatorVisible && trackStyles.isDraggedOver,
         isDropAbove && trackStyles.isDraggedOverAbove,
@@ -119,17 +132,25 @@ export default function TrackRow(props: Props) {
             cellStyles.title,
             props.isPlaying === true && cellStyles.titlePlaying,
           )}
+          title={titleTip}
+          data-testid="track-title"
         >
           {track.title}
           {props.showArtistInTitle === true && track.artists.length > 0 && (
             <span {...stylex.props(cellStyles.artistInTitle)}>
-              {' — '}
+              {' - '}
               {track.artists.join(', ')}
             </span>
           )}
         </span>
-        <span {...stylex.props(cellStyles.subtitle)}>
-          {track.artists.join(', ')} · {track.album}
+        <span
+          {...stylex.props(cellStyles.subtitle)}
+          title={subtitleTip}
+          data-testid="track-subtitle"
+        >
+          {props.showArtistInTitle === true
+            ? track.album || track.artists.join(', ')
+            : `${track.artists.join(', ')} . ${track.album}`}
         </span>
       </span>
 
@@ -143,7 +164,12 @@ export default function TrackRow(props: Props) {
             ◆
           </span>
         )}
-        <span {...stylex.props(cellStyles.duration)}>{duration}</span>
+        <span
+          {...stylex.props(cellStyles.duration)}
+          data-testid="track-duration"
+        >
+          {duration}
+        </span>
       </span>
     </li>
   );
@@ -154,12 +180,12 @@ const trackStyles = stylex.create({
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
+    columnGap: 'var(--space-2)',
     minWidth: 0,
     maxWidth: '100%',
     height: '100%',
     paddingInlineStart: '10px',
-    paddingInlineEnd: '12px',
+    paddingInlineEnd: 'var(--space-3)',
     borderLeftWidth: '3px',
     borderLeftStyle: 'solid',
     borderLeftColor: 'transparent',
@@ -170,10 +196,25 @@ const trackStyles = stylex.create({
     borderLeftColor: 'var(--info)',
   },
   trackPlaying: {
-    backgroundColor: 'var(--pink-soft)',
+    backgroundColor: 'var(--accent-soft)',
     backgroundImage:
-      'linear-gradient(90deg, var(--pink-soft), rgba(255,20,147,.02) 60%)',
-    borderLeftColor: 'var(--deep-pink)',
+      'linear-gradient(90deg, var(--accent-soft), rgba(255,20,147,.02) 60%)',
+    borderLeftColor: 'var(--accent)',
+    boxShadow: 'inset 0 0 18px var(--accent-soft)',
+  },
+  // Playing AND selected: keep the accent playing background, and carry the
+  // selection on a distinct outline so the selected row never disappears
+  // into the playing row.
+  trackSelectedPlaying: {
+    backgroundColor: 'var(--accent-soft)',
+    backgroundImage:
+      'linear-gradient(90deg, var(--accent-soft), rgba(255,20,147,.02) 60%)',
+    borderLeftColor: 'var(--accent)',
+    boxShadow: 'inset 0 0 18px var(--accent-soft)',
+    outlineWidth: '2px',
+    outlineStyle: 'solid',
+    outlineColor: 'var(--info)',
+    outlineOffset: '-2px',
   },
   isDragging: {
     opacity: 0.5,
@@ -187,7 +228,7 @@ const trackStyles = stylex.create({
       width: '100%',
       content: '""',
       height: '2px',
-      backgroundColor: 'var(--main-color)',
+      backgroundColor: 'var(--accent)',
     },
   },
   isDraggedOverAbove: {
@@ -220,7 +261,7 @@ const cellStyles = stylex.create({
   },
   title: {
     display: 'block',
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
     fontWeight: 600,
     color: 'var(--text)',
     whiteSpace: 'nowrap',
@@ -228,10 +269,10 @@ const cellStyles = stylex.create({
     textOverflow: 'ellipsis',
   },
   titlePlaying: {
-    color: 'var(--pink-text)',
+    color: 'var(--accent-text)',
   },
   artistInTitle: {
-    color: 'var(--text-muted)',
+    color: 'var(--text-dim)',
     fontWeight: 500,
     fontSize: '0.9em',
   },
@@ -257,11 +298,14 @@ const cellStyles = stylex.create({
     width: '15px',
     height: '15px',
     borderRadius: '50%',
-    backgroundColor: 'var(--pink-soft)',
-    color: 'var(--deep-pink)',
+    backgroundColor: 'var(--accent-soft)',
+    color: 'var(--accent)',
     fontSize: '8px',
     borderWidth: '1px',
     borderStyle: 'solid',
+    // Deliberate exception: no canonical --accent-line token exists and the
+    // theme JSONs are owned elsewhere, so the accent hairline keeps its
+    // legacy --pink-line name until an --accent-line token lands.
     borderColor: 'var(--pink-line)',
   },
   duration: {

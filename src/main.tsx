@@ -71,10 +71,7 @@ export const app = (
     return;
   }
 
-  await Promise.allSettled([
-    logger.attachConsole(),
-    loadTranslation(window.__MUSEEKS_INITIAL_CONFIG.language),
-  ]);
+  await Promise.allSettled([logger.attachConsole(), loadTranslation()]);
 
   const wrap = document.getElementById('wrap');
 

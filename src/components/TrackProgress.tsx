@@ -37,6 +37,11 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
 
   const trackRef = useRef<HTMLDivElement>(null);
   const [seeking, setSeeking] = useState(false);
+  // Hover/drag glow: the fill line and playhead pick up `--glow-accent`
+  // while the pointer is over the track or scrubbing (the head itself is
+  // `pointer-events: none`, so the parent tracks hover).
+  const [hovering, setHovering] = useState(false);
+  const glowing = hovering || seeking;
   // Drag-local preview: the fill/playhead track the pointer at 60fps while
   // scrubbing, instead of waiting for the engine's ~4 Hz `timeupdate`.
   const [previewTime, setPreviewTime] = useState<number | null>(null);
@@ -63,6 +68,28 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
       player.setCurrentTime(clampSeconds(seconds, duration));
     },
     [duration],
+  );
+
+  // Keyboard seek: the same `player.setCurrentTime` path as pointer
+  // scrubbing, so arrows/Home/End move the real engine position.
+  const onTrackKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const step = 5;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        seekTo(shownTime - step);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        seekTo(shownTime + step);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        seekTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        seekTo(duration);
+      }
+    },
+    [duration, seekTo, shownTime],
   );
 
   const onTrackPointerDown = useCallback(
@@ -116,26 +143,34 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
 
       <div
         ref={trackRef}
+        role="slider"
+        tabIndex={0}
+        aria-label={t`Seek`}
+        aria-valuemin={0}
+        aria-valuemax={Math.round(duration)}
+        aria-valuenow={Math.round(shownTime)}
+        aria-valuetext={`${formatClock(shownTime)} of ${formatClock(duration)}`}
         onPointerDown={onTrackPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onPointerEnter={() => setHovering(true)}
+        onPointerLeave={() => setHovering(false)}
+        onKeyDown={onTrackKeyDown}
         {...stylex.props(styles.seekTrack)}
       >
         {peaks != null ? (
-          <>
-            <Waveform peaks={peaks} />
-            <div
-              {...stylex.props(styles.waveElapsed)}
-              style={{
-                width: `${(Math.min(shownTime, denom) / denom) * 100}%`,
-              }}
-            />
-          </>
+          <Waveform
+            peaks={peaks}
+            progress={Math.min(shownTime, denom) / denom}
+          />
         ) : (
           <div {...stylex.props(styles.gutter)}>
             <div
-              {...stylex.props(styles.seekElapsed)}
+              {...stylex.props(
+                styles.seekElapsed,
+                glowing && styles.seekElapsedGlow,
+              )}
               style={{
                 width: `${(Math.min(shownTime, denom) / denom) * 100}%`,
               }}
@@ -157,7 +192,7 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
         )}
 
         <div
-          {...stylex.props(styles.seekHead)}
+          {...stylex.props(styles.seekHead, glowing && styles.seekHeadGlow)}
           style={{ left: `${(Math.min(shownTime, denom) / denom) * 100}%` }}
         />
       </div>
@@ -170,11 +205,58 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Parse a CSS color string (`#rgb`, `#rrggbb`, `rgb()/rgba()`) into channels.
+ * Returns `null` when the format is not recognized; callers fall back to the
+ * raw token value so an unparsable theme never breaks the draw.
+ */
+function parseCssColor(raw: string): [number, number, number] | null {
+  const value = raw.trim().toLowerCase();
+  const hex = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (hex != null) {
+    let digits = hex[1];
+    if (digits.length === 3) {
+      digits =
+        digits[0] + digits[0] + digits[1] + digits[1] + digits[2] + digits[2];
+    }
+    return [
+      parseInt(digits.slice(0, 2), 16),
+      parseInt(digits.slice(2, 4), 16),
+      parseInt(digits.slice(4, 6), 16),
+    ];
+  }
+  const rgb = value.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/);
+  if (rgb != null) {
+    return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])];
+  }
+  return null;
+}
+
+/** Scale a color toward black by `factor` (0-1); result stays fully opaque. */
+function shadeColor(
+  rgb: [number, number, number] | null,
+  factor: number,
+): string | null {
+  if (rgb == null) return null;
+  const [r, g, b] = rgb.map((c) =>
+    Math.max(0, Math.min(255, Math.round(c * factor))),
+  );
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
  * The seek waveform: a canvas envelope mirrored around the centre line. It is
  * decorative (`aria-hidden`) and sits under the bar; all pointer interaction
  * stays on the parent `.seek-track`.
+ *
+ * Fully committed to the accent: played bars are the live `--accent` token
+ * at full saturation with a clearly visible glow halo, unplayed bars a deep
+ * shade derived from that same token (never a grey wash), so the contrast is
+ * strong in every theme. Both colours come from the themed DOM at draw time
+ * (canvas cannot resolve CSS vars itself), so no value is hardcoded. Each
+ * bar's height is the true min/max sample envelope for its pixel column, so
+ * the shape follows the actual audio like AIMP's waveform.
  */
-function Waveform({ peaks }: { peaks: Peaks }) {
+function Waveform({ peaks, progress }: { peaks: Peaks; progress: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -196,30 +278,57 @@ function Waveform({ peaks }: { peaks: Peaks }) {
       const mid = height / 2;
       const amplitude = mid * 0.92;
       const count = peaks.max.length;
-      // Canvas can't resolve CSS vars itself; read the themed token once.
-      ctx.fillStyle =
-        getComputedStyle(canvas).getPropertyValue('--text-faint').trim() ||
-        '#6b7280';
-      for (let x = 0; x < width; x += 1) {
+      const computed = getComputedStyle(canvas);
+      const accent =
+        computed.getPropertyValue('--accent').trim() || computed.color;
+      // Deep-pink sibling of the live accent for the unplayed portion:
+      // same hue family, roughly 40% brightness, fully opaque.
+      const deep = shadeColor(parseCssColor(accent), 0.4) ?? accent;
+
+      // 2px bars on a 3px pitch: saturated presence with separation, true
+      // per-column min/max envelope, 2px minimum height so quiet passages
+      // stay visible without flattening the shape.
+      for (let x = 0; x < width; x += 3) {
+        const barWidth = Math.min(2, width - x);
         const from = Math.floor((x * count) / width);
-        const to = Math.max(from + 1, Math.floor(((x + 1) * count) / width));
+        const to = Math.max(from + 1, Math.floor(((x + 3) * count) / width));
         let lo = 0;
         let hi = 0;
         for (let b = from; b < to && b < count; b += 1) {
           if (peaks.min[b] < lo) lo = peaks.min[b];
           if (peaks.max[b] > hi) hi = peaks.max[b];
         }
-        const top = mid - hi * amplitude;
-        const bottom = mid - lo * amplitude;
-        ctx.fillRect(x, top, 1, Math.max(1, bottom - top));
+        let top = mid - hi * amplitude;
+        let bottom = mid - lo * amplitude;
+        if (bottom - top < 2) {
+          const center = (top + bottom) / 2;
+          top = center - 1;
+          bottom = center + 1;
+        }
+        const barHeight = bottom - top;
+        if ((x + barWidth) / width <= progress) {
+          // Played: halo pass first (wide soft glow), then a crisp
+          // full-saturation core so the bar stays vivid inside its glow.
+          ctx.fillStyle = accent;
+          ctx.shadowColor = accent;
+          ctx.shadowBlur = 10;
+          ctx.fillRect(x, top, barWidth, barHeight);
+          ctx.shadowBlur = 0;
+          ctx.fillRect(x, top, barWidth, barHeight);
+        } else {
+          ctx.fillStyle = deep;
+          ctx.shadowBlur = 0;
+          ctx.fillRect(x, top, barWidth, barHeight);
+        }
       }
+      ctx.shadowBlur = 0;
     };
 
     draw();
     const observer = new ResizeObserver(draw);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [peaks]);
+  }, [peaks, progress]);
 
   return (
     <canvas ref={ref} aria-hidden="true" {...stylex.props(styles.waveCanvas)} />
@@ -289,7 +398,7 @@ function CompactProgress({ trackPlaying }: { trackPlaying: Track }) {
             {tooltipContent}
           </div>
         </Slider.Track>
-        <Slider.Thumb />
+        <Slider.Thumb {...stylex.props(styles.thumb)} />
       </Slider.Control>
     </Slider.Root>
   );
@@ -306,7 +415,7 @@ const styles = stylex.create({
     display: 'flex',
     justifyContent: 'space-between',
     fontFamily: 'var(--mono-font)',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     lineHeight: 1,
   },
@@ -337,7 +446,6 @@ const styles = stylex.create({
     borderStyle: 'solid',
     borderColor: 'var(--surface-inset)',
     borderRadius: '9999px',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.03)',
     overflow: 'visible',
   },
   waveCanvas: {
@@ -350,16 +458,6 @@ const styles = stylex.create({
     height: '100%',
     pointerEvents: 'none',
   },
-  waveElapsed: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255,20,147,.55)',
-    borderTopLeftRadius: '3px',
-    borderBottomLeftRadius: '3px',
-    pointerEvents: 'none',
-  },
   abRegion: {
     position: 'absolute',
     top: 'calc(50% - 4px)',
@@ -367,9 +465,9 @@ const styles = stylex.create({
     left: 0,
     width: 0,
     display: 'none',
-    backgroundColor: 'rgba(255,20,147,.2)',
+    backgroundColor: 'var(--accent-soft)',
     backgroundImage:
-      'repeating-linear-gradient(115deg, rgba(255,20,147,.45) 0 6px, rgba(255,20,147,.22) 6px 12px)',
+      'repeating-linear-gradient(115deg, var(--accent-soft) 0 6px, transparent 6px 12px)',
     borderLeftWidth: '2px',
     borderRightWidth: '2px',
     borderTopWidth: '1px',
@@ -378,28 +476,34 @@ const styles = stylex.create({
     borderRightStyle: 'solid',
     borderTopStyle: 'solid',
     borderBottomStyle: 'solid',
-    borderLeftColor: 'var(--deep-pink)',
-    borderRightColor: 'var(--deep-pink)',
-    borderTopColor: 'rgba(255,20,147,.55)',
-    borderBottomColor: 'rgba(255,20,147,.55)',
+    borderLeftColor: 'var(--accent)',
+    borderRightColor: 'var(--accent)',
+    borderTopColor: 'var(--accent)',
+    borderBottomColor: 'var(--accent)',
     borderRadius: '3px',
   },
   abTag: {
     position: 'absolute',
     top: '-16px',
-    left: '50%',
-    transform: 'translateX(-50%)',
+    // Docked to the region start instead of centred: centred collided with
+    // the time labels above at narrow widths (the gutter is overflow:visible).
+    // Hidden entirely once the viewport squeezes the column (~300px column).
+    left: 0,
+    display: {
+      default: 'block',
+      '@media (max-width: 560px)': 'none',
+    },
     fontSize: '8.5px',
     fontWeight: 800,
     lineHeight: 1,
     letterSpacing: '.09em',
     color: 'var(--on-accent-ink)',
-    backgroundColor: 'var(--deep-pink)',
+    backgroundColor: 'var(--accent)',
     paddingBlock: '3px',
     paddingInline: '7px',
     borderRadius: '9999px',
     whiteSpace: 'nowrap',
-    boxShadow: '0 2px 8px rgba(255,20,147,.5)',
+    boxShadow: 'var(--shadow-elevated)',
     pointerEvents: 'none',
   },
   seekElapsed: {
@@ -410,9 +514,12 @@ const styles = stylex.create({
     width: 0,
     backgroundImage:
       'linear-gradient(180deg, var(--accent) 0%, var(--accent-hover) 100%)',
-    borderTopLeftRadius: '3px',
-    borderBottomLeftRadius: '3px',
+    borderTopLeftRadius: 'var(--radius)',
+    borderBottomLeftRadius: 'var(--radius)',
     pointerEvents: 'none',
+  },
+  seekElapsedGlow: {
+    boxShadow: 'var(--glow-accent)',
   },
   seekHead: {
     position: 'absolute',
@@ -422,12 +529,20 @@ const styles = stylex.create({
     height: '12px',
     marginLeft: '-6px',
     transform: 'translateY(-50%)',
-    borderRadius: '50%',
-    backgroundColor: '#fff',
-    boxShadow: '0 1px 4px rgba(0,0,0,.6), 0 0 0 2px var(--accent)',
+    // Control-radius squircle, same family as the 6px transport buttons.
+    borderRadius: 'var(--radius)',
+    boxSizing: 'border-box',
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: 'var(--accent)',
+    backgroundColor: 'var(--text-bright)',
+    boxShadow: 'var(--shadow-elevated)',
     pointerEvents: 'none',
     transitionProperty: 'transform',
     transitionDuration: '.08s',
+  },
+  seekHeadGlow: {
+    boxShadow: 'var(--shadow-elevated), var(--glow-accent)',
   },
 
   // --- Compact seek -------------------------------------------------------
@@ -439,8 +554,14 @@ const styles = stylex.create({
     touchAction: 'none',
     height: '7px',
     transform: 'translateY(4px)',
+    borderRadius: 'var(--radius)',
     outline: {
       ':has(:focus-visible)': '2px solid var(--focus-color)',
+    },
+    boxShadow: {
+      default: 'none',
+      ':hover': 'var(--glow-hover)',
+      ':has(:focus-visible)': 'var(--glow-focus)',
     },
   },
   trackProgress: {
@@ -448,24 +569,47 @@ const styles = stylex.create({
     position: 'relative',
     width: '100%',
     height: '100%',
-    backgroundColor: 'var(--header-bg)',
+    backgroundColor: 'var(--surface)',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: 'var(--border-color)',
+    borderColor: 'var(--border)',
+    borderRadius: 'var(--radius)',
+    overflow: 'hidden',
   },
   trackRange: {
     position: 'absolute',
     height: '100%',
-    backgroundColor: 'var(--main-color)',
-    boxShadow: 'inset 0 0 0 1px rgba(0 0 0 / 0.2)',
+    backgroundImage:
+      'linear-gradient(180deg, var(--accent) 0%, var(--accent-hover) 100%)',
+    boxShadow: '0 0 8px var(--accent-soft)',
+  },
+  thumb: {
+    position: 'absolute',
+    width: '12px',
+    height: '12px',
+    boxSizing: 'border-box',
+    borderRadius: 'var(--radius)',
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: 'var(--accent)',
+    backgroundColor: 'var(--text-bright)',
+    boxShadow: {
+      default: 'var(--shadow-elevated)',
+      ':hover': 'var(--glow-accent)',
+      ':focus-visible': 'var(--glow-focus)',
+    },
+    outline: {
+      ':focus-visible': 'none',
+    },
   },
   progressTooltip: {
     position: 'absolute',
-    backgroundColor: 'var(--background)',
+    backgroundColor: 'var(--bg)',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: 'var(--border-color)',
-    fontSize: '10px',
+    borderColor: 'var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    fontSize: 'var(--text-xs)',
     paddingTop: '2px',
     paddingBottom: '2px',
     paddingLeft: '5px',
@@ -484,7 +628,7 @@ const styles = stylex.create({
       borderBottomWidth: 0,
       top: '16px',
       left: '5px',
-      borderTopColor: 'var(--border-color)',
+      borderTopColor: 'var(--border)',
       borderWidth: '6px',
     },
     '::after': {
@@ -497,7 +641,7 @@ const styles = stylex.create({
       borderBottomWidth: 0,
       top: '15px',
       left: '6px',
-      borderTopColor: 'var(--background)',
+      borderTopColor: 'var(--bg)',
       borderWidth: '5px',
     },
   },

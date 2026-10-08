@@ -2,12 +2,10 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useLoaderData } from '@tanstack/react-router';
 
 import * as Setting from '../components/Setting';
-import DefinitionList from '../elements/DefinitionList';
 import ExternalButton from '../elements/ExternalButton';
 import ExternalLink from '../elements/ExternalLink';
 import Flexbox from '../elements/Flexbox';
 import Heart from '../elements/Heart';
-import { NON_DEFAULT_LANGUAGES } from '../translations/languages';
 
 export const Route = createFileRoute('/settings/about')({
   component: ViewSettingsAbout,
@@ -59,18 +57,6 @@ function ViewSettingsAbout() {
           </Trans>
           .
         </Setting.Description>
-        <Setting.Description>
-          <Trans>Translations:</Trans>
-        </Setting.Description>
-        <DefinitionList>
-          {NON_DEFAULT_LANGUAGES.map((language) => (
-            <DefinitionList.Item
-              key={language.code}
-              label={`${language.label}:`}
-              content={language.contributors.join(', ')}
-            />
-          ))}
-        </DefinitionList>
       </Setting.Section>
       <Setting.Section>
         <Setting.Title>

@@ -76,9 +76,14 @@ export function Select(
   return (
     <div>
       <Label htmlFor={id}>{label}</Label>
-      <select id={id} {...otherProps} {...stylex.props(styles.settingSelect)}>
-        {props.children}
-      </select>
+      <div {...stylex.props(styles.selectWrapper)}>
+        <select id={id} {...otherProps} {...stylex.props(styles.settingSelect)}>
+          {props.children}
+        </select>
+        <span aria-hidden="true" {...stylex.props(styles.selectChevron)}>
+          ▾
+        </span>
+      </div>
       {description != null && <Description>{description}</Description>}
     </div>
   );
@@ -87,18 +92,24 @@ export function Select(
 export function ColorSelector(
   props: React.InputHTMLAttributes<HTMLInputElement> & InputProps,
 ) {
-  const { label, description, ...otherProps } = props;
+  const { label, description, value, ...otherProps } = props;
   const id = useId();
 
   return (
     <div>
       <Label htmlFor={id}>{label}</Label>
-      <input
-        id={id}
-        type="color"
-        {...otherProps}
-        {...stylex.props(styles.settingInput, styles.settingColorInput)}
-      />
+      <div {...stylex.props(styles.colorRow)}>
+        <input
+          id={id}
+          type="color"
+          value={value}
+          {...otherProps}
+          {...stylex.props(styles.settingInput, styles.settingColorInput)}
+        />
+        <span {...stylex.props(styles.colorValue)}>
+          {String(value ?? '').toUpperCase()}
+        </span>
+      </div>
       {description != null && <Description>{description}</Description>}
     </div>
   );
@@ -106,26 +117,34 @@ export function ColorSelector(
 
 const styles = stylex.create({
   settingSection: {
-    marginBottom: '16px',
+    marginBottom: 'var(--space-5)',
     display: 'flex',
     flexDirection: 'column',
-    rowGap: '4px',
-    columnGap: '4px',
+    rowGap: 'var(--space-2)',
+    columnGap: 'var(--space-2)',
+    minWidth: 0,
+    maxWidth: '100%',
   },
   settingTitle: {
     display: 'block',
     margin: 0,
+    fontSize: 'var(--text-md)',
+    fontWeight: 'var(--weight-semibold)',
+    color: 'var(--text-bright)',
   },
   settingDescription: {
-    fontWeight: 'normal',
-    marginTop: '5px',
-    marginBottom: '4px',
-    color: 'var(--text-muted)',
+    fontWeight: 'var(--weight-normal)',
+    fontSize: 'var(--text-sm)',
+    marginTop: 'var(--space-1)',
+    marginBottom: 'var(--space-1)',
+    color: 'var(--text-dim)',
   },
   settingLabel: {
     display: 'inline-block',
-    marginBottom: '8px',
-    fontWeight: 'bold',
+    marginBottom: 'var(--space-2)',
+    fontWeight: 'var(--weight-medium)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--text)',
   },
   settingLabelNoMargin: {
     marginBottom: 0,
@@ -133,40 +152,63 @@ const styles = stylex.create({
   settingSelect: {
     appearance: 'none',
     display: 'block',
-    backgroundColor: 'var(--input-bg)',
-    color: 'var(--input-color)',
+    backgroundColor: 'var(--surface-inset)',
+    color: 'var(--text)',
     borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: {
-      default: 'var(--border-color-softer)',
-      ':focus': 'var(--main-color)',
+      default: 'var(--control-border)',
+      ':focus-visible': 'var(--accent)',
+      ':focus': 'var(--accent)',
     },
-    borderRadius: 'var(--border-radius)',
-    padding: '8px',
+    borderRadius: 'var(--radius)',
+    padding: 'var(--space-2)',
+    paddingRight: 'var(--space-5)',
+    minHeight: 'var(--row)',
     width: '100%',
-    fontSize: '1rem',
+    fontSize: 'var(--text-md)',
+    boxSizing: 'border-box',
     opacity: {
       ':disabled': 0.6,
     },
     cursor: {
+      default: 'pointer',
       ':disabled': 'not-allowed',
     },
+  },
+  selectWrapper: {
+    position: 'relative',
+    display: 'block',
+    width: '100%',
+  },
+  selectChevron: {
+    position: 'absolute',
+    right: 'var(--space-3)',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    pointerEvents: 'none',
+    color: 'var(--text-dim)',
+    fontSize: 'var(--text-md)',
+    lineHeight: 1,
   },
   settingInput: {
     appearance: 'none',
     display: 'block',
-    backgroundColor: 'var(--input-bg)',
-    color: 'var(--input-color)',
+    backgroundColor: 'var(--surface-inset)',
+    color: 'var(--text)',
     borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: {
-      default: 'var(--border-color-softer)',
-      ':focus': 'var(--main-color)',
+      default: 'var(--control-border)',
+      ':focus-visible': 'var(--accent)',
+      ':focus': 'var(--accent)',
     },
-    borderRadius: 'var(--border-radius)',
-    padding: '8px',
+    borderRadius: 'var(--radius)',
+    padding: 'var(--space-2)',
+    minHeight: 'var(--row)',
     width: '100%',
-    fontSize: '1rem',
+    fontSize: 'var(--text-md)',
+    boxSizing: 'border-box',
     opacity: {
       ':disabled': 0.6,
     },
@@ -176,6 +218,19 @@ const styles = stylex.create({
   },
   settingColorInput: {
     padding: 0,
-    width: '80px',
+    width: 'var(--space-6)',
+    minHeight: 'var(--row)',
+    flexShrink: 0,
+    cursor: 'pointer',
+  },
+  colorRow: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: 'var(--space-2)',
+  },
+  colorValue: {
+    fontFamily: 'var(--mono-font)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--text-dim)',
   },
 });

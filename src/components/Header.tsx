@@ -3,7 +3,6 @@ import * as stylex from '@stylexjs/stylex';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
-import { version } from '../../package.json';
 import SettingsAPI from '../api/SettingsAPI';
 import logoUrl from '../assets/logos/slowburn-48.png';
 import useInvalidate from '../hooks/useInvalidate';
@@ -39,20 +38,17 @@ export default function Header() {
     >
       {!folded && (
         <>
-          <div {...stylex.props(styles.logoSlot)} data-tauri-drag-region>
-            <img
-              src={logoUrl}
-              alt={t`Slowburn logo`}
-              width={22}
-              height={22}
-              draggable={false}
-              {...stylex.props(styles.logo)}
-            />
-          </div>
+          <img
+            src={logoUrl}
+            alt={t`Slowburn logo`}
+            width={22}
+            height={22}
+            draggable={false}
+            {...stylex.props(styles.logo)}
+          />
 
           <div {...stylex.props(styles.brand)} data-tauri-drag-region>
             {t`Slowburn`}
-            <small {...stylex.props(styles.brandVersion)}>v{version}</small>
           </div>
 
           <span {...stylex.props(styles.sep)} aria-hidden="true" />
@@ -121,11 +117,10 @@ const styles = stylex.create({
     flexBasis: 'auto',
     display: 'flex',
     alignItems: 'center',
-    columnGap: '10px',
+    columnGap: 'var(--space-2)',
     paddingBlock: 0,
     paddingInline: '10px',
-    backgroundColor: 'var(--header-bg)',
-    backgroundImage: 'linear-gradient(rgba(255,255,255,.04), rgba(0,0,0,.05))',
+    backgroundColor: 'var(--surface)',
     borderBottomWidth: '1px',
     borderBottomStyle: 'solid',
     borderBottomColor: 'var(--border)',
@@ -136,38 +131,21 @@ const styles = stylex.create({
     borderTopStyle: 'solid',
     borderTopColor: 'var(--border)',
   },
-  logoSlot: {
-    width: '26px',
-    height: '26px',
-    flexShrink: 0,
-    borderWidth: '1px',
-    borderStyle: 'dashed',
-    borderColor: 'var(--control-border)',
-    borderRadius: 'var(--radius-sm)',
-    display: 'grid',
-    placeItems: 'center',
-    backgroundColor: 'var(--accent-soft)',
-  },
   logo: {
-    width: '20px',
-    height: '20px',
+    width: '22px',
+    height: '22px',
     display: 'block',
+    flexShrink: 0,
   },
   brand: {
     display: 'flex',
     alignItems: 'baseline',
     columnGap: '6px',
     flexShrink: 0,
-    fontSize: '13px',
+    fontSize: 'var(--text-md)',
     fontWeight: 700,
     letterSpacing: '.02em',
     color: 'var(--text-bright)',
-  },
-  brandVersion: {
-    fontSize: '9px',
-    fontWeight: 600,
-    letterSpacing: '.08em',
-    color: 'var(--text-faint)',
   },
   sep: {
     width: '1px',
@@ -178,7 +156,7 @@ const styles = stylex.create({
   nav: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
+    columnGap: 'var(--space-2)',
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 'auto',
@@ -189,14 +167,14 @@ const styles = stylex.create({
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: '0%',
-    minWidth: '8px',
+    minWidth: 'var(--space-2)',
     alignSelf: 'stretch',
   },
   iconBtn: {
-    width: '26px',
-    height: '26px',
+    width: '28px',
+    height: '28px',
     flexShrink: 0,
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: 'var(--radius)',
     display: 'grid',
     placeItems: 'center',
     color: {
@@ -209,20 +187,20 @@ const styles = stylex.create({
   },
   // S8 mini-mode toggle: a compact text affordance beside the settings gear.
   modeBtn: {
-    height: '22px',
+    height: '28px',
     flexShrink: 0,
-    paddingInline: '8px',
-    borderRadius: 'var(--radius-sm)',
+    paddingInline: 'var(--space-2)',
+    borderRadius: 'var(--radius)',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: 'var(--border-color-softer)',
+    borderColor: 'var(--border-soft)',
     backgroundColor: 'transparent',
     color: {
       default: 'var(--text-faint)',
       ':hover': 'var(--text-bright)',
     },
     fontFamily: 'var(--mono-font)',
-    fontSize: '10px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 700,
     letterSpacing: '.06em',
     cursor: 'pointer',

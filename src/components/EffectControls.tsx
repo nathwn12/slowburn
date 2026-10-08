@@ -193,6 +193,7 @@ function BurnControl(props: BurnControlProps) {
           </Slider.Track>
           <Slider.Thumb
             aria-label={props.sliderLabel}
+            getAriaValueText={() => props.readout}
             data-museeks-action
             {...stylex.props(
               styles.sliderThumb,
@@ -201,6 +202,12 @@ function BurnControl(props: BurnControlProps) {
           />
         </Slider.Control>
       </Slider.Root>
+
+      {/* Screen-reader mirror of the visual readout (which stays aria-hidden):
+          a visually-hidden live text so assistive tech gets the value. */}
+      <span role="status" {...stylex.props(styles.srValue)}>
+        {props.readout}
+      </span>
 
       <button
         type="button"
@@ -222,8 +229,8 @@ const styles = stylex.create({
     borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: 'var(--border-soft)',
-    borderRadius: '8px',
-    paddingTop: '8px',
+    borderRadius: 'var(--radius-lg)',
+    paddingTop: 'var(--space-2)',
     paddingBottom: '9px',
     paddingInline: '11px',
     display: 'grid',
@@ -231,12 +238,13 @@ const styles = stylex.create({
       default: '1fr 1px 1fr',
       '@media (max-width: 900px)': '1fr',
     },
-    columnGap: '12px',
-    rowGap: '12px',
+    columnGap: 'var(--space-3)',
+    rowGap: 'var(--space-3)',
     alignItems: 'center',
+    boxShadow: 'var(--shadow-elevated)',
   },
   burnSep: {
-    backgroundColor: 'rgba(255,255,255,.07)',
+    backgroundColor: 'var(--border-soft)',
     alignSelf: 'stretch',
     display: {
       default: 'block',
@@ -271,8 +279,8 @@ const styles = stylex.create({
     transition: 'background-color .15s ease, box-shadow .15s ease',
   },
   burnDotOn: {
-    backgroundColor: 'var(--deep-pink)',
-    boxShadow: '0 0 7px var(--deep-pink)',
+    backgroundColor: 'var(--accent)',
+    boxShadow: '0 0 7px var(--accent)',
   },
   burnName: {
     fontSize: '9.5px',
@@ -317,7 +325,7 @@ const styles = stylex.create({
   },
   readout: {
     fontFamily: 'var(--mono-font)',
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
     fontWeight: 700,
     lineHeight: 1,
     letterSpacing: '-.02em',
@@ -328,7 +336,19 @@ const styles = stylex.create({
     fontVariantNumeric: 'tabular-nums',
   },
   readoutOn: {
-    color: 'var(--pink-text-soft)',
+    color: 'var(--accent-text)',
+  },
+  // Visually-hidden mirror of the readout for assistive tech: stays in the
+  // accessibility tree while painting nothing (same technique as the
+  // narrow-layout crumb words in Navigation.tsx).
+  srValue: {
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    margin: '-1px',
+    overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
   },
   burnReset: {
     width: '18px',
@@ -364,7 +384,7 @@ const styles = stylex.create({
     alignItems: 'center',
     userSelect: 'none',
     touchAction: 'none',
-    height: '16px',
+    height: 'var(--space-4)',
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: '0%',
@@ -382,7 +402,7 @@ const styles = stylex.create({
   sliderTrack: {
     position: 'relative',
     flexGrow: 1,
-    height: '4px',
+    height: 'var(--space-1)',
     borderRadius: '9999px',
     backgroundColor: 'var(--track)',
   },
@@ -392,7 +412,8 @@ const styles = stylex.create({
     borderRadius: '9999px',
   },
   sliderFillOn: {
-    backgroundColor: 'var(--deep-pink)',
+    backgroundColor: 'var(--accent)',
+    boxShadow: 'var(--glow-hover)',
   },
   sliderFillOff: {
     backgroundColor: 'var(--text-faint)',
@@ -402,17 +423,18 @@ const styles = stylex.create({
     width: '12px',
     height: '12px',
     borderRadius: '50%',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--text-bright)',
     borderWidth: '2px',
     borderStyle: 'solid',
     boxShadow: '0 1px 3px rgba(0,0,0,.6)',
     outline: {
-      ':has(:focus-visible)': '2px solid var(--focus)',
+      ':focus-visible': '2px solid var(--focus)',
       ':active': '2px solid var(--focus)',
     },
   },
   sliderThumbOn: {
-    borderColor: 'var(--deep-pink)',
+    borderColor: 'var(--accent)',
+    boxShadow: 'var(--glow-accent), 0 1px 3px rgba(0,0,0,.6)',
   },
   sliderThumbOff: {
     borderColor: 'var(--text-dim)',

@@ -66,7 +66,7 @@ const styles = stylex.create({
     pointerEvents: 'all',
     backgroundColor: {
       default: 'transparent',
-      ':hover': 'var(--text-interactive-bg)',
+      ':hover': 'var(--surface-hover)',
     },
   },
   inheritColor: {

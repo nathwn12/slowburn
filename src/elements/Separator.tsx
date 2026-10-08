@@ -9,7 +9,7 @@ const styles = stylex.create({
     width: '100%',
     borderStyle: 'none',
     borderWidth: '0',
-    backgroundColor: 'var(--border-color)',
+    backgroundColor: 'var(--border)',
     height: '1px',
     margin: '0',
   },

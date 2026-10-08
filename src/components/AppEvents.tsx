@@ -2,10 +2,24 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useEffect } from 'react';
 
 import SettingsAPI from '../api/SettingsAPI';
+import ConfigBridge from '../lib/bridge-config';
+import { SYSTEM_THEME_ID } from '../lib/themes';
 import { isDev, preventNativeDefault } from '../lib/utils-events';
 
+/**
+ * Runtime OS theme change: only repaint when the stored choice is `__system`.
+ * A picked flavour wins and must survive an OS light/dark flip mid-session.
+ */
+export async function handleSystemThemeChange(osTheme: string): Promise<void> {
+  const stored = await ConfigBridge.get('theme').catch(() => SYSTEM_THEME_ID);
+
+  if (stored !== SYSTEM_THEME_ID) return;
+
+  SettingsAPI.applyThemeToUI(osTheme);
+}
+
 function onSystemThemeChange({ payload }: { payload: string }) {
-  SettingsAPI.applyThemeToUI(payload);
+  void handleSystemThemeChange(payload);
 }
 
 /**

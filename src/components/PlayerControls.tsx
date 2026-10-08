@@ -83,9 +83,14 @@ export default function PlayerControls() {
           tabIndex={0}
           {...stylex.props(styles.tstopAfter, stopAfterCurrent && styles.on)}
         >
-          {stopAfterCurrent
-            ? t`Stop after current :white_check_mark:`
-            : t`Stop after current`}
+          {stopAfterCurrent ? (
+            <>
+              <span>{t`Stop after current`}</span>
+              <span aria-hidden="true" {...stylex.props(styles.tcheck)} />
+            </>
+          ) : (
+            t`Stop after current`
+          )}
         </div>
       </div>
 
@@ -135,7 +140,7 @@ const styles = stylex.create({
     width: '28px',
     height: '28px',
     flexShrink: 0,
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: 'var(--radius)',
     display: 'grid',
     placeItems: 'center',
     color: 'var(--text-dim)',
@@ -154,7 +159,8 @@ const styles = stylex.create({
   },
   modeOn: {
     color: 'var(--accent)',
-    backgroundColor: 'var(--pink-soft)',
+    backgroundColor: 'var(--accent-soft)',
+    boxShadow: 'var(--glow-hover)',
   },
   tplay: {
     width: '38px',
@@ -163,11 +169,14 @@ const styles = stylex.create({
     borderRadius: '9999px',
     display: 'grid',
     placeItems: 'center',
-    color: '#fff',
+    color: 'var(--on-accent-ink)',
     borderStyle: 'none',
     backgroundImage:
       'linear-gradient(180deg, var(--accent) 0%, var(--accent-hover) 100%)',
-    boxShadow: '0 3px 10px rgba(255, 20, 147, .35)',
+    boxShadow: {
+      default: '0 3px 10px var(--accent-soft)',
+      ':hover': 'var(--glow-accent)',
+    },
     transition: 'filter .12s ease, transform .08s ease',
     filter: {
       ':hover': 'brightness(1.08)',
@@ -185,16 +194,16 @@ const styles = stylex.create({
     marginInline: '3px',
   },
   tstop: {
-    fontSize: '11px',
+    fontSize: 'var(--text-xs)',
     lineHeight: 1,
   },
   tstopAfter: {
     display: 'inline-flex',
     alignItems: 'center',
     height: '22px',
-    paddingInline: '8px',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '10px',
+    paddingInline: 'var(--space-2)',
+    borderRadius: 'var(--radius)',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     whiteSpace: 'nowrap',
     cursor: 'pointer',
@@ -206,6 +215,21 @@ const styles = stylex.create({
   },
   on: {
     color: 'var(--accent)',
-    backgroundColor: 'var(--pink-soft)',
+    backgroundColor: 'var(--accent-soft)',
+  },
+  tcheck: {
+    // Check glyph drawn with borders (no icon or text glyph needed):
+    // an L of accent borders rotated 45deg reads as a check mark.
+    width: '6px',
+    height: '10px',
+    flexShrink: 0,
+    marginLeft: '6px',
+    borderRightWidth: '2px',
+    borderRightStyle: 'solid',
+    borderRightColor: 'var(--accent)',
+    borderBottomWidth: '2px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'var(--accent)',
+    transform: 'rotate(45deg) translateY(-1px)',
   },
 });

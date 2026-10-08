@@ -9,6 +9,12 @@ type LibraryState = {
     current: number;
     total: number;
   };
+  /**
+   * Files the last scan could not read (`track_failures`). Recorded for
+   * every scan, silent or not, so Settings -> Library can surface it after
+   * the automatic startup scan stays quiet.
+   */
+  lastScanFailures: number;
   tracksStatus: TrackListStatusInfo | null;
 };
 
@@ -19,6 +25,7 @@ const useLibraryStore = create<LibraryState>()(() => ({
     current: 0,
     total: 0,
   },
+  lastScanFailures: 0,
   tracksStatus: null,
 }));
 

@@ -2,6 +2,7 @@ import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 
 import Link from '../elements/Link';
+import MarqueeLine from '../elements/MarqueeLine';
 import type { Repeat, Track } from '../generated/typings';
 import useEffectsConfig from '../hooks/useEffectsConfig';
 import useFormattedDuration from '../hooks/useFormattedDuration';
@@ -60,24 +61,36 @@ export default function PlayingBarInfo(props: Props) {
           : `track ${trackPlaying.track_no}`,
       );
     }
+    const artists = trackPlaying.artists.join(', ');
+    // The album line's tooltip must carry the whole line (album + year/track
+    // meta), not just the album tag, or the meta is undiscoverable.
+    const albumLine =
+      albumMeta.length > 0
+        ? `${trackPlaying.album} . ${albumMeta.join(' . ')}`
+        : trackPlaying.album;
 
     return (
-      <div {...stylex.props(styles.npInfo)}>
-        <div {...stylex.props(styles.npTitle)} title={trackPlaying.title}>
-          {trackPlaying.title}
-        </div>
+      <div {...stylex.props(styles.npInfo)} data-testid="np-header-block">
+        <MarqueeLine
+          text={trackPlaying.title}
+          xstyle={styles.npTitle}
+          testId="np-title"
+        />
+        <MarqueeLine
+          text={artists}
+          xstyle={styles.npArtist}
+          testId="np-artist"
+        />
         <div
-          {...stylex.props(styles.npArtist)}
-          title={trackPlaying.artists.join(', ')}
+          {...stylex.props(styles.npAlbum)}
+          title={albumLine}
+          data-testid="np-album"
         >
-          {trackPlaying.artists.join(', ')}
-        </div>
-        <div {...stylex.props(styles.npAlbum)} title={trackPlaying.album}>
           {trackPlaying.album}
           {albumMeta.length > 0 && (
             <span {...stylex.props(styles.npYear)}>
-              {' · '}
-              {albumMeta.join(' · ')}
+              {' . '}
+              {albumMeta.join(' . ')}
             </span>
           )}
         </div>
@@ -86,19 +99,34 @@ export default function PlayingBarInfo(props: Props) {
           {...stylex.props(styles.tech)}
           aria-label={t`Technical format information`}
         >
-          <span {...stylex.props(styles.techCell, lossless && styles.lossless)}>
+          <span
+            {...stylex.props(styles.techCell, lossless && styles.lossless)}
+            title={format}
+          >
             {format}
           </span>
-          <span {...stylex.props(styles.techCell)}>
+          <span
+            {...stylex.props(styles.techCell)}
+            title={formatSampleRate(trackPlaying.sample_rate)}
+          >
             {formatSampleRate(trackPlaying.sample_rate)}
           </span>
-          <span {...stylex.props(styles.techCell)}>
+          <span
+            {...stylex.props(styles.techCell)}
+            title={formatBitrate(trackPlaying.bitrate)}
+          >
             {formatBitrate(trackPlaying.bitrate)}
           </span>
-          <span {...stylex.props(styles.techCell)}>
+          <span
+            {...stylex.props(styles.techCell)}
+            title={formatBitDepth(trackPlaying.bit_depth)}
+          >
             {formatBitDepth(trackPlaying.bit_depth)}
           </span>
-          <span {...stylex.props(styles.techCell)}>
+          <span
+            {...stylex.props(styles.techCell)}
+            title={formatChannels(trackPlaying.channels)}
+          >
             {formatChannels(trackPlaying.channels)}
           </span>
         </div>
@@ -196,6 +224,10 @@ const styles = stylex.create({
   npTitle: {
     fontSize: '17px',
     fontWeight: 700,
+    // Explicit line-heights across the header stack: each line is one
+    // no-wrap row, so the block height is reserved and identical for a short
+    // title and a very long one. Nothing below this block may move when the
+    // track changes.
     lineHeight: 1.2,
     color: 'var(--text-bright)',
     whiteSpace: 'nowrap',
@@ -205,6 +237,7 @@ const styles = stylex.create({
   npArtist: {
     fontSize: '13px',
     fontWeight: 600,
+    lineHeight: 1.3,
     color: 'var(--text-dim)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -212,6 +245,7 @@ const styles = stylex.create({
   },
   npAlbum: {
     fontSize: '11px',
+    lineHeight: 1.4,
     color: 'var(--text-faint)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -259,7 +293,7 @@ const styles = stylex.create({
       ':first-child': 0,
     },
     borderLeftStyle: 'solid',
-    borderLeftColor: 'rgba(255,255,255,.07)',
+    borderLeftColor: 'var(--border-soft)',
   },
   npChips: {
     display: 'flex',
@@ -292,9 +326,13 @@ const styles = stylex.create({
     backgroundColor: 'var(--text-faint)',
   },
   chipLive: {
-    color: 'var(--pink-text)',
-    backgroundColor: 'var(--pink-soft)',
+    color: 'var(--accent-text)',
+    backgroundColor: 'var(--accent-soft)',
+    // Deliberate exception: no canonical --accent-line token exists and the
+    // theme JSONs are owned elsewhere, so the accent hairline keeps its
+    // legacy --pink-line name until an --accent-line token lands.
     borderColor: 'var(--pink-line)',
+    boxShadow: 'var(--glow-hover)',
   },
 
   // --- Compact info (header mini-bar, unchanged) --------------------------

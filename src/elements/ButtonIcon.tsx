@@ -28,6 +28,9 @@ export default function ButtonIcon(props: Props) {
       <Icon
         name={icon}
         size={iconSize}
+        // Deliberate exception: --main-color is the RUNTIME user-picked /
+        // art-tint accent written by SettingsAPI, not the static brand
+        // token, so it must keep tracking the live accent here.
         color={isActive ? 'var(--main-color)' : undefined}
         {...stylex.props(styles.icon)}
       />
@@ -40,10 +43,21 @@ const styles = stylex.create({
     backgroundColor: 'transparent',
     borderStyle: 'none',
     borderWidth: '0',
-    color: 'var(--text)',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--text-dim)',
     textAlign: 'center',
-    padding: '0',
+    padding: 'var(--space-1)',
+    // Icon-only buttons must keep a real hit target even for the smallest
+    // glyph: 28px floor (32px `--row-compact` where callers add padding).
+    minWidth: '28px',
+    minHeight: '28px',
+    display: 'inline-grid',
+    placeItems: 'center',
     lineHeight: 1,
+    cursor: 'pointer',
+    opacity: {
+      ':disabled': 0.5,
+    },
   },
   icon: {
     verticalAlign: 'middle',

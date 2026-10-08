@@ -48,11 +48,11 @@ const styles = stylex.create({
     borderStyle: 'solid',
     borderWidth: '1px',
     borderLeftWidth: '5px',
-    backgroundColor: 'var(--toasts-bg)',
-    borderTopColor: 'var(--border-color)',
-    borderRightColor: 'var(--border-color)',
-    borderBottomColor: 'var(--border-color)',
-    borderRadius: 'var(--border-radius)',
+    backgroundColor: 'var(--bg)',
+    borderTopColor: 'var(--border)',
+    borderRightColor: 'var(--border)',
+    borderBottomColor: 'var(--border)',
+    borderRadius: 'var(--radius)',
     color: 'var(--text)',
     padding: '1rem',
   },
@@ -60,16 +60,16 @@ const styles = stylex.create({
 
 const typeVariantsStyles = stylex.create({
   success: {
-    borderLeftColor: 'var(--success-color)',
+    borderLeftColor: 'var(--success)',
   },
   info: {
-    borderLeftColor: 'var(--info-color)',
+    borderLeftColor: 'var(--info)',
   },
   warning: {
-    borderLeftColor: 'var(--warning-color)',
+    borderLeftColor: 'var(--warn)',
   },
   danger: {
-    borderLeftColor: 'var(--danger-color)',
+    borderLeftColor: 'var(--danger)',
   },
 });
 

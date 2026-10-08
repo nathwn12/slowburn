@@ -5,9 +5,8 @@ import type { Config } from '../generated/typings';
 import ConfigBridge from '../lib/bridge-config';
 import SettingsBridge from '../lib/bridge-settings';
 import { getCover, sampleCoverAccent } from '../lib/cover';
-import { loadTranslation } from '../lib/i18n';
 import player from '../lib/player';
-import { getTheme } from '../lib/themes';
+import { getTheme, resolveBootThemeId, SYSTEM_THEME_ID } from '../lib/themes';
 import { logAndNotifyError } from '../lib/utils';
 import LibraryAPI from './LibraryAPI';
 
@@ -34,14 +33,15 @@ async function init(then: () => void): Promise<void> {
   did_init = true;
 
   // Blocking (the window should not be shown until it's done)
-  const [theme, color] = await Promise.all([
+  const [storedTheme, osTheme, color] = await Promise.all([
+    ConfigBridge.get('theme').catch(() => SYSTEM_THEME_ID),
     getCurrentWindow()
       .theme()
       .then((maybeTheme) => maybeTheme ?? 'light'),
     ConfigBridge.get('ui_accent_color').then((c) => c ?? DEFAULT_MAIN_COLOR),
   ]);
 
-  applyThemeToUI(theme);
+  await applyBootTheme(storedTheme, osTheme);
   applyUIMainColorToUI(color);
 
   // Keep the art-tinted accent in sync when the track changes
@@ -70,16 +70,11 @@ async function init(then: () => void): Promise<void> {
   then();
 }
 
-const setLanguage = async (language: Config['language']): Promise<void> => {
-  await loadTranslation(language);
-  await ConfigBridge.set('language', language);
-};
-
 const setTheme = async (themeID: string): Promise<void> => {
   await ConfigBridge.set('theme', themeID);
 
   switch (themeID) {
-    case '__system': {
+    case SYSTEM_THEME_ID: {
       await getCurrentWindow().setTheme(null);
       break;
     }
@@ -101,7 +96,7 @@ const setTheme = async (themeID: string): Promise<void> => {
 
   const theme = (await getCurrentWindow().theme()) ?? 'light';
 
-  if (themeID === '__system') {
+  if (themeID === SYSTEM_THEME_ID) {
     applyThemeToUI(theme);
   } else {
     // A picked flavor paints its own variables; the window theme above only
@@ -109,6 +104,26 @@ const setTheme = async (themeID: string): Promise<void> => {
     applyThemeToUI(themeID);
   }
 };
+
+/**
+ * Paint the persisted theme on boot: a stored flavor round-trips verbatim,
+ * `__system` resolves to the OS theme, and an unknown id falls back safely
+ * without writing anything back (the stored value is left intact).
+ */
+export async function applyBootTheme(
+  storedThemeID: string,
+  osTheme: string,
+): Promise<void> {
+  if (storedThemeID === SYSTEM_THEME_ID) {
+    await getCurrentWindow().setTheme(null);
+    applyThemeToUI(osTheme);
+    return;
+  }
+
+  const resolved = resolveBootThemeId(storedThemeID, osTheme);
+  await getCurrentWindow().setTheme(getTheme(resolved).themeSource);
+  applyThemeToUI(resolved);
+}
 
 /**
  * Apply theme colors to  the BrowserWindow
@@ -205,7 +220,10 @@ async function checkForLibraryRefresh(): Promise<void> {
   const autorefreshEnabled = ConfigBridge.getInitial('library_autorefresh');
 
   if (autorefreshEnabled) {
-    void LibraryAPI.scan();
+    // Automatic startup scan: silent, so a deterministically unreadable
+    // file does not re-warn on every launch. The failure count is still
+    // recorded on the store and surfaced in Settings -> Library.
+    void LibraryAPI.scan(false, true);
   }
 }
 
@@ -226,7 +244,6 @@ async function toggleFollowPlayingTrack(value: boolean): Promise<void> {
 // Should we use something else to harmonize between zustand and non-store APIs?
 const SettingsAPI = {
   init,
-  setLanguage,
   setTheme,
   applyThemeToUI,
   setUIMainColor,

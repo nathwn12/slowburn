@@ -15,6 +15,7 @@ import Header from '../components/Header';
 import IPCNavigationEvents from '../components/IPCNavigationEvents';
 import IPCPlayerEvents from '../components/IPCPlayerEvents';
 import LibraryEvents from '../components/LibraryEvents';
+import MenuBar from '../components/MenuBar';
 import NowPlaying from '../components/NowPlaying';
 import PlayerEvents from '../components/PlayerEvents';
 import Queue from '../components/Queue';
@@ -156,6 +157,9 @@ function ViewRoot() {
       {/** Frameless window chrome (Windows-only, null elsewhere) */}
       <TitleBar />
 
+      {/** In-app menu bar: the visible half of the menu toggle on frameless windows */}
+      <MenuBar />
+
       {/** 40px header: breadcrumb, search, settings (logo/brand fold into the title bar on Windows) */}
       <Header />
 
@@ -239,14 +243,20 @@ const styles = stylex.create({
    * S8 mini mode: the same two children (NowPlaying, right column) stacked
    * vertically - condensed player card above, queue below - via grid rows
    * instead of columns. Same tree positions, so no remount; the bounding
-   * order (player bottom above queue top) falls out of the row order.
+   * order (player bottom above queue top) falls out of the row order. The
+   * main stays `overflow: hidden` so the queue keeps its own scroll region:
+   * the list must always own the remaining row height (`minmax(0, 1fr)`)
+   * instead of the whole mini page scrolling and cutting the list away.
    */
   mainMini: {
     gridTemplateColumns: 'minmax(0, 1fr)',
     gridTemplateRows: 'auto minmax(0, 1fr)',
-    overflowY: 'auto',
+    minHeight: 0,
+    overflow: 'hidden',
   },
   rightColumnMini: {
+    minHeight: 0,
+    minWidth: 0,
     borderLeftWidth: 0,
     borderLeftStyle: 'none',
     borderTopWidth: '1px',

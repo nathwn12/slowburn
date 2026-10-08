@@ -86,7 +86,7 @@ function ViewPlaylists() {
             onClick={createPlaylist}
             {...stylex.props(styles.createLink)}
           >
-            <Trans>create one now</Trans>
+            <Trans>Create one now</Trans>
           </button>
         </div>
       ) : (
@@ -106,7 +106,7 @@ function ViewPlaylists() {
                 <Icon name="playlist" size={12} />
                 <span {...stylex.props(styles.rowName)}>{playlist.name}</span>
                 <span {...stylex.props(styles.chevron)} aria-hidden="true">
-                  ›
+                  <Icon name="chevronDown" size={12} xstyle={styles.chevIcon} />
                 </span>
               </Link>
             </li>
@@ -128,8 +128,8 @@ const styles = stylex.create({
   head: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
-    height: '38px',
+    columnGap: 'var(--space-2)',
+    height: 'var(--row)',
     flexShrink: 0,
     paddingInline: '10px',
     borderBottomWidth: '1px',
@@ -139,7 +139,7 @@ const styles = stylex.create({
   },
   title: {
     margin: 0,
-    fontSize: '11px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 800,
     letterSpacing: '.1em',
     color: 'var(--text-dim)',
@@ -159,8 +159,8 @@ const styles = stylex.create({
   },
   tool: {
     marginLeft: 'auto',
-    width: '24px',
-    height: '24px',
+    width: 'var(--space-5)',
+    height: 'var(--space-5)',
     borderRadius: 'var(--radius-sm)',
     display: 'grid',
     placeItems: 'center',
@@ -188,12 +188,13 @@ const styles = stylex.create({
   row: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
-    minHeight: '34px',
-    paddingInline: '12px',
+    columnGap: 'var(--space-2)',
+    // Same rhythm as the queue/track rows: the shared compact row token.
+    minHeight: 'var(--row-compact)',
+    paddingInline: 'var(--space-3)',
     color: 'var(--text)',
     textDecoration: 'none',
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
     fontWeight: 600,
     backgroundColor: {
       default: 'transparent',
@@ -212,24 +213,41 @@ const styles = stylex.create({
   chevron: {
     color: 'var(--text-faint)',
     flexShrink: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+  },
+  // The set carries no right chevron: the down chevron rotated to point
+  // right keeps list chevrons on the shared Icon instead of a `'` glyph.
+  chevIcon: {
+    transform: 'rotate(-90deg)',
   },
   empty: {
     flexGrow: 1,
     display: 'grid',
     placeItems: 'center',
     alignContent: 'center',
-    rowGap: '8px',
+    rowGap: 'var(--space-2)',
     color: 'var(--text-faint)',
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
     textAlign: 'center',
-    padding: '24px',
+    padding: 'var(--space-5)',
   },
   createLink: {
     color: 'var(--accent)',
     fontWeight: 700,
-    backgroundColor: 'transparent',
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
     borderStyle: 'none',
+    borderRadius: 'var(--radius-sm)',
     cursor: 'pointer',
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
+    paddingBlock: '2px',
+    paddingInline: '8px',
+    outline: {
+      ':focus-visible': '2px solid var(--focus-color)',
+    },
+    outlineOffset: '1px',
   },
 });

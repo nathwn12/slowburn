@@ -22,9 +22,19 @@ html {
 
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Roboto,
-    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-family: var(
+    --font-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Noto Sans",
+    Roboto,
+    Oxygen-Sans,
+    Ubuntu,
+    Cantarell,
+    "Helvetica Neue",
+    sans-serif
+  );
   color: var(--text);
   user-select: none;
   height: 100%;
@@ -40,11 +50,10 @@ body {
   --focus-offset: 1px;
   outline: 2px solid var(--focus-color);
   outline-offset: var(--focus-offset);
+  box-shadow: var(--glow-focus);
   border-radius: calc(
-    var(--border-radius) + var(--focus-offset)
+    var(--radius) + var(--focus-offset)
   ); /* compensate radius on elements */
-  position: relative;
-  z-index: 5 !important;
 }
 
 p {
@@ -66,17 +75,32 @@ p {
   font-weight: 500;
 }
 
-/* For call-to-actions to show the interactibility of an element */
+/* For call-to-actions to show the interactibility of an element.
+ * Hover-scale applies to plain buttons only: drag thumbs (custom
+ * role="slider" sliders, or Base UI thumbs wrapping a native range input
+ * such as the Burn strip) get glow instead, so scale never fights the drag
+ * affordance. */
 [data-museeks-action] {
-  transition: transform 0.1s ease-in-out;
+  transition:
+    transform 0.1s ease-in-out,
+    box-shadow 0.1s ease-in-out;
 }
 
-[data-museeks-action]:hover {
+[data-museeks-action]:not([role="slider"]):not(
+    :has(input[type="range"])
+  ):hover {
   transform: scale(1.2);
 }
 
-[data-museeks-action]:active {
+[data-museeks-action]:not([role="slider"]):not(
+    :has(input[type="range"])
+  ):active {
   transform: scale(1);
+}
+
+[data-museeks-action][role="slider"]:hover,
+[data-museeks-action]:has(input[type="range"]):hover {
+  box-shadow: var(--glow-hover);
 }
 
 /* Active state of some elements that get de-emphasized, is not focused */

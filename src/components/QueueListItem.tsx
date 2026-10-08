@@ -2,7 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useCallback } from 'react';
+import { useCallback, type KeyboardEvent } from 'react';
 
 import type { Track } from '../generated/typings';
 import useFormattedDuration from '../hooks/useFormattedDuration';
@@ -14,10 +14,13 @@ type Props = {
   index: number;
   track: Track;
   queueCursor: number;
+  selected: boolean;
+  tabIndex: number;
+  onSelect: (trackId: string) => void;
 };
 
 export default function QueueListItem(props: Props) {
-  const { track, index } = props;
+  const { track, index, selected, tabIndex, onSelect } = props;
   const { t } = useLingui();
   const duration = useFormattedDuration(track.duration);
   const savedLoop = useIsSavedLoop(track.id);
@@ -49,23 +52,61 @@ export default function QueueListItem(props: Props) {
     await player.startFromQueue(index);
   }, [index]);
 
+  const select = useCallback(() => {
+    onSelect(track.id);
+  }, [onSelect, track.id]);
+
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        void play();
+      }
+    },
+    [play],
+  );
+
   return (
     <li
       {...attributes}
       ref={setNodeRef}
       style={itemStyle}
+      onClick={select}
       onDoubleClick={play}
+      onKeyDown={onKeyDown}
       role="option"
-      aria-selected="false"
+      aria-selected={selected}
+      tabIndex={tabIndex}
       data-track-id={track.id}
-      {...listeners}
-      {...stylex.props(styles.row)}
+      {...stylex.props(styles.row, selected && styles.rowSelected)}
     >
-      <span {...stylex.props(styles.idx)}>{index + 1}</span>
+      {/*
+       * The drag handle owns the sortable listeners: a click-to-select on
+       * the row body never starts a drag.
+       */}
+      <span
+        {...listeners}
+        {...stylex.props(styles.idx, styles.handle)}
+        title={t`Drag to reorder`}
+        aria-hidden="true"
+      >
+        {index + 1}
+      </span>
+
       <span {...stylex.props(styles.meta)}>
-        <span {...stylex.props(styles.t1)}>{track.title}</span>
-        <span {...stylex.props(styles.t2)}>
-          {track.artists.join(', ')} · {track.album}
+        <span
+          {...stylex.props(styles.t1)}
+          title={track.title}
+          data-testid="queue-title"
+        >
+          {track.title}
+        </span>
+        <span
+          {...stylex.props(styles.t2)}
+          title={`${track.artists.join(', ')} . ${track.album}`}
+          data-testid="queue-subtitle"
+        >
+          {track.artists.join(', ')} . {track.album}
         </span>
       </span>
       <span {...stylex.props(styles.right)}>
@@ -78,7 +119,9 @@ export default function QueueListItem(props: Props) {
             ◆
           </span>
         )}
-        <span {...stylex.props(styles.dur)}>{duration}</span>
+        <span {...stylex.props(styles.dur)} data-testid="queue-duration">
+          {duration}
+        </span>
         <button
           type="button"
           {...stylex.props(styles.action)}
@@ -106,8 +149,8 @@ const styles = stylex.create({
   row: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
-    minHeight: '40px',
+    columnGap: 'var(--space-2)',
+    minHeight: 'var(--row-compact)',
     width: '100%',
     paddingInline: '10px',
     position: 'relative',
@@ -119,6 +162,14 @@ const styles = stylex.create({
       default: 'transparent',
       ':hover': 'var(--surface-hover)',
     },
+    outline: {
+      ':focus-visible': '2px solid var(--focus-color)',
+    },
+    outlineOffset: '-2px',
+  },
+  rowSelected: {
+    backgroundColor: 'var(--info-soft)',
+    borderLeftColor: 'var(--info)',
   },
   idx: {
     width: '20px',
@@ -126,8 +177,15 @@ const styles = stylex.create({
     display: 'grid',
     placeItems: 'center',
     fontFamily: 'var(--mono-font)',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-faint)',
+  },
+  handle: {
+    // The only drag affordance: a grab cursor confined to the index gutter
+    // so the row body stays a plain click-to-select surface.
+    cursor: 'grab',
+    touchAction: 'none',
+    borderRadius: 'var(--radius-sm)',
   },
   meta: {
     minWidth: 0,
@@ -137,7 +195,7 @@ const styles = stylex.create({
   },
   t1: {
     display: 'block',
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
     fontWeight: 600,
     color: 'var(--text)',
     whiteSpace: 'nowrap',
@@ -147,7 +205,7 @@ const styles = stylex.create({
   t2: {
     display: 'block',
     marginTop: '1px',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-faint)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -166,19 +224,21 @@ const styles = stylex.create({
     width: '15px',
     height: '15px',
     borderRadius: '50%',
-    backgroundColor: 'var(--pink-soft)',
-    color: 'var(--deep-pink)',
+    backgroundColor: 'var(--accent-soft)',
+    color: 'var(--accent)',
     fontSize: '8px',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: 'var(--pink-line)',
+    borderColor: 'var(--accent)',
   },
   dur: {
     fontFamily: 'var(--mono-font)',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--text-faint)',
-    width: '38px',
+    // Hour-long tracks (`1:00:00`) need ~6 chars: never clip the duration.
+    minWidth: '44px',
+    width: 'auto',
     textAlign: 'right',
   },
   remove: {
@@ -192,7 +252,7 @@ const styles = stylex.create({
     height: '18px',
     lineHeight: 1,
     padding: 0,
-    fontSize: '14px',
+    fontSize: 'var(--text-lg)',
     textDecoration: 'none',
   },
   action: {

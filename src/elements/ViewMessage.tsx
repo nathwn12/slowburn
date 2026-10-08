@@ -29,13 +29,13 @@ const styles = stylex.create({
     flexDirection: 'column',
     justifyContent: 'center',
     height: '100%',
-    fontSize: '25px',
+    fontSize: 'var(--text-lg)',
     padding: '30px',
     margin: 'auto',
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: '70%',
+    fontSize: 'var(--text-sm)',
     lineHeight: 1.8,
   },
 });

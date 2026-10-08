@@ -157,6 +157,9 @@ export default function LoopControls({ trackPlaying }: Props) {
           aria-label={label}
           aria-invalid={invalid[point] ? true : undefined}
           data-invalid={invalid[point] ? 'true' : 'false'}
+          title={
+            invalid[point] ? t`Invalid time - use minutes:seconds` : undefined
+          }
           onFocus={(event) => {
             event.currentTarget.select();
           }}
@@ -184,6 +187,15 @@ export default function LoopControls({ trackPlaying }: Props) {
             invalid[point] && styles.abInputInvalid,
           )}
         />
+        {invalid[point] && (
+          <span
+            {...stylex.props(styles.invalidMark)}
+            title={t`Invalid time - use minutes:seconds`}
+            aria-hidden="true"
+          >
+            !
+          </span>
+        )}
       </>
     );
   };
@@ -209,16 +221,20 @@ export default function LoopControls({ trackPlaying }: Props) {
         {saved ? t`Saved loop` : t`No saved loop`}
       </span>
 
-      <span
-        {...stylex.props(styles.loopLive, !looping && styles.loopLiveHidden)}
-        title={t`Playback is looping the A-B region`}
-      >
-        ● LOOPING
-      </span>
+      {looping && (
+        <span
+          {...stylex.props(styles.loopLive)}
+          title={t`Playback is looping the A-B region`}
+        >
+          ● LOOPING
+        </span>
+      )}
 
       <button
         type="button"
         onClick={() => void player.clearAbLoop()}
+        disabled={!saved}
+        aria-disabled={!saved ? true : undefined}
         title={t`Clear the A-B region for this track (key: \\)`}
         aria-label={t`Clear the A-B region for this track`}
         {...stylex.props(styles.abClear, !saved && styles.abClearIdle)}
@@ -250,8 +266,8 @@ const styles = stylex.create({
     alignItems: 'center',
     columnGap: '6px',
     height: '22px',
-    paddingInline: '8px',
-    borderRadius: 'var(--radius-sm)',
+    paddingInline: 'var(--space-2)',
+    borderRadius: 'var(--radius)',
     backgroundColor: {
       default: 'var(--surface-2)',
       ':hover': 'var(--surface-hover)',
@@ -263,7 +279,7 @@ const styles = stylex.create({
       default: 'var(--text-dim)',
       ':hover': 'var(--text-bright)',
     },
-    fontSize: '11px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 700,
     lineHeight: 1,
     cursor: 'pointer',
@@ -275,14 +291,15 @@ const styles = stylex.create({
   },
   abBtnArmed: {
     backgroundColor: {
-      default: 'var(--pink-soft)',
-      ':hover': 'var(--pink-soft)',
+      default: 'var(--accent-soft)',
+      ':hover': 'var(--accent-soft)',
     },
-    borderColor: 'var(--pink-line)',
+    borderColor: 'var(--accent)',
     color: {
-      default: 'var(--pink-text)',
-      ':hover': 'var(--pink-text)',
+      default: 'var(--accent-text)',
+      ':hover': 'var(--accent-text)',
     },
+    boxShadow: 'var(--glow-hover)',
   },
   keycap: {
     fontFamily: 'var(--mono-font)',
@@ -295,7 +312,7 @@ const styles = stylex.create({
     borderColor: 'var(--control-border)',
     borderRadius: '3px',
     paddingBlock: '2px',
-    paddingInline: '4px',
+    paddingInline: 'var(--space-1)',
     color: 'var(--text-faint)',
     opacity: 0,
     transition: 'opacity .12s ease',
@@ -307,23 +324,46 @@ const styles = stylex.create({
     width: '74px',
     height: '22px',
     paddingInline: '7px',
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: 'var(--radius)',
     backgroundColor: 'var(--surface-2)',
     borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: 'var(--border-soft)',
-    color: 'var(--pink-text-soft)',
+    color: 'var(--accent-text)',
     fontFamily: 'var(--mono-font)',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     lineHeight: 1,
     fontVariantNumeric: 'tabular-nums',
-    outline: 'none',
+    // Explicit local focus ring (the Button.tsx pattern): the global
+    // `:focus-visible` rule alone is defeated by the reset the inputs used
+    // to carry, so keyboard focus paints from the focus token here.
+    outlineStyle: {
+      ':focus-visible': 'solid',
+    },
+    outlineWidth: {
+      ':focus-visible': '2px',
+    },
+    outlineColor: {
+      ':focus-visible': 'var(--focus-color)',
+    },
+    outlineOffset: {
+      ':focus-visible': '1px',
+    },
+    boxShadow: {
+      ':focus-visible': 'var(--glow-focus)',
+    },
   },
   abInputInvalid: {
     borderColor: 'var(--danger)',
     color: 'var(--danger)',
-    backgroundColor: 'rgba(239,68,68,.08)',
+    backgroundColor: 'var(--danger-soft)',
+  },
+  invalidMark: {
+    color: 'var(--danger)',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 800,
+    lineHeight: 1,
   },
   spacer: {
     flexGrow: 1,
@@ -337,7 +377,7 @@ const styles = stylex.create({
     height: '22px',
     paddingInline: '9px',
     borderRadius: '9999px',
-    fontSize: '10px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     lineHeight: 1,
     borderWidth: '1px',
@@ -351,9 +391,10 @@ const styles = stylex.create({
     fontSize: '9px',
   },
   savedYes: {
-    color: 'var(--pink-text)',
-    backgroundColor: 'var(--pink-soft)',
-    borderColor: 'var(--pink-line)',
+    color: 'var(--accent-text)',
+    backgroundColor: 'var(--accent-soft)',
+    borderColor: 'var(--accent)',
+    boxShadow: 'var(--glow-hover)',
   },
   loopLive: {
     display: 'inline-flex',
@@ -366,10 +407,9 @@ const styles = stylex.create({
     letterSpacing: '.08em',
     lineHeight: 1,
     color: 'var(--on-accent-ink)',
-    backgroundColor: 'var(--deep-pink)',
-    boxShadow: '0 0 0 1px rgba(255,20,147,.4), 0 0 14px rgba(255,20,147,.35)',
+    backgroundColor: 'var(--accent)',
+    boxShadow: '0 0 0 1px var(--accent), 0 0 14px var(--accent-soft)',
     whiteSpace: 'nowrap',
-    visibility: 'visible',
     animationName: {
       '@media (prefers-reduced-motion: no-preference)': pulse,
     },
@@ -383,22 +423,19 @@ const styles = stylex.create({
       '@media (prefers-reduced-motion: no-preference)': 'infinite',
     },
   },
-  loopLiveHidden: {
-    visibility: 'hidden',
-  },
   abClear: {
     height: '22px',
-    paddingInline: '8px',
-    borderRadius: 'var(--radius-sm)',
+    paddingInline: 'var(--space-2)',
+    borderRadius: 'var(--radius)',
     color: {
       default: 'var(--text-faint)',
       ':hover': 'var(--danger)',
     },
     backgroundColor: {
       default: 'transparent',
-      ':hover': 'rgba(239,68,68,.1)',
+      ':hover': 'var(--danger-soft)',
     },
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     lineHeight: 1,
     borderStyle: 'none',
@@ -418,7 +455,7 @@ const styles = stylex.create({
     borderColor: 'var(--control-border)',
     borderRadius: '3px',
     paddingBlock: '2px',
-    paddingInline: '4px',
+    paddingInline: 'var(--space-1)',
     color: 'var(--text-faint)',
     opacity: {
       default: 0,

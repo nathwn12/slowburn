@@ -16,10 +16,6 @@ import SettingsBridge from '../lib/bridge-settings';
 import { configQuery } from '../lib/queries';
 import { themes } from '../lib/themes';
 import { logAndNotifyError } from '../lib/utils';
-import {
-  DEFAULT_LANGUAGE,
-  NON_DEFAULT_LANGUAGES,
-} from '../translations/languages';
 
 export const Route = createFileRoute('/settings/ui')({
   component: ViewSettingsUI,
@@ -66,7 +62,7 @@ function ViewSettingsUI() {
               aria-hidden
               {...stylex.props(styles.swatchRow)}
               style={{
-                background: 'linear-gradient(90deg, #fff 50%, #2a2a2a 50%)',
+                background: 'linear-gradient(90deg, white 50%, black 50%)',
               }}
             />
             {t`System (default)`}
@@ -139,48 +135,24 @@ function ViewSettingsUI() {
         <Setting.ColorSelector
           label={t`Accent color`}
           value={config.ui_accent_color ?? DEFAULT_MAIN_COLOR}
-          description={
-            <Button
-              type="button"
-              bSize="small"
-              onClick={() => {
-                SettingsAPI.setUIMainColor(DEFAULT_MAIN_COLOR)
-                  .then(invalidate)
-                  .catch(logAndNotifyError);
-                SettingsAPI.applyUIMainColorToUI(DEFAULT_MAIN_COLOR);
-              }}
-            >{t`Reset`}</Button>
-          }
           onChange={(e) => {
             const value = e.currentTarget.value;
             SettingsAPI.applyUIMainColorToUI(value);
             setUIMainColorThrottled(value);
           }}
         />
-      </Setting.Section>
-      <Setting.Section>
-        <Setting.Select
-          label={t`Language`}
-          value={config.language}
-          onChange={(e) => {
-            SettingsAPI.setLanguage(e.target.value)
-              .then(invalidate)
-              .catch(logAndNotifyError);
-          }}
-        >
-          <option value={DEFAULT_LANGUAGE.code}>
-            {DEFAULT_LANGUAGE.label}
-          </option>
-          <option disabled>──────────</option>
-          {NON_DEFAULT_LANGUAGES.map((language) => {
-            return (
-              <option key={language.code} value={language.code}>
-                {language.label}
-                {language.englishLabel && ` (${language.englishLabel})`}
-              </option>
-            );
-          })}
-        </Setting.Select>
+        <div {...stylex.props(styles.accentRow)}>
+          <Button
+            type="button"
+            bSize="small"
+            onClick={() => {
+              SettingsAPI.setUIMainColor(DEFAULT_MAIN_COLOR)
+                .then(invalidate)
+                .catch(logAndNotifyError);
+              SettingsAPI.applyUIMainColorToUI(DEFAULT_MAIN_COLOR);
+            }}
+          >{t`Reset`}</Button>
+        </div>
       </Setting.Section>
       <Setting.Section>
         <Setting.Select
@@ -277,49 +249,63 @@ export function getTranslatedThemeName(themeName: string) {
 }
 
 const styles = stylex.create({
+  accentRow: {
+    display: 'flex',
+    justifyContent: 'flex-start',
+  },
   gallery: {
     display: 'flex',
     flexWrap: 'wrap',
-    rowGap: '8px',
-    columnGap: '8px',
+    rowGap: 'var(--space-2)',
+    columnGap: 'var(--space-2)',
   },
   card: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    rowGap: '6px',
-    columnGap: '6px',
-    paddingTop: '10px',
-    paddingBottom: '10px',
-    paddingLeft: '12px',
-    paddingRight: '12px',
+    rowGap: 'var(--space-1)',
+    columnGap: 'var(--space-1)',
+    paddingTop: 'var(--space-2)',
+    paddingBottom: 'var(--space-2)',
+    paddingLeft: 'var(--space-3)',
+    paddingRight: 'var(--space-3)',
     minWidth: '96px',
-    backgroundColor: 'var(--input-bg)',
-    color: 'var(--input-color)',
+    minHeight: 'var(--row)',
+    backgroundColor: 'var(--surface)',
+    color: 'var(--text-dim)',
     borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: {
-      default: 'var(--border-color-softer)',
-      ':hover': 'var(--main-color)',
+      default: 'var(--control-border)',
+      ':hover': 'var(--accent)',
+      ':focus-visible': 'var(--accent)',
     },
-    borderRadius: 'var(--border-radius)',
-    fontSize: '0.85rem',
+    borderRadius: 'var(--radius)',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-medium)',
     cursor: 'pointer',
+    boxSizing: 'border-box',
   },
   cardActive: {
-    borderColor: 'var(--main-color)',
+    borderColor: 'var(--accent)',
+    backgroundColor: 'var(--accent-soft)',
+    color: 'var(--accent-text)',
   },
   radio: {
     marginTop: 0,
     marginBottom: 0,
     marginLeft: 0,
     marginRight: 0,
+    accentColor: 'var(--accent)',
   },
   swatchRow: {
     display: 'flex',
     width: '100%',
-    height: '28px',
-    borderRadius: 'var(--border-radius)',
+    height: 'var(--space-5)',
+    borderRadius: 'var(--radius-sm)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--control-border)',
     overflow: 'hidden',
   },
   swatch: {

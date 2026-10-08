@@ -58,6 +58,26 @@ const gapVariants = stylex.create({
     rowGap: '16px',
     columnGap: '16px',
   },
+  'space-1': {
+    rowGap: 'var(--space-1)',
+    columnGap: 'var(--space-1)',
+  },
+  'space-2': {
+    rowGap: 'var(--space-2)',
+    columnGap: 'var(--space-2)',
+  },
+  'space-3': {
+    rowGap: 'var(--space-3)',
+    columnGap: 'var(--space-3)',
+  },
+  'space-4': {
+    rowGap: 'var(--space-4)',
+    columnGap: 'var(--space-4)',
+  },
+  'space-5': {
+    rowGap: 'var(--space-5)',
+    columnGap: 'var(--space-5)',
+  },
 });
 
 const alignVariants = stylex.create({

@@ -9,6 +9,7 @@ import LibraryAPI from '../api/LibraryAPI';
 import * as Setting from '../components/Setting';
 import Button from '../elements/Button';
 import Flexbox from '../elements/Flexbox';
+import Panel from '../elements/Panel';
 import useInvalidate, { useInvalidateCallback } from '../hooks/useInvalidate';
 import { allTracksQuery, configQuery } from '../lib/queries';
 import useLibraryStore from '../lib/store';
@@ -24,6 +25,7 @@ function ViewSettingsLibrary() {
 
   const isLibraryRefreshing = useLibraryStore((state) => state.refreshing);
   const refresh = useLibraryStore((state) => state.refresh);
+  const lastScanFailures = useLibraryStore((state) => state.lastScanFailures);
   const invalidate = useInvalidate();
   const { t } = useLingui();
 
@@ -53,49 +55,71 @@ function ViewSettingsLibrary() {
           </Setting.Description>
         )}
         {libraryFolders.length > 0 && (
-          <ul
-            aria-label={t`Library folders`}
-            {...stylex.props(styles.libraryFolders)}
-          >
-            {config.library_folders.map((folder) => {
-              const trackCount = allTracks.filter(
-                (track) =>
-                  track.path === folder ||
-                  track.path.startsWith(`${folder}/`) ||
-                  track.path.startsWith(folder),
-              ).length;
-
-              return (
-                <li key={folder} aria-label={folder}>
-                  <Flexbox align="center">
-                    <button
-                      type="button"
-                      {...stylex.props(styles.libraryFoldersRemove)}
-                      title={t`Remove`}
-                      aria-label={t`Remove folder ${folder}`}
-                      data-museeks-action
-                      onClick={() =>
-                        LibraryAPI.removeLibraryFolder(folder).then(invalidate)
-                      }
-                    >
-                      &times;
-                    </button>
-                    <span>{folder}</span>
-                    <span>
-                      {trackCount} {trackCount === 1 ? t`track` : t`tracks`}
-                    </span>
-                    <span>
-                      {isLibraryRefreshing
-                        ? t`Scanning ${refresh.current}/${refresh.total}`
-                        : t`Up to date`}
-                    </span>
-                  </Flexbox>
-                </li>
-              );
-            })}
-          </ul>
+          <Setting.Description>
+            {isLibraryRefreshing
+              ? t`Scanning ${refresh.current}/${refresh.total}`
+              : t`Up to date`}
+          </Setting.Description>
         )}
-        <Flexbox gap={4}>
+        {libraryFolders.length > 0 &&
+          !isLibraryRefreshing &&
+          lastScanFailures > 0 && (
+            <Setting.Description>
+              {t`${lastScanFailures} file(s) could not be read during the last scan.`}
+            </Setting.Description>
+          )}
+        {libraryFolders.length > 0 && (
+          <Panel xstyle={styles.libraryFoldersPanel}>
+            <ul
+              aria-label={t`Library folders`}
+              {...stylex.props(styles.libraryFolders)}
+            >
+              {config.library_folders.map((folder) => {
+                const trackCount = allTracks.filter(
+                  (track) =>
+                    track.path === folder ||
+                    track.path.startsWith(`${folder}/`) ||
+                    track.path.startsWith(folder),
+                ).length;
+
+                return (
+                  <li
+                    key={folder}
+                    aria-label={folder}
+                    {...stylex.props(styles.libraryFolderRow)}
+                  >
+                    <Flexbox align="center" gap={8}>
+                      <button
+                        type="button"
+                        {...stylex.props(styles.libraryFoldersRemove)}
+                        title={t`Remove`}
+                        aria-label={t`Remove folder ${folder}`}
+                        data-museeks-action
+                        onClick={() =>
+                          LibraryAPI.removeLibraryFolder(folder).then(
+                            invalidate,
+                          )
+                        }
+                      >
+                        &times;
+                      </button>
+                      <span
+                        {...stylex.props(styles.libraryFolderPath)}
+                        title={folder}
+                      >
+                        {folder}
+                      </span>
+                      <span {...stylex.props(styles.libraryFolderMeta)}>
+                        {trackCount} {trackCount === 1 ? t`track` : t`tracks`}
+                      </span>
+                    </Flexbox>
+                  </li>
+                );
+              })}
+            </ul>
+          </Panel>
+        )}
+        <Flexbox gap="space-2">
           <Button
             disabled={isLibraryRefreshing}
             onClick={useInvalidateCallback(addLibraryFolders)}
@@ -141,24 +165,60 @@ function ViewSettingsLibrary() {
 }
 
 const styles = stylex.create({
+  libraryFoldersPanel: {
+    paddingTop: 'var(--space-2)',
+    paddingBottom: 'var(--space-2)',
+    paddingLeft: 'var(--space-2)',
+    paddingRight: 'var(--space-2)',
+  },
   libraryFolders: {
     listStyle: 'none',
-    paddingBlock: '4px',
-    paddingInline: '8px',
+    paddingBlock: 0,
+    paddingInline: 0,
     margin: '0',
-    fontFamily: 'monospace',
-    borderStyle: 'solid',
-    borderWidth: '1px',
-    borderColor: 'var(--border-color)',
-    overflowX: 'auto',
-    whiteSpace: 'pre',
-    width: '120%',
+    fontFamily: 'var(--mono-font)',
+    fontSize: 'var(--text-sm)',
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflowX: 'clip',
+    display: 'flex',
+    flexDirection: 'column',
+    rowGap: 'var(--space-1)',
+  },
+  libraryFolderRow: {
+    minWidth: 0,
+    maxWidth: '100%',
+    minHeight: 'var(--row-compact)',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  libraryFolderPath: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
+    minWidth: 0,
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    color: 'var(--text)',
+  },
+  libraryFolderMeta: {
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
+    color: 'var(--text-dim)',
+    fontSize: 'var(--text-xs)',
   },
   libraryFoldersRemove: {
-    color: 'red',
+    flexShrink: 0,
+    color: 'var(--danger)',
     borderStyle: 'none',
     backgroundColor: 'transparent',
     appearance: 'none',
-    fontSize: '16px',
+    fontSize: 'var(--text-lg)',
+    lineHeight: 1,
+    minWidth: 'var(--row-compact)',
+    minHeight: 'var(--row-compact)',
+    cursor: 'pointer',
   },
 });

@@ -73,6 +73,9 @@ export default function QueueList(props: Props) {
   const { queue, queueCursor, savedOnly, mostPlayed, trackPlaying } = props;
   const { t } = useLingui();
   const [queueSize, setQueueSize] = useState(INITIAL_QUEUE_SIZE);
+  // Click-to-select: the selected upcoming row owns the roving tabindex.
+  // `null` means "nothing selected yet", which falls back to the first row.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const savedIds = useSavedLoopsStore((state) => state.ids);
 
@@ -140,12 +143,19 @@ export default function QueueList(props: Props) {
             const absoluteIndex = queue.findIndex(
               (candidate) => candidate.id === track.id,
             );
+            // Roving tabindex: the selected row (or the first row before
+            // any selection) is the only tab stop.
+            const isTabStop =
+              (selectedId ?? visibleUpcoming[0]?.id) === track.id;
             return (
               <QueueListItem
                 key={`track-${track.id}-${absoluteIndex}`}
                 index={absoluteIndex}
                 track={track}
                 queueCursor={queueCursor}
+                selected={selectedId === track.id}
+                tabIndex={isTabStop ? 0 : -1}
+                onSelect={setSelectedId}
               />
             );
           })}
@@ -165,7 +175,7 @@ export default function QueueList(props: Props) {
               }
               {...stylex.props(styles.more)}
             >
-              {t`see more`}
+              {t`See more`}
             </button>
           </li>
         )}
@@ -233,8 +243,8 @@ const styles = stylex.create({
   row: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '8px',
-    minHeight: '40px',
+    columnGap: 'var(--space-2)',
+    minHeight: 'var(--row-compact)',
     paddingInline: '10px',
     borderLeftWidth: '3px',
     borderLeftStyle: 'solid',
@@ -242,9 +252,11 @@ const styles = stylex.create({
     cursor: 'pointer',
   },
   rowPlaying: {
-    borderLeftColor: 'var(--deep-pink)',
+    borderLeftColor: 'var(--accent)',
     backgroundImage:
-      'linear-gradient(90deg, var(--pink-soft), rgba(255,20,147,.02) 60%)',
+      'linear-gradient(90deg, var(--accent-soft), transparent 60%)',
+    // The playing row has no click handler: never show a pointer cursor.
+    cursor: 'default',
   },
   idx: {
     width: '20px',
@@ -252,7 +264,7 @@ const styles = stylex.create({
     display: 'grid',
     placeItems: 'center',
     fontFamily: 'var(--mono-font)',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-faint)',
   },
   meta: {
@@ -263,7 +275,7 @@ const styles = stylex.create({
   },
   t1: {
     display: 'block',
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
     fontWeight: 600,
     color: 'var(--text)',
     whiteSpace: 'nowrap',
@@ -271,12 +283,12 @@ const styles = stylex.create({
     textOverflow: 'ellipsis',
   },
   t1Playing: {
-    color: 'var(--pink-text)',
+    color: 'var(--accent-text)',
   },
   t2: {
     display: 'block',
     marginTop: '1px',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-faint)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -295,29 +307,41 @@ const styles = stylex.create({
     width: '15px',
     height: '15px',
     borderRadius: '50%',
-    backgroundColor: 'var(--pink-soft)',
-    color: 'var(--deep-pink)',
+    backgroundColor: 'var(--accent-soft)',
+    color: 'var(--accent)',
     fontSize: '8px',
     borderWidth: '1px',
     borderStyle: 'solid',
-    borderColor: 'var(--pink-line)',
+    borderColor: 'var(--accent)',
   },
   dur: {
     fontFamily: 'var(--mono-font)',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--text-faint)',
-    width: '38px',
+    // Hour-long tracks (`1:00:00`) need ~6 chars: never clip the duration.
+    minWidth: '44px',
+    width: 'auto',
     textAlign: 'right',
   },
   more: {
     width: '100%',
     paddingBlock: '6px',
-    color: 'var(--text-faint)',
-    fontSize: '11px',
+    color: {
+      default: 'var(--text-faint)',
+      ':hover': 'var(--text-bright)',
+    },
+    fontSize: 'var(--text-xs)',
     textAlign: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
     borderStyle: 'none',
     cursor: 'pointer',
+    outline: {
+      ':focus-visible': '2px solid var(--focus-color)',
+    },
+    outlineOffset: '-2px',
   },
 });

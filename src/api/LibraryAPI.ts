@@ -17,11 +17,18 @@ function search(value: string): void {
 }
 
 /**
- * Scan the library for new tracks
+ * Scan the library for new tracks.
+ *
+ * A user-initiated scan reports everything via toasts. An automatic scan
+ * (startup autorefresh) passes `silent`: it stays quiet, because the same
+ * unreadable file would otherwise re-warn on every launch. Either way the
+ * failure count is recorded on the store so Settings -> Library can surface
+ * it.
  */
 async function scan(
   // Force a refresh of the ID3 tags stored in the DB
   refresh = false,
+  silent = false,
 ): Promise<void> {
   try {
     useLibraryStore.setState({ refreshing: true });
@@ -32,7 +39,11 @@ async function scan(
       refresh,
     );
 
-    if (scanResult.track_count > 0) {
+    useLibraryStore.setState({
+      lastScanFailures: scanResult.track_failures,
+    });
+
+    if (!silent && scanResult.track_count > 0) {
       const message = refresh
         ? t`${scanResult.track_count} track(s) were refreshed.`
         : t`${scanResult.track_count} track(s) were added to the library.`;
@@ -40,7 +51,7 @@ async function scan(
       toastManager.add({ title: message, type: 'success', timeout: 5000 });
     }
 
-    if (scanResult.playlist_count > 0) {
+    if (!silent && scanResult.playlist_count > 0) {
       toastManager.add({
         title: t`${scanResult.playlist_count} playlist(s) were added to the library.`,
         type: 'success',
@@ -50,8 +61,10 @@ async function scan(
 
     // Files the scanner could not read are skipped and counted, never
     // silently swallowed: tell the user so "742 added" cannot hide the one
-    // file that was dropped.
-    if (scanResult.track_failures > 0) {
+    // file that was dropped. Automatic scans stay quiet here (the count is
+    // still recorded above) so a deterministically unreadable file does not
+    // re-warn on every startup.
+    if (!silent && scanResult.track_failures > 0) {
       toastManager.add({
         title: t`${scanResult.track_failures} file(s) could not be read and were skipped.`,
         type: 'warning',

@@ -7,6 +7,7 @@ import Keybinding from 'react-keybinding-component';
 import LibraryAPI from '../api/LibraryAPI';
 import useLibraryStore from '../lib/store';
 import { isCtrlKey } from '../lib/utils-events';
+import Icon from './Icon';
 
 /**
  * Pill search field in the Dense header, with the Ctrl K affordance.
@@ -24,8 +25,14 @@ export default function Search() {
     [],
   );
 
+  // Select-all on keyboard focus only (Tab / Ctrl+K): mouse focus must keep
+  // click-to-place-cursor, so never select there.
   const onFocus = useCallback<React.FocusEventHandler<HTMLInputElement>>(
-    (e) => e.currentTarget.select(),
+    (e) => {
+      if (e.currentTarget.matches(':focus-visible')) {
+        e.currentTarget.select();
+      }
+    },
     [],
   );
 
@@ -41,37 +48,15 @@ export default function Search() {
 
   return (
     <div {...stylex.props(styles.search)}>
-      <svg
-        width="13"
-        height="13"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        focusable="false"
-        {...stylex.props(styles.icon)}
-      >
-        <circle
-          cx="11"
-          cy="11"
-          r="7"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        />
-        <path
-          d="M16.5 16.5 21 21"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-
+      <span {...stylex.props(styles.searchIcon)} aria-hidden="true">
+        <Icon name="search" size={12} />
+      </span>
       <input
         type="text"
-        placeholder={t`Search title, artist, album…`}
+        placeholder={t`Search library`}
         value={search}
         onChange={onChange}
         onFocus={onFocus}
-        onMouseUp={(e) => e.preventDefault()}
         spellCheck={false}
         ref={inputRef}
         aria-label={t`Search library`}
@@ -86,13 +71,12 @@ export default function Search() {
           data-museeks-action
           aria-label={t`Clear search`}
         >
-          &times;
+          <Icon name="close" size={12} />
         </button>
       ) : (
-        <span {...stylex.props(styles.kbdGroup)} aria-hidden="true">
-          <kbd {...stylex.props(styles.kbd)}>Ctrl</kbd>
-          <kbd {...stylex.props(styles.kbd)}>K</kbd>
-        </span>
+        <kbd {...stylex.props(styles.kbd)} aria-hidden="true">
+          Ctrl K
+        </kbd>
       )}
 
       <Keybinding preventInputConflict onKey={onKey} />
@@ -105,7 +89,7 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     columnGap: '6px',
-    height: '24px',
+    height: '28px',
     width: '210px',
     flexShrink: 1,
     minWidth: '90px',
@@ -128,9 +112,32 @@ const styles = stylex.create({
     transitionProperty: 'border-color, background-color, color',
     transitionDuration: '.12s',
   },
-  icon: {
+  clear: {
     flexShrink: 0,
-    color: 'var(--text-faint)',
+    width: '24px',
+    height: '24px',
+    display: 'grid',
+    placeItems: 'center',
+    color: {
+      default: 'var(--text-dim)',
+      ':hover': 'var(--text-bright)',
+    },
+    cursor: 'pointer',
+    borderStyle: 'none',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
+    padding: 0,
+  },
+  // The clear control uses the real close glyph from the icon set.
+  searchIcon: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    lineHeight: 0,
   },
   input: {
     flexGrow: 1,
@@ -146,26 +153,12 @@ const styles = stylex.create({
     fontSize: '11px',
     padding: 0,
   },
-  clear: {
-    flexShrink: 0,
-    fontSize: '14px',
-    lineHeight: 1,
-    color: 'var(--text-dim)',
-    cursor: 'pointer',
-    borderStyle: 'none',
-    backgroundColor: 'transparent',
-    padding: 0,
-    width: '16px',
-    textAlign: 'center',
-    fontFamily: 'Arial, sans-serif',
-  },
-  kbdGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    columnGap: '3px',
-    flexShrink: 0,
-  },
+  // A single, quiet inline hint - the two-keycap split read as two competing
+  // boxes, and the filled `--bg` chip inverted across themes (loud white on
+  // light, a black hole on AMOLED). One `--surface-3` key reads the same on
+  // every flavour and matches the menu-hint convention.
   kbd: {
+    flexShrink: 0,
     fontFamily: 'var(--mono-font)',
     fontSize: '9px',
     fontWeight: 600,
@@ -176,7 +169,7 @@ const styles = stylex.create({
     borderColor: 'var(--border-soft)',
     borderRadius: '3px',
     paddingBlock: '2px',
-    paddingInline: '4px',
-    backgroundColor: 'var(--bg)',
+    paddingInline: '5px',
+    backgroundColor: 'var(--surface-3)',
   },
 });

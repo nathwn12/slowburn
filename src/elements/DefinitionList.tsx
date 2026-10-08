@@ -25,7 +25,7 @@ DefinitionList.Item = function DefinitionListItem(props: ListItemProps) {
 const styles = stylex.create({
   list: {
     margin: '0',
-    color: 'var(--text-muted)',
+    color: 'var(--text-dim)',
     display: 'grid',
     gridTemplateColumns: 'max-content 1fr',
     columnGap: '4px',

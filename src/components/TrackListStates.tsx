@@ -1,5 +1,7 @@
 import { Trans } from '@lingui/react/macro';
+import * as stylex from '@stylexjs/stylex';
 
+import LibraryAPI from '../api/LibraryAPI';
 import Link from '../elements/Link';
 import * as ViewMessage from '../elements/ViewMessage';
 import type { Track, TrackGroup } from '../generated/typings';
@@ -61,16 +63,47 @@ export default function TrackListStates(props: Props) {
     );
   }
 
-  // Empty search
+  // Empty search: offer a way out instead of a dead end (mirrors the
+  // empty-library state above, which links to the library settings).
   if (tracks.length === 0) {
     return (
       <ViewMessage.Notice>
         <p>
           <Trans>Your search returned no results</Trans>
         </p>
+        <ViewMessage.Sub>
+          <button
+            type="button"
+            onClick={() => LibraryAPI.search('')}
+            {...stylex.props(styles.clearSearch)}
+          >
+            <Trans>Show all tracks</Trans>
+          </button>
+        </ViewMessage.Sub>
       </ViewMessage.Notice>
     );
   }
 
   return <>{children}</>;
 }
+
+const styles = stylex.create({
+  clearSearch: {
+    color: 'var(--accent)',
+    fontWeight: 700,
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
+    borderStyle: 'none',
+    borderRadius: 'var(--radius-sm)',
+    cursor: 'pointer',
+    fontSize: 'inherit',
+    paddingBlock: '2px',
+    paddingInline: '6px',
+    outline: {
+      ':focus-visible': '2px solid var(--focus-color)',
+    },
+    outlineOffset: '1px',
+  },
+});

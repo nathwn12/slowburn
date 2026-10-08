@@ -220,7 +220,7 @@ const styles = stylex.create({
     paddingBlock: 0,
     paddingLeft: '10px',
     paddingRight: 0,
-    backgroundColor: 'var(--header-bg)',
+    backgroundColor: 'var(--surface)',
     borderBottomWidth: '1px',
     borderBottomStyle: 'solid',
     borderBottomColor: 'var(--border)',
@@ -269,7 +269,7 @@ const styles = stylex.create({
     borderStyle: 'none',
     backgroundColor: 'transparent',
     color: 'var(--text-dim)',
-    cursor: 'default',
+    cursor: 'pointer',
   },
   menuButton: {
     width: '34px',
@@ -293,15 +293,16 @@ const styles = stylex.create({
       ':hover': 'var(--surface-hover)',
     },
   },
-  // Native signature: the close button hovers signal red with a white glyph.
+  // Native signature: the close button hovers signal red with a white glyph
+  // (same pairing as the Button danger variant: white on var(--danger)).
   closeButton: {
     color: {
       default: 'var(--text-dim)',
-      ':hover': '#fff',
+      ':hover': 'white',
     },
     backgroundColor: {
       default: 'transparent',
-      ':hover': '#e81123',
+      ':hover': 'var(--danger)',
     },
   },
   menuGlyph: {
@@ -356,7 +357,7 @@ const styles = stylex.create({
     borderStyle: 'solid',
     borderColor: 'currentColor',
     borderRadius: '1px',
-    backgroundColor: 'var(--header-bg)',
+    backgroundColor: 'var(--surface)',
   },
   closeGlyph: {
     position: 'relative',

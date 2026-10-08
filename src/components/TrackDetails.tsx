@@ -5,10 +5,13 @@ import type { Track } from '../generated/typings';
 import { usePlayerState } from '../hooks/usePlayer';
 import {
   NO_VALUE,
+  audioFormatLabel,
+  formatBitDepth,
+  formatBitrate,
+  formatChannels,
   formatClockMs,
   formatFileSize,
-  formatPlayed,
-  formatTimestamp,
+  formatSampleRate,
 } from '../lib/dense-format';
 
 type Props = {
@@ -16,9 +19,14 @@ type Props = {
 };
 
 /**
- * The `.detail` panel: file facts on the left, the saved A-B loop's verbatim
- * numbers on the right. Everything the app genuinely owns is rendered; every
- * field with no data source renders an em-dash (see the report).
+ * The `.detail` panel: essential audio identity on the left (size, format,
+ * and the sample-rate / bit-depth / channels / bitrate line), the saved A-B
+ * loop's verbatim numbers on the right (A, B, length). Every row is backed
+ * by a real data source (the Track record from the Rust scan, or the live
+ * A-B loop state). File-management rows (path, added, played) and loop
+ * explainer rows (saved, on-open) are gone by explicit owner choice: the
+ * audio identity line carries the panel. Rows with nothing to show yet use
+ * an honest placeholder instead of a bare dash.
  */
 export default function TrackDetails({ trackPlaying }: Props) {
   const abLoop = usePlayerState((state) => state.abLoop);
@@ -29,41 +37,46 @@ export default function TrackDetails({ trackPlaying }: Props) {
   const saved = a != null || b != null;
   const length = a != null && b != null ? Math.abs(b - a) : null;
 
+  const sizeLabel =
+    trackPlaying != null ? formatFileSize(trackPlaying.file_size) : NO_VALUE;
+  const sizeValue =
+    sizeLabel === NO_VALUE && trackPlaying != null
+      ? t`unknown size`
+      : sizeLabel;
+  const formatLabel =
+    trackPlaying != null ? audioFormatLabel(trackPlaying.path) : NO_VALUE;
+  const formatValue =
+    formatLabel === NO_VALUE && trackPlaying != null
+      ? t`unknown format`
+      : formatLabel;
+  const audioLine =
+    trackPlaying != null
+      ? [
+          formatSampleRate(trackPlaying.sample_rate),
+          formatBitDepth(trackPlaying.bit_depth),
+          formatChannels(trackPlaying.channels),
+          formatBitrate(trackPlaying.bitrate),
+        ]
+          .filter((part) => part !== NO_VALUE)
+          .join(' . ')
+      : '';
+  const audioValue = audioLine !== '' ? audioLine : t`not available`;
+
   return (
     <div {...stylex.props(styles.detail)}>
       <div {...stylex.props(styles.dcol)}>
         <div {...stylex.props(styles.dhead)}>{t`TRACK FILE`}</div>
         <FactRow
-          label={t`Path`}
-          value={trackPlaying?.path ?? NO_VALUE}
-          title={trackPlaying?.path}
-        />
-        <FactRow
-          label={t`Added`}
-          value={
-            trackPlaying != null
-              ? formatTimestamp(trackPlaying.date_added)
-              : NO_VALUE
-          }
-        />
-        <FactRow
-          label={t`Played`}
-          value={
-            trackPlaying != null
-              ? formatPlayed(trackPlaying.play_count, trackPlaying.last_played)
-              : NO_VALUE
-          }
-        />
-        <FactRow
           label={t`Size`}
-          value={
-            trackPlaying != null
-              ? formatFileSize(trackPlaying.file_size)
-              : NO_VALUE
-          }
+          value={sizeValue}
+          known={sizeLabel !== NO_VALUE}
         />
-        <FactRow label={t`Peak`} value={NO_VALUE} />
-        <FactRow label={t`Hash`} value={NO_VALUE} />
+        <FactRow
+          label={t`Format`}
+          value={formatValue}
+          known={formatLabel !== NO_VALUE}
+        />
+        <FactRow label={t`Audio`} value={audioValue} known={audioLine !== ''} />
       </div>
 
       <div {...stylex.props(styles.dcol)}>
@@ -78,29 +91,21 @@ export default function TrackDetails({ trackPlaying }: Props) {
         </div>
         <FactRow
           label={t`A`}
-          value={a != null ? formatClockMs(a) : NO_VALUE}
+          value={a != null ? formatClockMs(a) : t`not set`}
           highlighted={a != null}
+          known={a != null}
         />
         <FactRow
           label={t`B`}
-          value={b != null ? formatClockMs(b) : NO_VALUE}
+          value={b != null ? formatClockMs(b) : t`not set`}
           highlighted={b != null}
+          known={b != null}
         />
         <FactRow
           label={t`Length`}
-          value={length != null ? formatClockMs(length) : NO_VALUE}
+          value={length != null ? formatClockMs(length) : t`not set`}
           highlighted={length != null}
-        />
-        <FactRow
-          label={t`Saved`}
-          value={
-            saved ? t`auto · stored with file` : t`none stored for this file`
-          }
-        />
-        <FactRow
-          label={t`On open`}
-          value={saved ? t`apply + loop immediately` : t`press [ and ] to set`}
-          highlighted={saved}
+          known={length != null}
         />
       </div>
     </div>
@@ -112,13 +117,18 @@ function FactRow({
   value,
   title,
   highlighted = false,
+  known = true,
 }: {
   label: string;
   value: string;
   title?: string;
   highlighted?: boolean;
+  // Whether the value is real data (false for translated placeholders such
+  // as "not set"). Tracked explicitly: every value here is pre-translated,
+  // so comparing against the NO_VALUE sentinel can never be false and would
+  // leave the "dry" branch dead.
+  known?: boolean;
 }) {
-  const hasValue = value !== NO_VALUE;
   return (
     <div {...stylex.props(styles.drow)}>
       <span {...stylex.props(styles.dk)}>{label}</span>
@@ -126,7 +136,7 @@ function FactRow({
         {...stylex.props(
           styles.dv,
           highlighted && styles.dvPin,
-          !hasValue && styles.dvDry,
+          !known && styles.dvDry,
         )}
         title={title ?? value}
       >
@@ -148,11 +158,11 @@ const styles = stylex.create({
     borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: 'var(--border-soft)',
-    borderRadius: '8px',
+    borderRadius: 'var(--radius-lg)',
     overflow: 'hidden',
   },
   dcol: {
-    paddingTop: '8px',
+    paddingTop: 'var(--space-2)',
     paddingBottom: '6px',
     paddingInline: '10px',
     minWidth: 0,
@@ -163,7 +173,7 @@ const styles = stylex.create({
       ':not(:first-child)': 'solid',
     },
     borderLeftColor: {
-      ':not(:first-child)': 'rgba(255,255,255,.07)',
+      ':not(:first-child)': 'var(--border-soft)',
     },
   },
   dhead: {
@@ -175,10 +185,10 @@ const styles = stylex.create({
     lineHeight: 1,
     letterSpacing: '.11em',
     color: 'var(--text-faint)',
-    marginBottom: '8px',
+    marginBottom: 'var(--space-2)',
   },
   markOn: {
-    color: 'var(--deep-pink)',
+    color: 'var(--accent)',
   },
   markOff: {
     color: 'var(--text-faint)',
@@ -186,7 +196,7 @@ const styles = stylex.create({
   drow: {
     display: 'grid',
     gridTemplateColumns: '58px minmax(0,1fr)',
-    columnGap: '8px',
+    columnGap: 'var(--space-2)',
     alignItems: 'center',
     height: '21px',
   },
@@ -200,7 +210,7 @@ const styles = stylex.create({
   },
   dv: {
     fontFamily: 'var(--mono-font)',
-    fontSize: '10.5px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     lineHeight: 1,
     color: 'var(--text-dim)',
@@ -209,7 +219,7 @@ const styles = stylex.create({
     textOverflow: 'ellipsis',
   },
   dvPin: {
-    color: 'var(--pink-text-soft)',
+    color: 'var(--accent-text)',
   },
   dvDry: {
     color: 'var(--text-faint)',
