@@ -10,8 +10,8 @@
  * * - every relocated Config key is reachable within 2 clicks from the main
  *   navigation (Settings -> Advanced, then no further navigation):
  *   sort-keys editor, autorefresh, stream server, follow-playing-track,
- *   menu bar, reset library (the Linux-only Wayland control is omitted on
- *   Windows)
+ *   menu bar, reset library (there is no platform-compatibility control:
+ *   the removed Linux-only flag has no successor on Windows)
  * - the library reset stays contained in a danger zone
  */
 import { expect, test } from 'vite-plus/test';
@@ -60,8 +60,10 @@ test('every relocated Config key is reachable on the Advanced screen with no fur
   await expect
     .element(page.getByRole('checkbox', { name: /menu bar/i }))
     .toBeVisible();
+  // The removed Linux-only flag has no successor: the Advanced screen
+  // offers no platform-compatibility control.
   await expect
-    .element(page.getByRole('checkbox', { name: /wayland/i }))
+    .element(page.getByRole('checkbox', { name: /compat/i }))
     .not.toBeInTheDocument();
 });
 

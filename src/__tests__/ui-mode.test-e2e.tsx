@@ -96,6 +96,32 @@ async function playFirstTrack(): Promise<Player> {
   return p;
 }
 
+type DisclosureName = 'A-B loop options' | 'Details and effects';
+
+/**
+ * The A-B controls and the effects/details blocks live behind closed-by-default
+ * disclosures in the now-playing column. Open the named one (a no-op when it
+ * is already open) and prove it actually opened via `aria-expanded`.
+ */
+async function openDisclosure(name: DisclosureName): Promise<void> {
+  const toggle = page.getByRole('button', { name });
+  if (
+    (toggle.element() as HTMLButtonElement).getAttribute('aria-expanded') !==
+    'true'
+  ) {
+    await toggle.click();
+  }
+  await waitFor(
+    () =>
+      (toggle.element() as HTMLButtonElement).getAttribute('aria-expanded') ===
+      'true',
+    3000,
+  );
+  expect(
+    (toggle.element() as HTMLButtonElement).getAttribute('aria-expanded'),
+  ).toBe('true');
+}
+
 // AC1: a fresh install starts minimal. Minimal drops the ledger, and the Queue
 // becomes a route-level view rather than the full-mode column.
 test('renders minimal by default: no ledger, queue is a route not a column', async () => {
@@ -134,6 +160,12 @@ test('renders full mode: ledger and queue column present', async () => {
 test('switches mode without remounting the player bands', async () => {
   const p = await playFirstTrack();
   await setMode('minimal');
+
+  // The A-B fields and the Burn strip live behind closed-by-default
+  // disclosures; open them so the band-identity assertions below have nodes
+  // to compare, and so the final visibility assertions see the new surface.
+  await openDisclosure('A-B loop options');
+  await openDisclosure('Details and effects');
 
   const regionBefore = page
     .getByRole('region', { name: 'Now playing' })

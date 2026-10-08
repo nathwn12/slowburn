@@ -13,11 +13,14 @@
  */
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { page } from 'vite-plus/test/browser';
 import { cleanup, render } from 'vitest-browser-react';
 
 import type { Track } from '../../generated/typings';
+import { MOCK_CONFIG } from '../../lib/__mocks__/bridge-config';
+import { configQuery } from '../../lib/queries';
 import { messages } from '../../translations/en.po';
 import Queue from '../Queue';
 
@@ -42,7 +45,7 @@ vi.mock('../../lib/player', () => ({
 }));
 
 vi.mock('../../lib/bridge-database', () => ({
-  default: { getAbLoop: async () => null },
+  default: { getAbLoop: async () => null, getAllPlaylists: async () => [] },
 }));
 
 function makeTrack(index: number): Track {
@@ -84,10 +87,20 @@ const rowAt = (index: number) =>
   page.getByRole('listbox', { name: 'Queue' }).getByRole('option').nth(index);
 
 async function mount(): Promise<void> {
+  // Queue reads config via useSuspenseQuery(configQuery) to compute isMini,
+  // so the render needs a client seeded with a non-mini config (same pattern
+  // as sort-control.test-e2e.tsx). MOCK_CONFIG's ui_mode is 'minimal'.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  queryClient.setQueryData(configQuery.queryKey, { ...MOCK_CONFIG });
+
   await render(
-    <I18nProvider i18n={i18n}>
-      <Queue queue={QUEUE} queueCursor={0} />
-    </I18nProvider>,
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider i18n={i18n}>
+        <Queue queue={QUEUE} queueCursor={0} />
+      </I18nProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -105,21 +118,60 @@ test('most-played ordering considers the whole queue, not the first page', async
   await mount();
 
   // Row 0 is the playing track (queue index 0); rows 1.. are upcoming.
-  // Before "Most played" is on, the upcoming order is the queue order.
+  // Before "Most played" is on, the upcoming order is the queue order, and
+  // the trigger button names the Manual order.
   await expect.element(rowAt(1)).toHaveTextContent('Track 1');
+  await expect
+    .element(page.getByRole('button', { name: 'Sort: Manual' }))
+    .toBeVisible();
 
-  await page.getByRole('button', { name: 'Most played' }).click();
+  // The sort state is a clickable control: open the menu and pick Most played.
+  await page.getByRole('button', { name: 'Sort: Manual' }).click();
+  await page.getByRole('menuitemradio', { name: 'Most played' }).click();
 
   // Track 24 has the highest play_count and sits *after* the first page. If the
   // sort runs after pagination it never reaches this row.
   await expect.element(rowAt(1)).toHaveTextContent('Track 24');
   await expect.element(rowAt(2)).toHaveTextContent('Track 23');
 
-  // Review Focus 5: the label and the behaviour move together.
-  await expect.element(page.getByText('sorted: most played')).toBeVisible();
+  // Review Focus 5: the label and the behaviour move together. The old
+  // static `sorted: most played` span is gone; the state is now announced
+  // through the trigger button's accessible name.
+  await expect
+    .element(page.getByRole('button', { name: 'Sort: Most played' }))
+    .toBeVisible();
+  await expect
+    .element(page.getByText('sorted: most played'))
+    .not.toBeInTheDocument();
+  await expect
+    .element(page.getByText('sorted: manual'))
+    .not.toBeInTheDocument();
 
   // A sort is a view, never a mutation of the stored queue.
   expect(QUEUE.map((track) => track.id)).toStrictEqual(
     Array.from({ length: 25 }, (_, index) => `id-${index}`),
   );
+});
+
+test('the sort menu offers exactly the two orders the queue honours', async () => {
+  await mount();
+
+  await page.getByRole('button', { name: 'Sort: Manual' }).click();
+  const menu = page.getByRole('menu', { name: 'Queue sort options' });
+  await expect.element(menu).toBeVisible();
+  await expect
+    .element(menu.getByRole('menuitemradio', { name: 'Manual' }))
+    .toHaveAttribute('aria-checked', 'true');
+  await expect
+    .element(menu.getByRole('menuitemradio', { name: 'Most played' }))
+    .toHaveAttribute('aria-checked', 'false');
+
+  // Choosing Manual keeps the queue order and closes the menu back onto a
+  // trigger that still names the Manual order.
+  await menu.getByRole('menuitemradio', { name: 'Manual' }).click();
+  await expect.element(menu).not.toBeInTheDocument();
+  await expect.element(rowAt(1)).toHaveTextContent('Track 1');
+  await expect
+    .element(page.getByRole('button', { name: 'Sort: Manual' }))
+    .toBeVisible();
 });

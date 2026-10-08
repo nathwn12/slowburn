@@ -1,11 +1,12 @@
 import type { Config } from '../../generated/typings';
 
 export const MOCK_CONFIG: Config = {
-  language: 'en',
   theme: 'light',
   ui_mode: 'minimal',
   ui_accent_color: null,
   ui_art_tint: false,
+  ui_details_open: false,
+  ui_ab_open: false,
   audio_volume: 1.0,
   audio_playback_rate: 1.0,
   audio_follow_playing_track: false,
@@ -20,6 +21,7 @@ export const MOCK_CONFIG: Config = {
   audio_slow: 1.0,
   audio_ab_enabled: true,
   default_view: 'Library',
+  default_view_migrated_v1: true,
   library_sort_by: 'Artist',
   library_sort_order: 'Asc',
   library_sort_keys: [
@@ -35,7 +37,6 @@ export const MOCK_CONFIG: Config = {
   auto_update_checker: false,
   notifications: false,
   track_view_density: 'normal',
-  wayland_compat: false,
   menu_bar_visible: false,
 };
 

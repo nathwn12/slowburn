@@ -197,6 +197,35 @@ test('mini stacks the condensed player above the queue', async () => {
   expect(playerBox.bottom).toBeLessThanOrEqual(queueBox.top);
 });
 
+// Owner report: in mini the song list was lost (the list area rendered
+// empty/cut). With an empty queue the panel falls back to the library source,
+// so the list region must still be visible with real rows and actually own
+// the remaining height below the condensed player.
+test('mini with an empty queue still shows the song list', async () => {
+  await setupScannedLibrary();
+  player().setQueue([]);
+  await setMode('mini');
+
+  await expect
+    .element(page.getByRole('heading', { name: 'QUEUE' }))
+    .toBeVisible();
+  // Empty queue: the Library source is selected, not a bare empty message.
+  await expect
+    .element(page.getByRole('tab', { name: 'Library' }))
+    .toHaveAttribute('aria-selected', 'true');
+
+  const panel = page.getByRole('tabpanel');
+  await expect.element(panel).toBeVisible();
+
+  // Real rows in the list region, and the region actually takes space.
+  const first = page
+    .getByRole('listbox', { name: 'Track list' })
+    .getByRole('option')
+    .nth(0);
+  await expect.element(first).toBeVisible();
+  expect(panel.element().getBoundingClientRect().height).toBeGreaterThan(0);
+});
+
 // S8 toggle: full -> mini -> full preserves the queue, the cursor, playback,
 // and the Now-playing node identity (no remount, no restart of the engine).
 // Only preservation is asserted here - the mini surface itself is gated by the

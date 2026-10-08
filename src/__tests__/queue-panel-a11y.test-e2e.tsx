@@ -12,6 +12,7 @@ import { page } from 'vite-plus/test/browser';
 
 import {
   beforeEachSetup,
+  getTrackByName,
   getTrackList,
   setupScannedLibrary,
 } from './e2e-helpers';
@@ -99,6 +100,53 @@ test('ArrowRight moves tab selection and focus with the roving tabindex', async 
   expect(
     tabElements().filter((element) => element.getAttribute('tabindex') === '0'),
   ).toHaveLength(1);
+});
+
+test('panel header tools are visible labelled buttons, not hover-only glyphs', async () => {
+  window.location.hash = '#/queue';
+  const shuffle = page.getByRole('button', { name: 'Shuffle queue' });
+  const clear = page.getByRole('button', { name: 'Clear queue' });
+
+  // Both controls render as visible buttons at rest with an accessible name
+  // that needs no hover (aria-label) plus the pointer tooltip (title).
+  await expect.element(shuffle).toBeVisible();
+  await expect.element(clear).toBeVisible();
+  await expect.element(shuffle).toHaveAttribute('aria-pressed', 'false');
+  expect(shuffle.element().getAttribute('title')).toBe('Shuffle queue');
+  expect(clear.element().getAttribute('title')).toBe('Clear queue');
+});
+
+test('queue sort state is a clickable control naming the active order', async () => {
+  // Seed a queue through the same path as the queue-explicit suite: scan,
+  // then double-click a library row to start playback.
+  await setupScannedLibrary();
+  await getTrackByName(/Whiskey Blues/).dblClick();
+
+  window.location.hash = '#/queue';
+  const trigger = page.getByRole('button', { name: 'Sort: Manual' });
+  await expect.element(trigger).toBeVisible();
+
+  // The old static readout is gone: no `sorted: ...` text anywhere.
+  await expect
+    .element(page.getByText('sorted: manual'))
+    .not.toBeInTheDocument();
+  await expect
+    .element(page.getByText('sorted: most played'))
+    .not.toBeInTheDocument();
+
+  // The control is clickable: it opens the two queue orders and the choice
+  // is announced through the trigger's accessible name.
+  await trigger.click();
+  const menu = page.getByRole('menu', { name: 'Queue sort options' });
+  await expect.element(menu).toBeVisible();
+  await expect
+    .element(menu.getByRole('menuitemradio', { name: 'Manual' }))
+    .toHaveAttribute('aria-checked', 'true');
+  await menu.getByRole('menuitemradio', { name: 'Most played' }).click();
+  await expect.element(menu).not.toBeInTheDocument();
+  await expect
+    .element(page.getByRole('button', { name: 'Sort: Most played' }))
+    .toBeVisible();
 });
 
 test('virtualized track rows expose position metadata', async () => {

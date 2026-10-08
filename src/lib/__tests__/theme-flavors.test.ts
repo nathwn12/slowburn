@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { averageAccentFromPixels } from '../cover';
-import { getTheme, themes } from '../themes';
+import { getTheme, resolveBootThemeId, themes } from '../themes';
 import { logAndNotifyError } from '../utils';
 
 vi.mock('../utils', () => ({
@@ -34,6 +34,22 @@ describe('S1 theme flavors', () => {
     expect(logAndNotifyError).toHaveBeenCalledWith(
       'Unknown theme "__nope__", defaulting to "light"',
     );
+  });
+});
+
+describe('boot theme resolution', () => {
+  test('a stored flavor round-trips verbatim, even against a different OS theme', () => {
+    expect(resolveBootThemeId('amoled', 'light')).toBe('amoled');
+    expect(resolveBootThemeId('dark-warm', 'light')).toBe('dark-warm');
+  });
+
+  test('__system resolves to the OS theme', () => {
+    expect(resolveBootThemeId('__system', 'dark')).toBe('dark');
+    expect(resolveBootThemeId('__system', 'light')).toBe('light');
+  });
+
+  test('an unknown stored id falls back safely without throwing', () => {
+    expect(resolveBootThemeId('__nope__', 'dark')).toBe('light');
   });
 });
 

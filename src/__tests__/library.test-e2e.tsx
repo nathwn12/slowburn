@@ -3,7 +3,6 @@ import { page, userEvent } from 'vite-plus/test/browser';
 
 import {
   beforeEachSetup,
-  getSortButton,
   getTrackAt,
   getTrackByName,
   setupScannedLibrary,
@@ -172,7 +171,24 @@ test('Search should filter tracks in the library', async () => {
   await expect.element(getTrackAt(2)).toBeInTheDocument();
 });
 
-test('Column headers should sort tracks in the library', async () => {
+test('the empty-search state offers a way back to all tracks', async () => {
+  await setupScannedLibrary();
+
+  const search = page.getByRole('textbox', { name: 'Search library' });
+  await search.fill('Something that does not exist');
+  await expect
+    .element(page.getByRole('status'))
+    .toHaveTextContent('Your search returned no results');
+
+  // The empty state's own affordance clears the query and restores the list
+  // (the filter test above covers the pill's clear control instead).
+  await page.getByRole('button', { name: 'Show all tracks' }).click();
+  await expect.element(getTrackAt(0)).toBeInTheDocument();
+  await expect.element(getTrackAt(1)).toBeInTheDocument();
+  expect((search.element() as HTMLInputElement).value).toBe('');
+});
+
+test('The sort control should sort tracks in the library', async () => {
   await setupScannedLibrary();
 
   const firstTrack = getTrackAt(0);
@@ -183,28 +199,43 @@ test('Column headers should sort tracks in the library', async () => {
   const track1content = 'Majestic Blues';
   const track2content = 'Romantic Blues';
 
+  const sortGroup = page.getByRole('group', {
+    name: 'Track list sorting options',
+  });
+  const sortMenu = () => page.getByRole('menu', { name: 'Sort options' });
+
   // The default stack is modified-desc then artist-asc; with no modified times
   // on the fixtures, artist ascending decides the order.
   await expect.element(firstTrack).toHaveTextContent(track0content);
   await expect.element(secondTrack).toHaveTextContent(track1content);
   await expect.element(thirdTrack).toHaveTextContent(track2content);
 
-  // Clicking the Artist header cycles artist from ascending to descending.
-  await getSortButton('Artist').click();
+  // Choosing Artist from the menu sorts by artist alone (ascending), so the
+  // visible order is unchanged but the trigger names the custom stack.
+  await sortGroup
+    .getByRole('button', { name: 'Sort: Recently modified' })
+    .click();
+  await sortMenu()
+    .getByRole('menuitem', { name: /Artist/ })
+    .click();
+  await expect.element(firstTrack).toHaveTextContent(track0content);
+  await expect.element(secondTrack).toHaveTextContent(track1content);
+  await expect.element(thirdTrack).toHaveTextContent(track2content);
+  await expect
+    .element(sortGroup.getByRole('button', { name: 'Sort: Custom (1 levels)' }))
+    .toBeVisible();
+
+  // The direction toggle flips the primary key to descending.
+  await sortGroup.getByRole('button', { name: /Sort direction/ }).click();
   await expect.element(firstTrack).toHaveTextContent(track2content);
   await expect.element(secondTrack).toHaveTextContent(track1content);
   await expect.element(thirdTrack).toHaveTextContent(track0content);
 
-  // Clicking Artist again removes it from the stack (the "off" state); with no
-  // modified times, the album/track keys then decide the order.
-  await getSortButton('Artist').click();
-  await expect.element(firstTrack).toHaveTextContent(track0content);
-  await expect.element(secondTrack).toHaveTextContent(track1content);
-  await expect.element(thirdTrack).toHaveTextContent(track2content);
-
-  // Shift-click replaces the stack with a single key, so this sorts by title
-  // alone (Majestic, Romantic, Whiskey).
-  await getSortButton('Title').click({ modifiers: ['Shift'] });
+  // Choosing Title sorts by title alone (Majestic, Romantic, Whiskey).
+  await sortGroup
+    .getByRole('button', { name: 'Sort: Custom (1 levels)' })
+    .click();
+  await sortMenu().getByRole('menuitem', { name: 'Title' }).click();
   await expect.element(firstTrack).toHaveTextContent(track1content);
   await expect.element(secondTrack).toHaveTextContent(track2content);
   await expect.element(thirdTrack).toHaveTextContent(track0content);

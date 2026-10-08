@@ -55,11 +55,19 @@ test('each library root renders its own row with path, count and status', async 
   });
   await expect.element(row).toBeVisible();
 
-  // ... plus that root's track count and scan status, inside its own row.
+  // ... plus that root's track count, inside its own row.
   await expect.element(row.getByText(/track/)).toBeVisible();
+
+  // The scan status is section-level (a single global refresh state), not a
+  // per-row value: it renders exactly once for the whole section ...
+  const status = page.getByText(/up to date|scanned|needs rescan|scanning/i);
+  await expect.element(status).toBeVisible();
+  expect(status.elements()).toHaveLength(1);
+
+  // ... and is therefore NOT duplicated inside each row.
   await expect
-    .element(row.getByText(/up to date|scanned|needs rescan|scanning/i))
-    .toBeVisible();
+    .element(row.getByText(/up to date|scanning/i))
+    .not.toBeInTheDocument();
 });
 
 test('rescan-all is offered separately from refresh-tags', async () => {

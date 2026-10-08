@@ -1,6 +1,7 @@
 /**
- * Volume strip: percentage readout, mute-vs-zero, click-to-mute, wheel and
- * keyboard adjustment, and the removal of the old slider/thumb.
+ * Minimal volume: a constantly visible hair-thin fill bar beside the mute
+ * icon button, and a transient percentage flash that appears only while the
+ * value changes (never pinned). No thumb, no accent ring, no popover.
  *
  * Silent by construction: `player` and `usePlayerState` are mocked, so rendering
  * this component never builds an audio graph. The browser is launched with
@@ -36,6 +37,24 @@ vi.mock('../../hooks/usePlayer', () => ({
 }));
 
 const bar = () => page.getByRole('button', { name: /Mute|Unmute/ });
+
+/** Polling helper for asserting disappearance (the repo's e2e convention). */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitFor(
+  predicate: () => boolean,
+  timeoutMs: number,
+): Promise<void> {
+  const start = performance.now();
+  while (!predicate()) {
+    if (performance.now() - start > timeoutMs) {
+      throw new Error('waitFor timed out');
+    }
+    await sleep(20);
+  }
+}
 
 /**
  * Monotonic synthetic wheel clock. The gesture boundary is read from the
@@ -80,6 +99,30 @@ const mount = () =>
     </I18nProvider>,
   );
 
+/**
+ * The mocked `usePlayerState` is a static snapshot per render; `rerender`
+ * re-renders the same instance without remounting it - the only way to drive
+ * the transient flash, which fires on value *change*.
+ */
+const liveTree = () => (
+  <I18nProvider i18n={i18n}>
+    <VolumeControl />
+  </I18nProvider>
+);
+
+const mountLive = () => render(liveTree());
+
+/** Point the mock store at new values, then re-render without remounting. */
+const restate = async (
+  screen: Awaited<ReturnType<typeof mountLive>>,
+  volume: number,
+  muted: boolean,
+) => {
+  harness.state.volume = volume;
+  harness.state.muted = muted;
+  await screen.rerender(liveTree());
+};
+
 beforeEach(() => {
   i18n.load('en', messages);
   i18n.activate('en');
@@ -93,43 +136,59 @@ afterEach(async () => {
   await cleanup();
 });
 
-test('renders the percentage readout', async () => {
+test('pins no percentage on mount', async () => {
   harness.state.volume = smoothify(0.42);
-  await mount();
-  await expect.element(page.getByText('42%')).toBeVisible();
+  await mountLive();
+  // A static mount is the "unchanged" state: fill bar visible at rest, but no
+  // flash and no pinned percentage.
+  expect(document.body.textContent).not.toContain('42%');
+  expect(document.querySelector('[role="status"]')).toBeNull();
+  const slider = page.getByRole('slider', { name: 'Volume' });
+  await expect.element(slider).toBeVisible();
 });
 
-test('renders 100% at maximum volume', async () => {
-  harness.state.volume = 1;
-  await mount();
+test('flashes the percentage while the value changes, then clears it', async () => {
+  harness.state.volume = smoothify(0.5);
+  const screen = await mountLive();
+  await restate(screen, smoothify(0.42), false);
+  const flash = page.getByRole('status');
+  await expect.element(flash).toBeVisible();
+  expect(flash.element().textContent).toBe('42%');
+  // Transient, never pinned: it clears itself shortly after (polled, since
+  // the framework's element assertions require the node to resolve).
+  await waitFor(() => document.querySelector('[role="status"]') == null, 5000);
+});
+
+test('flashes 100% at maximum volume', async () => {
+  harness.state.volume = smoothify(0.5);
+  const screen = await mountLive();
+  await restate(screen, 1, false);
   await expect.element(page.getByText('100%')).toBeVisible();
   expect(document.body.textContent).not.toContain('101%');
 });
 
-test('renders 0% when volume is zero and not muted', async () => {
-  harness.state.volume = 0;
-  harness.state.muted = false;
-  await mount();
+test('flashes 0% when the volume hits zero while unmuted', async () => {
+  harness.state.volume = smoothify(0.5);
+  const screen = await mountLive();
+  await restate(screen, 0, false);
   await expect.element(page.getByText('0%')).toBeVisible();
   expect(bar().element().getAttribute('data-muted')).toBe('false');
   expect(bar().element().getAttribute('data-icon')).toBe('volumeOff');
 });
 
 test('distinguishes muted from zero volume', async () => {
-  harness.state.volume = 0;
-  harness.state.muted = false;
-  await mount();
+  harness.state.volume = smoothify(0.5);
+  const screen = await mountLive();
+  await restate(screen, 0, false);
+  await expect.element(page.getByText('0%')).toBeVisible();
   const silentOpacity = getComputedStyle(bar().element()).opacity;
 
-  await cleanup();
-
-  harness.state.volume = 0;
-  harness.state.muted = true;
-  await mount();
+  await restate(screen, 0, true);
   const mutedBar = bar().element();
 
-  // Same readout (0%), different visual state: the muted marker and dimming.
-  await expect.element(page.getByText('0%')).toBeVisible();
+  // Same level (0%), different visual state: the muted marker, dimming, and
+  // a flash that reads Muted instead of 0%.
+  await expect.element(page.getByText('Muted')).toBeVisible();
   expect(mutedBar.getAttribute('data-muted')).toBe('true');
   expect(mutedBar.getAttribute('data-icon')).toBe('volumeMute');
   expect(getComputedStyle(mutedBar).opacity).toBe('0.6');
@@ -144,11 +203,43 @@ test('calls toggleMute when the bar is clicked', async () => {
   expect(harness.player.toggleMute).toHaveBeenCalledTimes(1);
 });
 
-test('renders no slider role and no thumb element', async () => {
-  await mount();
-  expect(document.querySelector('[role="slider"]')).toBeNull();
+test('the fill bar is constantly visible with no interaction', async () => {
+  harness.state.volume = smoothify(0.42);
+  await mountLive();
+  // No hover, no focus, no click: the bar renders at rest and fills to the
+  // current level.
+  const slider = page.getByRole('slider', { name: 'Volume' });
+  await expect.element(slider).toBeVisible();
+  expect(slider.element().getAttribute('aria-valuemax')).toBe('100');
+  expect(slider.element().getAttribute('aria-valuenow')).toBe('42');
+  expect(slider.element().getAttribute('aria-valuetext')).toBe('42%');
+  expect(document.querySelector('[role="status"]')).toBeNull();
   expect(document.querySelector('[data-museeks-action]')).toBeNull();
 });
+
+test('the fill bar renders no thumb and no accent ring', async () => {
+  harness.state.volume = smoothify(0.42);
+  await mountLive();
+  const slider = page.getByRole('slider', { name: 'Volume' });
+  await expect.element(slider).toBeVisible();
+  // No thumb element anywhere inside or beside the slider.
+  expect(
+    document.querySelector(
+      '[data-thumb],[data-testid="thumb"],[class*="thumb"]',
+    ),
+  ).toBeNull();
+  expect(slider.element().querySelectorAll('*').length).toBe(2);
+  // No accent ring: the slider carries no focus-ring / outline styling hook.
+  const outline = getComputedStyle(slider.element()).outlineStyle;
+  expect(outline === 'none' || outline === '').toBe(true);
+});
+
+// Residual (named, 2026-10-09): Escape-dismissal of the popover is not
+// asserted here. It passes in isolation (~33ms) but fails in full-file runs:
+// after an earlier test's real click parks the mouse over the button, an
+// Escape keydown (userEvent and direct dispatch alike) leaves `open` true on
+// a proven single attached mount. Design question deferred by the owner;
+// revisit with the volume-design decision.
 
 test('the wheel adjusts the volume and never scrolls the page', async () => {
   harness.state.volume = smoothify(0.5);
@@ -156,11 +247,9 @@ test('the wheel adjusts the volume and never scrolls the page', async () => {
   await mount();
 
   const element = bar().element();
-  // Prove the wheel TARGET is the comfortable hit area, not the visual fill:
-  // the ref'd element is >=14px while the track inside it stays 4px tall.
-  const visualTrack = element.firstElementChild as HTMLElement;
-  expect(element.getBoundingClientRect().height).toBeGreaterThanOrEqual(14);
-  expect(visualTrack.getBoundingClientRect().height).toBeLessThanOrEqual(4);
+  // The wheel listener lives on the row container; a wheel over the mute
+  // button bubbles to it, so the comfortable hit target is the button itself.
+  expect(element.tagName).toBe('BUTTON');
 
   // Two discrete notches in one gesture: each is its own step. A whole-gesture
   // suppression window (the rejected round-1 mechanism) would collapse the

@@ -98,6 +98,32 @@ async function commitField(
   await sleep(120);
 }
 
+type DisclosureName = 'A-B loop options' | 'Details and effects';
+
+/**
+ * The A-B controls and the effects/details blocks live behind closed-by-default
+ * disclosures in the now-playing column. Open the named one (a no-op when it
+ * is already open) and prove it actually opened via `aria-expanded`.
+ */
+async function openDisclosure(name: DisclosureName): Promise<void> {
+  const toggle = page.getByRole('button', { name });
+  if (
+    (toggle.element() as HTMLButtonElement).getAttribute('aria-expanded') !==
+    'true'
+  ) {
+    await toggle.click();
+  }
+  await waitFor(
+    () =>
+      (toggle.element() as HTMLButtonElement).getAttribute('aria-expanded') ===
+      'true',
+    3000,
+  );
+  expect(
+    (toggle.element() as HTMLButtonElement).getAttribute('aria-expanded'),
+  ).toBe('true');
+}
+
 beforeEach(() => {
   delete (globalThis as { __MUSEEKS_MOCK_AB_LOOPS?: unknown })
     .__MUSEEKS_MOCK_AB_LOOPS;
@@ -125,6 +151,9 @@ test(
   async () => {
     await playFirstTrack();
     const p = player();
+
+    // The Burn strip lives behind the `Details and effects` disclosure.
+    await openDisclosure('Details and effects');
 
     // One click up from neutral: reverb 0% -> 1%.
     await page.getByRole('button', { name: 'Increase reverb' }).click();
@@ -164,6 +193,9 @@ test(
   async () => {
     await playFirstTrack();
     const p = player();
+
+    // The A-B controls live behind the `A-B loop options` disclosure.
+    await openDisclosure('A-B loop options');
 
     p.pause();
     p.setCurrentTime(10);
@@ -212,6 +244,9 @@ test(
   async () => {
     await playFirstTrack();
     const p = player();
+
+    // The ● LOOPING pill lives inside the `A-B loop options` disclosure.
+    await openDisclosure('A-B loop options');
 
     await p.setAbPoint('A', 3);
     await p.setAbPoint('B', 6);
@@ -324,6 +359,9 @@ test(
   async () => {
     await playFirstTrack();
     const p = player();
+
+    // The Burn sliders live behind the `Details and effects` disclosure.
+    await openDisclosure('Details and effects');
 
     // Start from exactly neutral so the deltas are unambiguous, and let React
     // re-render before the wheel reads `sliderValue`.
@@ -442,6 +480,9 @@ test('the status bar restates the effects and the loop state', async () => {
   await playFirstTrack();
   const p = player();
 
+  // The Burn strip lives behind the `Details and effects` disclosure.
+  await openDisclosure('Details and effects');
+
   await p.setAbPoint('A', 3);
   await p.setAbPoint('B', 6);
   await page.getByRole('button', { name: 'Increase reverb' }).click();
@@ -481,6 +522,9 @@ test('the now-playing column scrolls instead of clipping at the floor', async ()
 test('typed A-B points commit, reject invalid input, and never invert', async () => {
   await playFirstTrack();
   const p = player();
+
+  // The typed A-B fields live behind the `A-B loop options` disclosure.
+  await openDisclosure('A-B loop options');
 
   const fieldA = page.getByRole('textbox', { name: 'Loop point A' });
   const fieldB = page.getByRole('textbox', { name: 'Loop point B' });
@@ -535,6 +579,9 @@ test(
     const fieldA = loopField('Loop point A');
     const fieldB = loopField('Loop point B');
 
+    // The typed A-B fields live behind the `A-B loop options` disclosure.
+    await openDisclosure('A-B loop options');
+
     await commitField(fieldA, '0:10');
     await commitField(fieldB, '0:20');
     await waitFor(
@@ -563,6 +610,9 @@ test(
     await playFirstTrack();
     const p = player();
 
+    // The typed A-B fields live behind the `A-B loop options` disclosure.
+    await openDisclosure('A-B loop options');
+
     // B first, then an A beyond the 300s mock track length (5:00).
     await commitField(loopField('Loop point B'), '0:10');
     await waitFor(() => p.getAbLoop().endSeconds === 10, 3000);
@@ -582,6 +632,9 @@ test('A == B == 0 is refused as a dead loop', { timeout: 30_000 }, async () => {
   await playFirstTrack();
   const p = player();
 
+  // The typed A-B fields live behind the `A-B loop options` disclosure.
+  await openDisclosure('A-B loop options');
+
   await commitField(loopField('Loop point A'), '0');
   await commitField(loopField('Loop point B'), '0');
   await waitFor(() => p.getAbLoop().endSeconds != null, 3000);
@@ -593,21 +646,39 @@ test('A == B == 0 is refused as a dead loop', { timeout: 30_000 }, async () => {
   expect(loop.endSeconds! - loop.startSeconds!).toBeGreaterThan(0);
 });
 
-test('the breadcrumb crumb link ellipsizes instead of overflowing', async () => {
+test('the breadcrumb Library crumb ellipsizes instead of overflowing', async () => {
   await setupScannedLibrary();
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
+
+  const expectEllipsis = (crumb: Element) => {
+    const style = getComputedStyle(crumb);
+    // D6: the one shell string that could still clip at narrow widths.
+    expect(style.textOverflow).toBe('ellipsis');
+    expect(style.overflow).toBe('hidden');
+    expect(style.whiteSpace).toBe('nowrap');
+    expect(style.minWidth).toBe('0px');
+  };
+
+  // Boot route is the library root, so the Library crumb points at the page
+  // already shown: it renders as the non-interactive current marker, not a
+  // link. (Two `b[aria-current]` crumbs share the row here, so scope by
+  // title to the Library one.)
+  const home = nav.element().querySelector('b[title="Library"]');
+  if (home == null) throw new Error('breadcrumb has no Library crumb');
+  expect(home.tagName).toBe('B');
+  expectEllipsis(home);
+
+  // Off the library root the Library crumb IS a genuine link: the same D6
+  // guarantee pins its word too.
+  await nav.getByRole('link', { name: 'Settings' }).click();
   const link = nav.getByRole('link', { name: 'Library' });
-  const style = getComputedStyle(link.element());
-  // D6: the one shell string that could still clip at narrow widths.
-  expect(style.textOverflow).toBe('ellipsis');
-  expect(style.overflow).toBe('hidden');
-  expect(style.whiteSpace).toBe('nowrap');
-  expect(style.minWidth).toBe('0px');
+  await expect.element(link).toBeVisible();
+  expectEllipsis(link.element());
 });
 
 test('keeps the volume strip mounted with no track loaded', async () => {
   // Deliberately no scan and no playback: this is the empty state. The player
-  // band (and its volume strip) must survive it — spec §3.4 invariant 1.
+  // band (and its volume strip) must survive it - spec §3.4 invariant 1.
   // Assert the strip element itself, not a percentage: the player singleton
   // carries the volume from earlier tests in this file.
   const region = page.getByRole('region', { name: 'Now playing' });
@@ -615,3 +686,117 @@ test('keeps the volume strip mounted with no track loaded', async () => {
   await expect.element(strip).toBeVisible();
   expect(strip.element().getAttribute('data-icon')).toMatch(/^volume/);
 });
+
+test(
+  'the details panel keeps only essentials and the disclosures persist as user choices',
+  { timeout: 30_000 },
+  async () => {
+    await playFirstTrack();
+    const region = page.getByRole('region', { name: 'Now playing' });
+
+    const bridge = (await import('../lib/bridge-config')) as unknown as {
+      default: {
+        config: { ui_details_open: boolean; ui_ab_open: boolean };
+      };
+    };
+    const { default: queryClient } = await import('../lib/query-client');
+    const { configQuery } = await import('../lib/queries');
+    const refresh = () =>
+      queryClient.invalidateQueries({ queryKey: configQuery.queryKey });
+
+    // A fresh config opens CLEAN: both disclosures collapsed.
+    bridge.default.config = {
+      ...bridge.default.config,
+      ui_details_open: false,
+      ui_ab_open: false,
+    };
+    await refresh();
+    await waitFor(
+      () =>
+        region
+          .getByRole('button', { name: 'A-B loop options' })
+          .element()
+          .getAttribute('aria-expanded') === 'false',
+      3000,
+    );
+    expect(
+      region
+        .getByRole('button', { name: 'Details and effects' })
+        .element()
+        .getAttribute('aria-expanded'),
+    ).toBe('false');
+    await expect
+      .element(region.getByRole('textbox', { name: 'Loop point A' }))
+      .not.toBeInTheDocument();
+
+    // A stored explicit choice is read back on mount: open with no clicks.
+    bridge.default.config = {
+      ...bridge.default.config,
+      ui_details_open: true,
+      ui_ab_open: true,
+    };
+    await refresh();
+    await waitFor(
+      () =>
+        region
+          .getByRole('button', { name: 'A-B loop options' })
+          .element()
+          .getAttribute('aria-expanded') === 'true',
+      3000,
+    );
+    expect(
+      region
+        .getByRole('button', { name: 'Details and effects' })
+        .element()
+        .getAttribute('aria-expanded'),
+    ).toBe('true');
+
+    // The essentials stay: track-file audio identity and the loop numbers.
+    // Exact matches: the row labels are leaf spans, and substring matching
+    // would also catch every ancestor that merely contains the word.
+    await expect
+      .element(region.getByText('Size', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(region.getByText('Format', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(region.getByText('Audio', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(region.getByText('Length', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(region.getByRole('textbox', { name: 'Loop point A' }))
+      .toBeVisible();
+
+    // The removed rows are gone: path / added / played, saved / on-open.
+    // Exact again: the LoopControls pill says "Saved loop", which must not
+    // count as the removed "Saved" row.
+    await expect
+      .element(region.getByText('Path', { exact: true }))
+      .not.toBeInTheDocument();
+    await expect
+      .element(region.getByText('Added', { exact: true }))
+      .not.toBeInTheDocument();
+    await expect
+      .element(region.getByText('Played', { exact: true }))
+      .not.toBeInTheDocument();
+    await expect
+      .element(region.getByText('Saved', { exact: true }))
+      .not.toBeInTheDocument();
+    await expect
+      .element(region.getByText('On open', { exact: true }))
+      .not.toBeInTheDocument();
+
+    // Toggling writes the explicit choice back through the persisted config.
+    await region.getByRole('button', { name: 'Details and effects' }).click();
+    await waitFor(() => bridge.default.config.ui_details_open === false, 3000);
+    expect(
+      region
+        .getByRole('button', { name: 'Details and effects' })
+        .element()
+        .getAttribute('aria-expanded'),
+    ).toBe('false');
+  },
+);
