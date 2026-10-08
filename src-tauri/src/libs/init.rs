@@ -1,11 +1,11 @@
-use std::{env, fs};
+use std::fs;
 
 use home_config::HomeConfig;
 
 use crate::plugins::config::Config;
 use crate::{
     libs::error::AnyResult,
-    plugins::config::{ConfigManager, get_storage_dir},
+    plugins::config::{get_storage_dir, ConfigManager},
 };
 
 pub fn init() -> AnyResult<ConfigManager> {
@@ -39,7 +39,10 @@ pub fn init() -> AnyResult<ConfigManager> {
 
     let config = match existing_config {
         Ok(config) => {
-            // Backfill any missing keys populated by serde defaults.
+            // One-shot "default to All tracks" migration for pre-existing
+            // configs, then backfill any missing keys populated by serde
+            // defaults.
+            let config = config.migrate_default_view();
             manager.save_toml(&config).unwrap();
 
             ConfigManager::new(manager, config)
@@ -52,14 +55,6 @@ pub fn init() -> AnyResult<ConfigManager> {
             ConfigManager::new(manager, default_config)
         }
     };
-
-    // 3. Ensure Wayland compatibility fixes if the user requests them
-    if config.get()?.wayland_compat {
-        unsafe {
-            env::set_var("GDK_BACKEND", "x11");
-            env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
-        }
-    }
 
     Ok(config)
 }

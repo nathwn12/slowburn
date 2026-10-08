@@ -17,17 +17,13 @@ pub async fn show<R: Runtime>(
     window: tauri::Window<R>,
     config_manager: State<'_, ConfigManager>,
 ) -> AnyResult<()> {
-    // On macOS, the menu is global, and thus does not need to be toggled
-    #[cfg(not(target_os = "macos"))]
+    // The menu is in-app, and thus does not need to be toggled natively.
     {
-        window.show_menu()?;
-        config_manager.set_menu_bar_visible(true)?;
-    }
-
-    #[cfg(target_os = "macos")]
-    {
+        // No native window menu is attached (it would
+        // force the OS title bar back on); the in-app MenuBar reads this
+        // flag instead.
         drop(window);
-        drop(config_manager);
+        config_manager.set_menu_bar_visible(true)?;
     }
 
     Ok(())
@@ -38,48 +34,46 @@ pub async fn hide<R: Runtime>(
     window: tauri::Window<R>,
     config_manager: State<'_, ConfigManager>,
 ) -> AnyResult<()> {
-    #[cfg(not(target_os = "macos"))]
     {
-        window.hide_menu()?;
-        config_manager.set_menu_bar_visible(false)?;
-    }
-
-    #[cfg(target_os = "macos")]
-    {
+        // See show(): config-only, no native menu to sync.
         drop(window);
-        drop(config_manager);
+        config_manager.set_menu_bar_visible(false)?;
     }
 
     Ok(())
 }
 
-/// Show the window and apply the persisted menu visibility in one call.
-/// This avoids a GTK bug where show_all() (called internally by window.show())
-/// re-shows the menu bar that was hidden in on_window_ready.
-/// See: https://github.com/tauri-apps/tao/issues/1201
+/// Force tao to actually write the borderless style.
+///
+/// tao's `WindowState::set_window_flags` only writes window styles via
+/// `old_flags.apply_diff(window, new_flags)` (tao-0.35.3
+/// `src/platform_impl/windows/window_state.rs:176-181`), i.e. only the
+/// *difference* is applied. `set_decorations(false)` clears
+/// MARKER_DECORATIONS, but that marker is already false from window
+/// creation, so the diff is empty and the call is a silent no-op while
+/// WS_CAPTION stays set. Toggling true-then-false produces two non-empty
+/// diffs, so the second write clears the caption. Runs before `show()`,
+/// so there is no visible flash.
+fn enforce_frameless<R: Runtime>(window: &tauri::Window<R>) {
+    let _ = window.set_decorations(true);
+    let _ = window.set_decorations(false);
+}
+
+/// Show the window; menu visibility lives in config and is rendered by
+/// the in-app MenuBar, so there is no native menu to sync.
 #[tauri::command]
-pub async fn show_window<R: Runtime>(
-    window: tauri::Window<R>,
-    config_manager: State<'_, ConfigManager>,
-) -> AnyResult<()> {
+pub async fn show_window<R: Runtime>(window: tauri::Window<R>) -> AnyResult<()> {
+    // tao (re-)applies window styles during its creation pass, so
+    // an early `decorations(false)` does not survive it. The window is
+    // created invisible and first becomes visible here, so re-assert
+    // frameless around `show()` to strip the WS_CAPTION the creation pass
+    // left behind. Plain `set_decorations(false)` is a no-op (empty tao
+    // diff) - the toggle forces a real style write.
+    enforce_frameless(&window);
+
     window.show()?;
 
-    #[cfg(not(target_os = "macos"))]
-    {
-        let menu_visible = config_manager
-            .get()
-            .map(|c| c.menu_bar_visible)
-            .unwrap_or(false);
-
-        if menu_visible {
-            window.show_menu()?;
-        } else {
-            window.hide_menu()?;
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    drop(config_manager);
+    enforce_frameless(&window);
 
     Ok(())
 }
@@ -108,6 +102,52 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .website_label("museeks.io".into())
                 .icon(Some(icon))
                 .build();
+
+            // -----------------------------------------------------------------
+            // File sub-menu (AIMP-familiar entry point; Quit lives here)
+            // -----------------------------------------------------------------
+            let file_menu: tauri::menu::Submenu<R> =
+                SubmenuBuilder::new(app_handle, "File")
+                    .quit()
+                    .build()
+                    .unwrap();
+
+            // -----------------------------------------------------------------
+            // Playback sub-menu: the transport, emitting the same IPC events
+            // the in-app menu bar and the shortcuts drive.
+            // -----------------------------------------------------------------
+            let playback_menu: tauri::menu::Submenu<R> =
+                SubmenuBuilder::new(app_handle, "Playback")
+                    .item(
+                        &MenuItemBuilder::new("Play / Pause")
+                            .id(MenuId::new("playback_play_pause"))
+                            .accelerator("CmdOrCtrl+Space")
+                            .build(app_handle)
+                            .unwrap(),
+                    )
+                    .item(
+                        &MenuItemBuilder::new("Stop")
+                            .id(MenuId::new("playback_stop"))
+                            .build(app_handle)
+                            .unwrap(),
+                    )
+                    .separator()
+                    .item(
+                        &MenuItemBuilder::new("Previous track")
+                            .id(MenuId::new("playback_previous"))
+                            .accelerator("CmdOrCtrl+Left")
+                            .build(app_handle)
+                            .unwrap(),
+                    )
+                    .item(
+                        &MenuItemBuilder::new("Next track")
+                            .id(MenuId::new("playback_next"))
+                            .accelerator("CmdOrCtrl+Right")
+                            .build(app_handle)
+                            .unwrap(),
+                    )
+                    .build()
+                    .unwrap();
 
             // -----------------------------------------------------------------
             // Edit sub-menu
@@ -189,20 +229,26 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .unwrap();
 
             // -----------------------------------------------------------------
+            // Tools sub-menu
+            // -----------------------------------------------------------------
+            let tools_menu: tauri::menu::Submenu<R> =
+                SubmenuBuilder::new(app_handle, "Tools")
+                    .item(
+                        &MenuItemBuilder::new("Settings")
+                            .id(MenuId::new("open_settings"))
+                            .build(app_handle)
+                            .unwrap(),
+                    )
+                    .build()
+                    .unwrap();
+
+            // -----------------------------------------------------------------
             // Help sub-menu
             // -----------------------------------------------------------------
             let help_menu_builder = {
                 let builder = SubmenuBuilder::new(app_handle, "Help");
 
-                #[cfg(not(target_os = "macos"))]
-                {
-                    builder.about(Some(about_metadata))
-                }
-
-                #[cfg(target_os = "macos")]
-                {
-                    builder
-                }
+                builder.about(Some(about_metadata))
             };
 
             let help_menu = help_menu_builder
@@ -219,62 +265,48 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             // Assembled menu + listeners
             // -----------------------------------------------------------------
             let menu_builder = {
-                let builder = MenuBuilder::new(app_handle);
-
-                #[cfg(target_os = "macos")]
-                {
-                    let slowburn_menu = SubmenuBuilder::new(app_handle, "Slowburn")
-                        .about(Some(about_metadata))
-                        .separator()
-                        .services()
-                        .hide()
-                        .hide_others()
-                        .show_all()
-                        .separator()
-                        .quit()
-                        .build()
-                        .unwrap();
-
-                    builder.items(&[&slowburn_menu])
-                }
-
-                #[cfg(not(target_os = "macos"))]
-                {
-                    builder
-                }
+                MenuBuilder::new(app_handle)
             };
 
-            // The menu on macOS is app-wide and not specific to one window
-            #[cfg(target_os = "macos")]
+            // No native window menu is attached: a
+            // native menu occupies the window's non-client area, which
+            // forces WS_CAPTION back on and defeats decorations(false)
+            // (the OS title bar comes back alongside the app's own title
+            // bar). The in-app MenuBar (gated on menu_bar_visible) is the
+            // menu surface instead. The menu is still constructed so the
+            // menu-event handlers below keep working; it is
+            // simply never attached.
             {
-                let file_menu = SubmenuBuilder::new(app_handle, "File")
-                    .close_window()
+                let _menu = menu_builder
+                    .items(&[
+                        &file_menu,
+                        &playback_menu,
+                        &edit_menu,
+                        &view_menu,
+                        &tools_menu,
+                        &window_menu,
+                        &help_menu,
+                    ])
                     .build()
                     .unwrap();
-
-                let menu = menu_builder
-                    .items(&[&file_menu, &edit_menu, &view_menu, &window_menu, &help_menu])
-                    .build()
-                    .unwrap();
-
-                app_handle.set_menu(menu).unwrap();
-            }
-
-            // On Windows / Linux, app menus are wasting vertical space, so we
-            // hide it by default. The menu get toggle-able by pressing Alt.
-            #[cfg(not(target_os = "macos"))]
-            {
-                let menu = menu_builder
-                    // No file menu on Windows / Linux
-                    .items(&[&edit_menu, &view_menu, &window_menu, &help_menu])
-                    .build()
-                    .unwrap();
-
-                window.set_menu(menu).unwrap();
-                window.hide_menu().unwrap();
             }
 
             window.on_menu_event(|win, event| match event.id.as_ref() {
+                "playback_play_pause" => {
+                    win.emit(IPCEvent::PlaybackPlayPause.as_ref(), ()).unwrap();
+                }
+                "playback_stop" => {
+                    win.emit(IPCEvent::PlaybackStop.as_ref(), ()).unwrap();
+                }
+                "playback_previous" => {
+                    win.emit(IPCEvent::PlaybackPrevious.as_ref(), ()).unwrap();
+                }
+                "playback_next" => {
+                    win.emit(IPCEvent::PlaybackNext.as_ref(), ()).unwrap();
+                }
+                "open_settings" => {
+                    win.emit(IPCEvent::GoToSettings.as_ref(), ()).unwrap();
+                }
                 "jump_to_playing_track" => {
                     win.emit(IPCEvent::JumpToPlayingTrack.as_ref(), ()).unwrap();
                 }

@@ -93,12 +93,21 @@ pub enum UiMode {
 #[ts(export, export_to = "../../src/generated/typings.ts")]
 #[serde(default)]
 pub struct Config {
-    pub language: String,
     pub theme: String,
     pub ui_mode: UiMode,
     pub ui_accent_color: Option<String>,
     #[serde(default)]
     pub ui_art_tint: bool,
+    /// Explicit user choice for the now-playing Details disclosure.
+    /// Collapsed on a fresh config; a toggle writes it back via the config
+    /// bridge so the choice survives restarts. Missing on old files, where
+    /// `#[serde(default)]` yields false (collapsed).
+    #[serde(default)]
+    pub ui_details_open: bool,
+    /// Explicit user choice for the now-playing A-B disclosure. Same
+    /// collapsed-by-default, persisted-on-toggle contract as above.
+    #[serde(default)]
+    pub ui_ab_open: bool,
     pub audio_volume: f32,
     pub audio_playback_rate: Option<f32>,
     pub audio_follow_playing_track: bool,
@@ -113,6 +122,13 @@ pub struct Config {
     pub audio_slow: f32,
     pub audio_ab_enabled: bool,
     pub default_view: DefaultView,
+    /// One-shot v1 migration flag for the "default to All tracks" change:
+    /// configs written before it may carry any stored `default_view`; the
+    /// first boot with this build resets it to `Library` (the all-tracks
+    /// list) and flips this, so later explicit user choices are never
+    /// touched. Missing on old files, where `#[serde(default)]` yields false.
+    #[serde(default)]
+    pub default_view_migrated_v1: bool,
     pub library_sort_by: SortBy,
     pub library_sort_order: SortOrder,
     /// Ordered multi-key sort (AIMP-style). Additive: `library_sort_by` and
@@ -125,9 +141,22 @@ pub struct Config {
     pub auto_update_checker: bool,
     pub notifications: bool,
     pub track_view_density: TrackViewDensity,
-    pub wayland_compat: bool,
     #[serde(default)]
     pub menu_bar_visible: bool,
+}
+
+impl Config {
+    /// One-shot "default to All tracks" migration (v1): a stored config from
+    /// before this change may carry any `default_view` (e.g. `Playlists`);
+    /// reset it to `Library` - the route that renders the all-tracks list -
+    /// exactly once, then flip the flag so later explicit user choices stick.
+    pub fn migrate_default_view(mut self) -> Self {
+        if !self.default_view_migrated_v1 {
+            self.default_view = DefaultView::Library;
+            self.default_view_migrated_v1 = true;
+        }
+        self
+    }
 }
 
 pub const SYSTEM_THEME: &str = "__system";
@@ -135,20 +164,18 @@ pub const SYSTEM_THEME: &str = "__system";
 impl Default for Config {
     fn default() -> Self {
         Config {
-            language: "en".to_owned(),
             theme: SYSTEM_THEME.to_owned(),
             ui_mode: UiMode::Full,
             ui_accent_color: None,
             ui_art_tint: false,
+            ui_details_open: false,
+            ui_ab_open: false,
             audio_volume: 1.0,
             audio_playback_rate: Some(1.0),
             audio_follow_playing_track: false,
             audio_muted: false,
             audio_shuffle: false,
             audio_repeat: Repeat::None,
-            #[cfg(target_os = "linux")]
-            audio_stream_server: true,
-            #[cfg(not(target_os = "linux"))]
             audio_stream_server: false,
             audio_effects_enabled: true,
             audio_reverb_enabled: true,
@@ -157,6 +184,7 @@ impl Default for Config {
             audio_slow: 1.0,
             audio_ab_enabled: true,
             default_view: DefaultView::Library,
+            default_view_migrated_v1: true,
             library_sort_by: SortBy::Artist,
             library_sort_order: SortOrder::Asc,
             library_sort_keys: vec![
@@ -187,8 +215,9 @@ impl Default for Config {
             auto_update_checker: false,
             notifications: false,
             track_view_density: TrackViewDensity::Normal,
-            wayland_compat: false,
-            menu_bar_visible: false,
+            // Visible by default (AIMP-familiar menus): the
+            // in-app MenuBar is the only menu surface there.
+            menu_bar_visible: true,
         }
     }
 }
@@ -232,7 +261,6 @@ impl ConfigManager {
         self.save()
     }
 
-    #[cfg(not(target_os = "macos"))]
     pub fn set_menu_bar_visible(&self, visible: bool) -> AnyResult<()> {
         let mut writer = self.data.write().map_err(config_err)?;
         writer.menu_bar_visible = visible;
@@ -305,6 +333,46 @@ pub fn init<R: Runtime>(config: ConfigManager) -> TauriPlugin<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_view_is_the_all_tracks_list() {
+        // Fresh configs land on /library via the default-view plugin, and
+        // /library renders the all-tracks TrackList: nothing to migrate.
+        let config = Config::default();
+        assert!(matches!(config.default_view, DefaultView::Library));
+        assert!(config.default_view_migrated_v1);
+        assert!(matches!(
+            config.migrate_default_view().default_view,
+            DefaultView::Library
+        ));
+    }
+
+    #[test]
+    fn stored_default_view_migrates_to_library_exactly_once() {
+        // Simulate the owner's existing config: a stored Playlists choice
+        // without the migration flag moves to Library once...
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.insert(
+            "default_view".to_owned(),
+            serde_json::Value::String("Playlists".to_owned()),
+        );
+        obj.remove("default_view_migrated_v1");
+
+        let loaded: Config = serde_json::from_value(value).unwrap();
+        assert!(!loaded.default_view_migrated_v1);
+        let migrated = loaded.migrate_default_view();
+        assert!(matches!(migrated.default_view, DefaultView::Library));
+        assert!(migrated.default_view_migrated_v1);
+
+        // ...and an already-migrated explicit choice (e.g. Artists picked
+        // after this change) is never touched again.
+        let mut reselected = migrated;
+        reselected.default_view = DefaultView::Artists;
+        let kept = reselected.migrate_default_view();
+        assert!(matches!(kept.default_view, DefaultView::Artists));
+        assert!(kept.default_view_migrated_v1);
+    }
 
     #[test]
     fn ui_mode_defaults_to_full() {
@@ -400,5 +468,52 @@ mod tests {
 
         let loaded: Config = serde_json::from_value(value).unwrap();
         assert!(!loaded.ui_art_tint);
+    }
+
+    #[test]
+    fn removed_keys_still_deserialize_for_existing_configs() {
+        // The owner's persisted file may still carry `language` and
+        // `wayland_compat`. `Config` is `#[serde(default)]` with no
+        // `deny_unknown_fields`, so those keys must be ignored instead of
+        // failing the parse and resetting the owner's settings.
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.insert(
+            "language".to_owned(),
+            serde_json::Value::String("en".to_owned()),
+        );
+        obj.insert("wayland_compat".to_owned(), serde_json::Value::Bool(true));
+
+        let loaded: Config = serde_json::from_value(value).unwrap();
+        let fresh = Config::default();
+        assert_eq!(loaded.theme, fresh.theme);
+        assert_eq!(loaded.audio_volume, fresh.audio_volume);
+        assert!(matches!(loaded.default_view, DefaultView::Library));
+    }
+
+    #[test]
+    fn disclosure_states_default_to_collapsed_and_old_configs_still_deserialize() {
+        // A fresh config opens CLEAN: both disclosures collapsed.
+        let fresh = Config::default();
+        assert!(!fresh.ui_details_open);
+        assert!(!fresh.ui_ab_open);
+
+        // Simulate an existing config file written before these keys.
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.remove("ui_details_open");
+        obj.remove("ui_ab_open");
+
+        let loaded: Config = serde_json::from_value(value).unwrap();
+        assert!(!loaded.ui_details_open);
+        assert!(!loaded.ui_ab_open);
+
+        // A stored explicit choice round-trips verbatim.
+        let mut chosen = loaded;
+        chosen.ui_details_open = true;
+        chosen.ui_ab_open = true;
+        let back: Config = serde_json::from_str(&serde_json::to_string(&chosen).unwrap()).unwrap();
+        assert!(back.ui_details_open);
+        assert!(back.ui_ab_open);
     }
 }

@@ -18,6 +18,24 @@ use tauri_plugin_window_state::StateFlags;
 /**
  * The beast
  */
+/// Windows-only: force tao to actually write the borderless style.
+///
+/// tao's `WindowState::set_window_flags` only writes window styles via
+/// `old_flags.apply_diff(window, new_flags)` (tao-0.35.3
+/// `src/platform_impl/windows/window_state.rs:176-181`), i.e. only the
+/// *difference* is applied. `set_decorations(false)` clears
+/// MARKER_DECORATIONS, but that marker is already false from window
+/// creation (`decorations(false)` builder), so the diff is empty and the
+/// call is a silent no-op while WS_CAPTION stays set. Toggling
+/// true-then-false produces two non-empty diffs, so the second write
+/// recomputes the style with `style &= !WS_CAPTION` (`window_state.rs`
+/// `:271-272`, `:307-308`) and the caption is really removed. Runs
+/// before the window is shown, so there is no visible flash.
+fn enforce_frameless<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>) {
+    let _ = window.set_decorations(true);
+    let _ = window.set_decorations(false);
+}
+
 fn main() {
     let config = match init() {
         Ok(config) => {
@@ -101,13 +119,18 @@ fn main() {
                     StateFlags::all()
                         & !StateFlags::VISIBLE
                         & !StateFlags::SIZE
-                        & !StateFlags::POSITION,
+                        & !StateFlags::POSITION
+                        // Never restore decorations: the window-state plugin
+                        // calls `set_decorations(state.decorated)` on launch,
+                        // which would re-apply the OS title bar over our
+                        // custom TitleBar. Frameless is enforced below.
+                        & !StateFlags::DECORATIONS,
                 )
                 .build(),
         );
 
-    // Experimental: local HTTP server for audio streaming
-    // (WebKitGTK's asset protocol doesn't support media streaming)
+    // Experimental: local HTTP server for audio streaming, off unless
+    // enabled in the config.
     let builder = if enable_stream_server {
         builder.plugin(plugins::stream_server::init())
     } else {
@@ -131,32 +154,34 @@ fn main() {
                     .resizable(true)
                     .zoom_hotkeys_enabled(true);
 
-            // Frameless on Windows: the app draws its own title bar
+            // Frameless: the app draws its own title bar
             // (`src/components/TitleBar.tsx`) instead of the OS chrome.
             // Resizing still works - Tauri keeps the native resize borders
             // on borderless windows - and so do minimize/maximize/close,
             // wired to the Tauri window API from the custom bar.
-            #[cfg(target_os = "windows")]
-            window_builder
-                .decorations(false)
-                .disable_drag_drop_handler()
-                .build()?;
-
-            // On macOS, we hide the native frame and use overlay controls as they're nicer
-            #[cfg(target_os = "macos")]
-            window_builder
-                .hidden_title(true)
-                .title_bar_style(tauri::TitleBarStyle::Overlay)
-                .traffic_light_position(tauri::Position::Logical(tauri::LogicalPosition {
-                    x: 10.0,
-                    // this will look meh on macOS 26 https://github.com/tauri-apps/tauri/issues/14477
-                    // but we're keeping this for not looking even worse on macOS 14 and 15
-                    y: 23.0,
-                }))
-                .build()?;
-
-            #[cfg(target_os = "linux")]
-            window_builder.build()?;
+            {
+                let window = window_builder
+                    .decorations(false)
+                    .disable_drag_drop_handler()
+                    .build()?;
+                // Belt-and-braces: a stale saved state (from before DECORATIONS
+                // was excluded above) could still re-enable the OS chrome on
+                // first launch, so force frameless off again after build.
+                // Plain `set_decorations(false)` is a no-op here (see
+                // `enforce_frameless`): the toggle forces a real tao diff.
+                enforce_frameless(&window);
+                // Bounded one-shot re-assert for windows shown by any other
+                // path (single-instance focus, etc.): tao applies styles
+                // during its creation pass, after the early `decorations`
+                // calls above, so re-assert frameless once the creation pass
+                // has settled. Deliberately a single delayed call, not an
+                // event hook, so it cannot loop.
+                let frameless = window.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    enforce_frameless(&frameless);
+                });
+            }
 
             info!("Main window built");
 
@@ -164,13 +189,5 @@ fn main() {
         })
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
-        // Handle file associations on macOS, this will get triggered when the
-        // app starts, AND when the app is already running and a file is opened.
-        .run(
-            #[allow(unused_variables)]
-            |app_handle, event| {
-                #[cfg(target_os = "macos")]
-                plugins::file_associations::handle_run_event(app_handle, event);
-            },
-        );
+        .run(|_app_handle, _event| {});
 }
