@@ -5,7 +5,11 @@ import { beforeEachSetup, getMainNavigation } from './e2e-helpers';
 
 beforeEachSetup();
 
-test('The language selector should update the UI', async () => {
+// English-only: the app ships a single locale, so the UI renders the English
+// strings and no screen offers a language selector. This replaces the old
+// French-switching test, whose subject (a second shipped locale) no longer
+// exists; the pinned contract is now "English renders, no language offered".
+test('The UI renders English with no language selector', async () => {
   const viewMessage = page.getByRole('status');
 
   await expect.element(viewMessage).toBeVisible();
@@ -17,17 +21,14 @@ test('The language selector should update the UI', async () => {
 
   await getMainNavigation().getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: 'Interface' }).click();
-  await page
-    .getByRole('combobox', { name: 'Language' })
-    .selectOptions('Français (French)');
 
-  await page
-    .getByRole('navigation', { name: 'Navigation principale' })
-    .getByRole('link', { name: 'Bibliothèque' })
-    .click();
+  // No screen offers a language the app does not ship ...
   await expect
-    .element(viewMessage)
-    .toHaveTextContent(
-      'Votre bibliothèque est videvous pouvez ajouter votre musique ici',
-    );
+    .element(page.getByRole('combobox', { name: 'Language' }))
+    .not.toBeInTheDocument();
+
+  // ... while the rest of the Interface screen stays intact.
+  await expect
+    .element(page.getByRole('combobox', { name: 'Mode' }))
+    .toBeVisible();
 });

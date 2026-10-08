@@ -9,13 +9,33 @@
  */
 export type AbLoop = { track_id: string, start_seconds: number | null, end_seconds: number | null, };
 
-export type Config = { language: string, theme: string, ui_mode: UiMode, ui_accent_color: string | null, ui_art_tint: boolean, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, library_sort_by: SortBy, library_sort_order: SortOrder, 
+export type Config = { theme: string, ui_mode: UiMode, ui_accent_color: string | null, ui_art_tint: boolean, 
+/**
+ * Explicit user choice for the now-playing Details disclosure.
+ * Collapsed on a fresh config; a toggle writes it back via the config
+ * bridge so the choice survives restarts. Missing on old files, where
+ * `#[serde(default)]` yields false (collapsed).
+ */
+ui_details_open: boolean, 
+/**
+ * Explicit user choice for the now-playing A-B disclosure. Same
+ * collapsed-by-default, persisted-on-toggle contract as above.
+ */
+ui_ab_open: boolean, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, 
+/**
+ * One-shot v1 migration flag for the "default to All tracks" change:
+ * configs written before it may carry any stored `default_view`; the
+ * first boot with this build resets it to `Library` (the all-tracks
+ * list) and flips this, so later explicit user choices are never
+ * touched. Missing on old files, where `#[serde(default)]` yields false.
+ */
+default_view_migrated_v1: boolean, library_sort_by: SortBy, library_sort_order: SortOrder, 
 /**
  * Ordered multi-key sort (AIMP-style). Additive: `library_sort_by` and
  * `library_sort_order` stay declared so an existing config file still
  * deserializes; the UI reads this list instead.
  */
-library_sort_keys: Array<SortKey>, library_folders: Array<string>, library_autorefresh: boolean, sleepblocker: boolean, auto_update_checker: boolean, notifications: boolean, track_view_density: TrackViewDensity, wayland_compat: boolean, menu_bar_visible: boolean, };
+library_sort_keys: Array<SortKey>, library_folders: Array<string>, library_autorefresh: boolean, sleepblocker: boolean, auto_update_checker: boolean, notifications: boolean, track_view_density: TrackViewDensity, menu_bar_visible: boolean, };
 
 export type DefaultView = "Library" | "Artists" | "Playlists";
 

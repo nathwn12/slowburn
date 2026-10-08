@@ -14,8 +14,8 @@ const OTHER_ID = 'ZZZZZZ';
 type Fixture = {
   /** en catalog messages keyed by id. */
   en?: Record<string, unknown>;
-  /** extra locale -> messages (defaults to a copy of en). */
-  locales?: Record<string, Record<string, unknown>>;
+  /** raw en.po content; when set, no en chunk is written (inlined catalog). */
+  enPo?: string;
   /** the emitted bundle containing the descriptors. */
   bundle?: string;
   /** when false, no en chunk is written. */
@@ -27,26 +27,13 @@ type Fixture = {
 function makeFixture(fixture: Fixture): string {
   const dir = mkdtempSync(join(tmpdir(), 'i18n-check-'));
   const en = fixture.en ?? { [ID]: ['Slowburn'] };
-  const locales: Record<string, Record<string, unknown>> = {
-    es: en,
-    ...fixture.locales,
-  };
-  const writeEn = fixture.writeEn ?? true;
+  const writeEn = fixture.enPo == null && (fixture.writeEn ?? true);
   const writeAssets = fixture.writeAssets ?? true;
 
   mkdirSync(join(dir, 'src', 'translations'), { recursive: true });
-  writeFileSync(join(dir, 'src', 'translations', 'en.po'), '');
-  for (const locale of Object.keys(locales)) {
-    writeFileSync(join(dir, 'src', 'translations', `${locale}.po`), '');
-  }
+  writeFileSync(join(dir, 'src', 'translations', 'en.po'), fixture.enPo ?? '');
   if (writeAssets) {
     mkdirSync(join(dir, 'dist', 'assets'), { recursive: true });
-    for (const locale of Object.keys(locales)) {
-      writeFileSync(
-        join(dir, 'dist', 'assets', `${locale}-abcdef.js`),
-        `export const messages = ${JSON.stringify(locales[locale])};`,
-      );
-    }
     if (writeEn) {
       writeFileSync(
         join(dir, 'dist', 'assets', `en-abcdef.js`),
@@ -87,10 +74,10 @@ function fixture(options: Fixture = {}): string {
 }
 
 describe('check-i18n-catalog', () => {
-  test('passes when every referenced id resolves and locales agree', () => {
+  test('passes when every referenced id resolves against the en catalog', () => {
     const result = run(fixture());
     expect(result.status).toBe(0);
-    expect(result.out).toContain('resolve across 2 catalogs');
+    expect(result.out).toContain('resolve against the en catalog');
   });
 
   test('passes when a non-descriptor preset object sits beside a real descriptor', () => {
@@ -100,7 +87,7 @@ describe('check-i18n-catalog', () => {
       }),
     );
     expect(result.status).toBe(0);
-    expect(result.out).toContain('resolve across');
+    expect(result.out).toContain('resolve against');
   });
 
   test('fails on a missing id', () => {
@@ -116,16 +103,28 @@ describe('check-i18n-catalog', () => {
     expect(result.out).toContain('scanned 0 message ids');
   });
 
-  test('fails when a locale catalog does not match en', () => {
-    const result = run(fixture({ locales: { es: { [OTHER_ID]: ['x'] } } }));
+  test('fails when the en catalog chunk is empty', () => {
+    const result = run(fixture({ en: {} }));
     expect(result.status).toBe(1);
-    expect(result.out).toContain('does not match en');
+    expect(result.out).toContain('is empty');
   });
 
-  test('fails when a locale catalog chunk is missing', () => {
+  test('fails when the en catalog chunk is missing', () => {
     const result = run(fixture({ writeEn: false }));
     expect(result.status).toBe(1);
     expect(result.out).toContain('no compiled en catalog chunk');
+  });
+
+  test('passes when the catalog is inlined (no chunk) and ids resolve via en.po', () => {
+    // "Slowburn" hashes to PG2LIB via generateMessageId.
+    const result = run(
+      fixture({
+        enPo: 'msgid "Slowburn"\nmsgstr "Slowburn"\n',
+        bundle: `x({id:"PG2LIB",message:"Slowburn"});`,
+      }),
+    );
+    expect(result.status).toBe(0);
+    expect(result.out).toContain('inlined in main chunk');
   });
 
   test('fails loudly when there is no build output at all', () => {

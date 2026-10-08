@@ -1,8 +1,0 @@
-{
-  "com.nathwn.slowburn": [
-    "appstream-external-screenshot-url",
-    "appstream-failed-validation",
-    "appstream-screenshots-not-mirrored-in-ostree",
-    "appstream-missing-screenshots"
-  ]
-}

@@ -20,7 +20,6 @@
     "gen:types": "bash scripts/gen.sh",
     "gen:translations": "lingui extract --clean --overwrite",
     "test:typings": "tsc --noEmit --project ./tsconfig.json",
-    "package:checksums": "bash scripts/checksum.sh",
     "clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml",
     "postinstall": "simple-git-hooks",
     "knip": "knip"

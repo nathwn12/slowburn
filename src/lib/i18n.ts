@@ -1,8 +1,8 @@
 import { i18n } from '@lingui/core';
 
-export async function loadTranslation(language: string) {
-  const { messages } = await import(`../translations/${language}.po`);
+import { messages } from '../translations/en.po';
 
-  i18n.load(language, messages);
-  i18n.activate(language);
+export async function loadTranslation() {
+  i18n.load('en', messages);
+  i18n.activate('en');
 }

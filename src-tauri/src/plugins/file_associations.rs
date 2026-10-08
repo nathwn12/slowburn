@@ -4,14 +4,9 @@ use tauri::plugin::{Builder, TauriPlugin};
 
 /**
  * Plugin in charge of handle file associations.
- * It's convoluted due to x-platform issues.
  *
- * On Windows, the files are passed as command line arguments, without any prefix:
- * - C:\\users\\someone\\music\\song.mp3
- * On Linux, the files can be passed as command line arguments, like:
- * - /home/someone/music/song.mp3
- * - file:///home/someone/music/song.mp3
- * On macOS, they are passed via the RunEvent::Opened event, as a list of URLs
+ * Files are passed as command line arguments, without any prefix:
+ * - C:\users\someone\music\song.mp3
  *
  * Test on windows dev mode with:
  * vp run tauri dev -- -- "G:\Mon Drive\Music\Air\Love 2\03 So Light Is Her Footfall.mp3" "G:\Mon Drive\Music\Air\Love 2\08 Night Hunter.mp3"
@@ -22,7 +17,7 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
 use crate::libs::error::AnyResult;
 use crate::libs::events::IPCEvent;
-use crate::libs::track::{Track, get_tracks_from_paths};
+use crate::libs::track::{get_tracks_from_paths, Track};
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     // This happens only at startup, so this does not support opening files
@@ -93,7 +88,7 @@ pub fn get_tracks_from_args(args: Vec<String>) -> Option<Vec<Track>> {
 
             paths.push(path);
         }
-        // Handle classic /path/to/file, like on Linux
+        // Handle classic C:\path\to\file paths
         else {
             let path = match PathBuf::from(&maybe_file).canonicalize() {
                 Ok(path) => path,
@@ -150,24 +145,6 @@ pub fn handle_opened_files(app_handle: &AppHandle, args: Vec<String>) {
     let tracks = get_tracks_from_args(args);
 
     send_queue_to_ui(app_handle, tracks);
-}
-
-/**
- * Given a RunEvent, send the potential queue to the UI.
- * This is only used on macOS, as it has the RunEvent::Opened event
- */
-#[cfg(target_os = "macos")]
-pub fn handle_run_event(app_handle: &AppHandle, event: tauri::RunEvent) {
-    if let tauri::RunEvent::Opened { urls } = event {
-        let paths = urls
-            .into_iter()
-            .filter_map(|url| url.to_file_path().ok())
-            .collect::<Vec<_>>();
-
-        let tracks = get_valid_tracks_and_report_errors(get_tracks_from_paths(paths));
-
-        send_queue_to_ui(app_handle, Some(tracks));
-    }
 }
 
 /**

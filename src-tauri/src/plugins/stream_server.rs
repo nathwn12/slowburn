@@ -1,11 +1,8 @@
 /**
- * Local HTTP server for streaming audio files on Linux.
+ * Local HTTP server for streaming audio files.
  *
- * WebKitGTK's custom URI scheme handler (used by Tauri's asset protocol)
- * does not properly support media streaming and Range requests, which breaks
- * audio playback. This module provides a local HTTP server that serves audio
- * files with correct Content-Type and Range request support, which GStreamer
- * handles perfectly.
+ * An opt-in alternative to Tauri's asset protocol for audio playback,
+ * serving audio files with correct Content-Type and Range request support.
  *
  * See: https://github.com/tauri-apps/tauri/issues/3725
  */

@@ -1,6 +1,6 @@
 import { defineConfig } from '@lingui/cli';
 
-import { ALL_LANGUAGES, DEFAULT_LANGUAGE } from './src/translations/languages';
+import { DEFAULT_LANGUAGE } from './src/translations/languages';
 
 /**
  * Lingui Config - https://lingui.dev/ref/conf
@@ -10,7 +10,7 @@ export default defineConfig({
   fallbackLocales: {
     default: DEFAULT_LANGUAGE.code,
   },
-  locales: ALL_LANGUAGES.map((l) => l.code),
+  locales: [DEFAULT_LANGUAGE.code],
   catalogs: [
     {
       name: 'main',

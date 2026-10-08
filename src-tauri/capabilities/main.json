@@ -69,5 +69,5 @@
     "sleepblocker:allow-enable",
     "sleepblocker:allow-disable"
   ],
-  "platforms": ["linux", "macOS", "windows"]
+  "platforms": ["windows"]
 }

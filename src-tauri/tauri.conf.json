@@ -38,7 +38,7 @@
   "bundle": {
     "active": true,
     "category": "Music",
-    "targets": ["dmg", "nsis", "appimage", "deb", "rpm"],
+    "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -48,16 +48,6 @@
     ],
     "resources": {
       "icons/icon.png": "icons/icon.png"
-    },
-    "linux": {
-      "appimage": {
-        "bundleMediaFramework": true
-      },
-      "deb": {
-        "files": {
-          "/usr/share/metainfo/com.nathwn.slowburn.metainfo.xml": "release/flatpak.metainfo.xml"
-        }
-      }
     },
     "fileAssociations": [
       {

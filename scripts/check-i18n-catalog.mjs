@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Release guard: fail the build when any compiled message id in `dist` is
- * absent from the catalogs, or when a shipped locale catalog is missing/empty.
+ * absent from the English catalog, or when the shipped English catalog is
+ * missing/empty.
  *
  * Why: in production the macro strips the descriptor's `message` and ships
  * `{id}` only, so a catalog miss renders the raw id (a short hash). Dev and the
@@ -9,9 +10,12 @@
  * invisible until someone runs the built app.
  *
  * The check is deliberately fail-loud: it exits 1 when it cannot find the
- * catalogs, when a locale chunk is missing/empty, or when it scanned zero ids
- * (which is what a descriptor-shape change would look like).
+ * catalogs, when the English chunk is missing/empty, or when it scanned zero
+ * ids (which is what a descriptor-shape change would look like).
+ *
+ * English-only: this fork ships a single locale, so only `en` is checked.
  */
+import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -43,16 +47,78 @@ const files = (() => {
   }
 })();
 
-// Resolve each locale's compiled chunk by prefix rather than a hard-coded name.
-// The Lingui/Vite build emits the catalog for `src/translations/<locale>.po` as
-// `<locale>-<hash>.js`; a locale whose chunk cannot be found fails the build
-// loudly instead of being skipped.
+// Resolve the English compiled chunk by prefix rather than a hard-coded name.
+// The Lingui/Vite build emits the catalog for `src/translations/en.po` as
+// `en-<hash>.js`; a chunk that cannot be found fails the build loudly instead
+// of being skipped.
+//
+// English-only static import: `src/lib/i18n.ts` imports `en.po` statically,
+// so Vite inlines the catalog into the main chunk and no `en-<hash>.js` file
+// is emitted. In that case fall back to the msgids in `src/translations/en.po`
+// itself (the exact source the inlined catalog is compiled from).
+function parsePoMsgids(source) {
+  const ids = new Set();
+  let current = null;
+  const push = () => {
+    if (current !== null && current !== '') ids.add(current);
+    current = null;
+  };
+  for (const line of source.split('\n')) {
+    const start = /^msgid\s+"((?:[^"\\]|\\.)*)"/.exec(line);
+    if (start != null) {
+      push();
+      current = JSON.parse(`"${start[1]}"`);
+      continue;
+    }
+    if (current !== null) {
+      const cont = /^\s+"((?:[^"\\]|\\.)*)"/.exec(line);
+      if (cont != null) {
+        current += JSON.parse(`"${cont[1]}"`);
+        continue;
+      }
+      push();
+    }
+  }
+  push();
+  return ids;
+}
+
 async function loadCatalog(locale) {
   const file = files.find(
     (name) => name.startsWith(`${locale}-`) && name.endsWith('.js'),
   );
   if (file == null) {
-    fail(`no compiled ${locale} catalog chunk in ${ASSETS}`);
+    if (locale !== 'en')
+      fail(`no compiled ${locale} catalog chunk in ${ASSETS}`);
+    let source;
+    try {
+      source = readFileSync(join(LOCALES_DIR, `${locale}.po`), 'utf8');
+    } catch {
+      fail(`no compiled ${locale} catalog chunk in ${ASSETS}`);
+    }
+    const keys = parsePoMsgids(source);
+    if (keys.size === 0) {
+      // No usable catalog anywhere: keep the original chunk error so the
+      // missing-catalog case still fails with the established message.
+      fail(`no compiled ${locale} catalog chunk in ${ASSETS}`);
+    }
+    // The compiled catalog keys are not the raw msgids: Lingui hashes each
+    // `msgid` (+ `\u001F` + context) into a 6-char id at compile time - the
+    // same ids the macro emits into the bundle. Replicate
+    // `@lingui/message-utils/generateMessageId` (node variant) with the
+    // standard library so this guard needs no extra dependency.
+    const hashed = new Set(
+      [...keys].map((msgid) =>
+        createHash('sha256')
+          .update(msgid + String.fromCharCode(31), 'utf8')
+          .digest('base64url')
+          .slice(0, 6),
+      ),
+    );
+    console.log(
+      `[i18n] en catalog inlined in main chunk; ${locale}.po source: ${hashed.size} entries`,
+    );
+    return { file: `${locale}.po (inlined)`, keys: hashed };
   }
   const module = await import(pathToFileURL(join(ASSETS, file)).href);
   const keys = Object.keys(module.messages ?? {});
@@ -62,23 +128,8 @@ async function loadCatalog(locale) {
   return { file, keys: new Set(keys) };
 }
 
-let enCatalog = null;
-for (const locale of locales) {
-  const { file, keys } = await loadCatalog(locale);
-  if (locale === 'en') {
-    enCatalog = keys;
-    console.log(`[i18n] en catalog ${file}: ${keys.size} entries`);
-    continue;
-  }
-  if (
-    keys.size !== enCatalog.size ||
-    [...enCatalog].some((id) => !keys.has(id))
-  ) {
-    fail(
-      `${locale} catalog ${file} does not match en (${keys.size} vs ${enCatalog.size} entries)`,
-    );
-  }
-}
+const { file: enFile, keys: enCatalog } = await loadCatalog('en');
+console.log(`[i18n] en catalog ${enFile}: ${enCatalog.size} entries`);
 
 // A compiled Lingui descriptor is an object literal whose fields come from the
 // MessageDescriptor / `<Trans>` surface (id, message, comment, context, values,
@@ -172,5 +223,5 @@ if (missing.size > 0) {
 }
 
 console.log(
-  `[i18n] ${scanned.size} referenced id(s) resolve across ${locales.length} catalogs (${enCatalog.size} entries each)`,
+  `[i18n] ${scanned.size} referenced id(s) resolve against the en catalog (${enCatalog.size} entries)`,
 );
