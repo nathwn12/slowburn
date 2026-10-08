@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Slowburn - README Preview</title>
+    <style>
+      :root {
+        --bg: #0b0b10;
+        --bg2: #121218;
+        --card: #17171f;
+        --line: #262630;
+        --text: #f4f2f5;
+        --muted: #a7a3b3;
+        --accent: #f43f7d;
+        --accent2: #fb7185;
+        --radius: 14px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 600px at 50% -10%, #231220 0%, var(--bg) 55%)
+            fixed,
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.6 -apple-system,
+          'Segoe UI',
+          Inter,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 56px 24px 80px;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #ffd7e4;
+        border: 1px solid #5b2237;
+        background: #220f18;
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      h1 {
+        font-size: 56px;
+        line-height: 1.02;
+        margin: 20px 0 10px;
+        letter-spacing: -0.025em;
+      }
+      h1 .burn {
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .tag {
+        font-size: 21px;
+        line-height: 1.45;
+        color: var(--text);
+        margin: 0 0 6px;
+        max-width: 44ch;
+      }
+      .tag-sub {
+        font-size: 16px;
+        color: var(--muted);
+        margin: 0 0 20px;
+        max-width: 62ch;
+      }
+      .hero-panel {
+        margin: 24px 0 8px;
+        border: 1px solid var(--line);
+        border-radius: calc(var(--radius) + 4px);
+        background: linear-gradient(180deg, #1a131c 0%, var(--card) 60%, #14141b 100%);
+        padding: 26px 26px 22px;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero-panel::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent2), transparent 85%);
+      }
+      .hero-panel::after {
+        content: '';
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        right: -160px;
+        top: -200px;
+        background: radial-gradient(closest-side, rgba(244, 63, 125, 0.22), transparent 70%);
+        pointer-events: none;
+      }
+      .wave {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px;
+        height: 64px;
+        margin: 4px 0 14px;
+      }
+      .wave span {
+        flex: 0 0 4px;
+        border-radius: 3px;
+        background: linear-gradient(180deg, var(--accent2), var(--accent));
+        opacity: 0.9;
+      }
+      .wave span:nth-child(4n) {
+        opacity: 0.55;
+      }
+      .wave span:nth-child(5n) {
+        opacity: 0.35;
+      }
+      .hero-points {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        position: relative;
+        z-index: 1;
+      }
+      .hero-points li {
+        font-size: 13.5px;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        background: rgba(14, 14, 20, 0.7);
+        border-radius: 999px;
+        padding: 5px 13px;
+        margin: 0;
+      }
+      .hero-points li b {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .credit {
+        border: 1px solid var(--line);
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 14px 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .credit strong {
+        color: var(--text);
+      }
+      .credit a {
+        color: var(--accent2);
+      }
+      .credit-hero {
+        margin-top: 14px;
+        border-left: 3px solid var(--accent);
+      }
+      h2 {
+        font-size: 26px;
+        margin: 52px 0 12px;
+        letter-spacing: -0.01em;
+      }
+      h2::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 22px;
+        border-radius: 4px;
+        background: var(--accent);
+        margin-right: 10px;
+        vertical-align: -3px;
+      }
+      h2 + p {
+        max-width: 68ch;
+      }
+      h3 {
+        font-size: 17px;
+        margin: 22px 0 6px;
+        color: var(--text);
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .feats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 28px;
+      }
+      .feats h3 {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
+      .feats > div:first-child h3,
+      .feats > div:nth-child(2) h3 {
+        border-top: none;
+        margin-top: 8px;
+        padding-top: 0;
+      }
+      @media (max-width: 760px) {
+        .grid2,
+        .feats {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 40px;
+        }
+        .hero-panel {
+          padding: 20px 18px 18px;
+        }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 20px 22px;
+      }
+      .card.hi {
+        border-top: 2px solid var(--accent);
+      }
+      ul {
+        margin: 8px 0;
+        padding-left: 20px;
+        color: #d9d5e2;
+      }
+      li {
+        margin: 6px 0;
+      }
+      code {
+        background: #0e0e14;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1px 7px;
+        font-size: 13.5px;
+        color: #ffd7e4;
+      }
+      kbd {
+        background: #0e0e14;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1px 7px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #ffd7e4;
+        white-space: nowrap;
+      }
+      pre {
+        background: #0e0e14;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 18px;
+        overflow: auto;
+        font-size: 13.5px;
+      }
+      table.keys {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 14.5px;
+      }
+      table.keys th,
+      table.keys td {
+        text-align: left;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      table.keys th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      table.keys td:last-child {
+        color: #d9d5e2;
+      }
+      a {
+        color: var(--accent2);
+      }
+      footer {
+        margin-top: 56px;
+        color: var(--muted);
+        font-size: 13.5px;
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="pill">README preview &middot; approve before it ships</span>
+      <h1>Slow<span class="burn">burn</span></h1>
+      <p class="tag">
+        Your music room: a Windows player with studio-grade Slow + Reverb and an
+        A-B loop built for practice.
+      </p>
+
+      <div class="hero-panel">
+        <div class="wave" aria-hidden="true">
+          <span style="height: 22%"></span><span style="height: 38%"></span
+          ><span style="height: 55%"></span><span style="height: 34%"></span
+          ><span style="height: 70%"></span><span style="height: 92%"></span
+          ><span style="height: 60%"></span><span style="height: 44%"></span
+          ><span style="height: 78%"></span><span style="height: 52%"></span
+          ><span style="height: 30%"></span><span style="height: 64%"></span
+          ><span style="height: 86%"></span><span style="height: 48%"></span
+          ><span style="height: 26%"></span><span style="height: 58%"></span
+          ><span style="height: 74%"></span><span style="height: 40%"></span
+          ><span style="height: 90%"></span><span style="height: 62%"></span
+          ><span style="height: 36%"></span><span style="height: 54%"></span
+          ><span style="height: 72%"></span><span style="height: 28%"></span
+          ><span style="height: 46%"></span><span style="height: 66%"></span
+          ><span style="height: 84%"></span><span style="height: 50%"></span
+          ><span style="height: 32%"></span><span style="height: 60%"></span
+          ><span style="height: 42%"></span><span style="height: 24%"></span
+          ><span style="height: 58%"></span><span style="height: 36%"></span
+          ><span style="height: 68%"></span><span style="height: 48%"></span
+          ><span style="height: 80%"></span><span style="height: 56%"></span
+          ><span style="height: 30%"></span><span style="height: 62%"></span
+          ><span style="height: 44%"></span><span style="height: 76%"></span
+          ><span style="height: 52%"></span><span style="height: 34%"></span
+          ><span style="height: 70%"></span><span style="height: 88%"></span
+          ><span style="height: 46%"></span><span style="height: 60%"></span
+          ><span style="height: 28%"></span><span style="height: 66%"></span
+          ><span style="height: 50%"></span><span style="height: 38%"></span
+          ><span style="height: 74%"></span><span style="height: 56%"></span
+          ><span style="height: 32%"></span><span style="height: 64%"></span
+          ><span style="height: 82%"></span><span style="height: 48%"></span
+          ><span style="height: 26%"></span><span style="height: 58%"></span
+          ><span style="height: 70%"></span><span style="height: 40%"></span>
+        </div>
+        <ul class="hero-points">
+          <li><b>Slow + Reverb</b> per track</li>
+          <li><b>A-B loop</b> saved per track</li>
+          <li><b>Four skins</b> incl. AMOLED</li>
+          <li><b>Mini mode</b> for focus</li>
+          <li><b>Windows 10/11</b> 64-bit</li>
+        </ul>
+      </div>
+
+      <p class="tag-sub">
+        Built for musicians who practise, not just press play &mdash; drill the
+        same four bars for an hour and it still looks good doing it.
+      </p>
+
+      <div class="credit credit-hero">
+        <strong>Personal project, full credit upstream.</strong> Slowburn is a
+        personal fork of
+        <a href="https://github.com/martpie/museeks">Museeks</a> by Pierre-Louis
+        Maugin (martpie). Not affiliated with or endorsed by the Museeks
+        authors. Licence: MIT &mdash; copyright (c) 2015 Pierre de la
+        Martini&egrave;re.
+      </div>
+
+      <h2>Why this exists</h2>
+      <p style="color: var(--muted)">
+        Built for musicians who practise, not just press play. Two tools do the
+        heavy lifting - everything around them is designed to look good while
+        you drill the same four bars for an hour.
+      </p>
+      <div class="grid2">
+        <div class="card hi">
+          <h3>1 &mdash; Slow + Reverb, done right</h3>
+          <p>
+            Drop the speed to learn a part, wash it in reverb, all inside the
+            player. Remembered <b>per track</b>, fine 1% steps, one-click reset
+            to dry.
+          </p>
+        </div>
+        <div class="card hi">
+          <h3>2 &mdash; A-B repeat worth using</h3>
+          <p>
+            Mark any passage on the seek bar, loop it, clear with
+            <code>\</code>. Loops are <b>saved per track</b>, re-apply on
+            reopen, with a library filter for tracks that have one.
+          </p>
+        </div>
+      </div>
+
+      <h2>Features</h2>
+      <div class="feats">
+        <div>
+          <h3>Player</h3>
+          <ul>
+            <li>
+              Slow effect + Reverb intensity in fine steps, one-click reset to
+              dry, per-track memory
+            </li>
+            <li>
+              A-B loop right on the seek bar, saved per track with auto-apply
+            </li>
+            <li>
+              <b>Stop after current</b> for clean endings to a practice run
+            </li>
+            <li>
+              Drag and drop audio files anywhere onto the player to queue them
+            </li>
+            <li>ReplayGain support for even loudness</li>
+            <li>
+              Explicit queue view with drag-to-reorder, never-blank empty state
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3>Library</h3>
+          <ul>
+            <li>
+              Multi-folder library - point it at every music folder you own
+            </li>
+            <li>
+              Per-track memory travels with the file: A-B loops, speed, reverb
+            </li>
+            <li>Sort options, compact/comfortable views, automatic refresh</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Look and feel</h3>
+          <ul>
+            <li>
+              Four skins in a built-in gallery:
+              <b>Light &middot; Dark &middot; Dark Warm &middot; AMOLED</b>
+              (true pure-black for OLED screens)
+            </li>
+            <li>
+              Your chosen skin sticks - wins over the OS theme, survives
+              restarts
+            </li>
+            <li>
+              Glow-and-elevation design language: accent glows, lifted surfaces,
+              consistent tokens everywhere
+            </li>
+            <li>
+              Live <b>waveform seek bar</b> drawn from your actual audio - see
+              the loud parts before you jump
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3>Window &amp; modes</h3>
+          <ul>
+            <li>
+              Custom frameless window with its own title bar and menu bar - Alt
+              toggles the menu
+            </li>
+            <li>
+              <b>Full mode</b> for library work, <b>mini mode</b> for focused
+              listening (player card over queue, Ctrl+M flips)
+            </li>
+            <li>Sleep blocker, notifications, automatic update checker</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Settings</h3>
+          <ul>
+            <li>
+              Organised the way you&rsquo;d look for it: library, look and feel,
+              playback engine - no config-file spelunking
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <h2>Keyboard shortcuts</h2>
+      <div class="card">
+        <p style="margin: 0 0 6px; color: var(--muted)">
+          Every shortcut below is real - press <kbd>?</kbd> any time inside the
+          app to see them all.
+        </p>
+        <table class="keys">
+          <tr>
+            <th>Keys</th>
+            <th>Does</th>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd></td>
+            <td>Play / pause</td>
+          </tr>
+          <tr>
+            <td><kbd>[</kbd></td>
+            <td>Set loop point A</td>
+          </tr>
+          <tr>
+            <td><kbd>]</kbd></td>
+            <td>Set loop point B</td>
+          </tr>
+          <tr>
+            <td><kbd>\</kbd></td>
+            <td>Clear the loop</td>
+          </tr>
+          <tr>
+            <td><kbd>&larr;</kbd> / <kbd>&rarr;</kbd></td>
+            <td>Seek 10 seconds</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>&larr;</kbd> / <kbd>&rarr;</kbd></td>
+            <td>Seek 1 second (fine)</td>
+          </tr>
+          <tr>
+            <td><kbd>Ctrl</kbd> + <kbd>K</kbd></td>
+            <td>Focus search</td>
+          </tr>
+          <tr>
+            <td><kbd>Ctrl</kbd> + <kbd>O</kbd></td>
+            <td>Import a folder or files</td>
+          </tr>
+          <tr>
+            <td><kbd>Ctrl</kbd> + <kbd>M</kbd></td>
+            <td>Toggle mini mode</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt</kbd></td>
+            <td>Toggle the menu bar</td>
+          </tr>
+          <tr>
+            <td><kbd>?</kbd></td>
+            <td>Open the shortcuts panel</td>
+          </tr>
+          <tr>
+            <td><kbd>Esc</kbd></td>
+            <td>Close the shortcuts panel</td>
+          </tr>
+        </table>
+      </div>
+
+      <h2>What it is / what it is not</h2>
+      <div class="card">
+        <b>It is</b> a fast, focused Windows player for listening and practice
+        &middot; <b>It is not</b> cross-platform (Windows 10/11 64-bit only)
+        &middot;
+        <b>No telemetry, no account, no network needed for playback</b> - your
+        files stay yours, on your machine.
+      </div>
+
+      <h2>Requirements &amp; install (Windows)</h2>
+      <div class="card">
+        <b>Windows 10/11, 64-bit</b> - the only supported platform. Build the
+        Windows installer on this machine with <code>vp install</code> then
+        <code>vp run tauri build</code> (NSIS installer lands in
+        <code>src-tauri/target/release/bundle/nsis/</code>), run it, add
+        library folders in Settings &rarr; Library. No account, no server, no
+        network needed for playback.
+      </div>
+
+      <h2>Development setup</h2>
+      <pre>
+vp install            # install dependencies
+vp run tauri dev      # Vite + Tauri with hot reload
+vp check              # formatting + lint/typecheck
+cargo test            # backend tests (inside src-tauri/)
+vp run gen:types         # regenerate TS types from Rust
+vp run gen:translations  # extract i18n strings</pre
+      >
+
+      <h2>Credits &amp; licence</h2>
+      <div class="card">
+        Upstream: <a href="https://github.com/martpie/museeks">Museeks</a> by
+        Pierre-Louis Maugin (martpie) and contributors &middot; MIT licence,
+        copyright (c) 2015 Pierre de la Martini&egrave;re. Slowburn-specific
+        work (Slow/Reverb, A-B repeat, skins, mini mode, queue, multi-folder UX,
+        title bar) is the fork owner&rsquo;s on top of the Museeks base.
+      </div>
+
+      <h2>Windows-only, personal-use</h2>
+      <p style="color: var(--muted)">
+        A personal project - and that&rsquo;s exactly why it can say what it is:
+        a great single-platform player for Windows listening and practice. No
+        telemetry, no accounts, no cross-platform compromises - and no invented
+        numbers, because a player this focused doesn&rsquo;t need them.
+      </p>
+
+      <footer>
+        Preview file: <code>docs/readme-preview/index.html</code> &middot;
+        self-contained, opens from the filesystem, no server, no network.
+      </footer>
+    </div>
+  </body>
+</html>

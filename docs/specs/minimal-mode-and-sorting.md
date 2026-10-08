@@ -15,7 +15,9 @@ match the owner's expectations is the _shell around_ the player:
 - The owner's acceptance test is absolute: the app must **"never look empty, ever"**.
 - Sorting is "all over the place". The default must be **newest-modified first**, and the
   model must be AIMP's (ordered multi-key, per-key direction) rather than a flat list.
-- The volume slider was rejected; the owner chose a slim bar + percentage.
+- The volume slider was rejected; the owner chose a constantly visible slim fill
+  bar with a transient percentage that appears only while the value changes
+  (owner decision, 2026-10-09).
 
 ## 2. Scope
 
@@ -25,7 +27,8 @@ match the owner's expectations is the _shell around_ the player:
 2. The Minimal composition and the Full additions.
 3. The "never looks empty" invariants, as assertable behaviour.
 4. Replacement of the sort implementation with an ordered multi-key model, and its UI.
-5. Replacement of the volume slider with a slim fill bar + percentage.
+5. Replacement of the volume slider with a constantly visible slim fill bar and a
+   transient percentage.
 6. Adoption of an ordered context-menu grammar (Full mode).
 
 **Out of scope (do not build, do not "fix while here")**
@@ -123,9 +126,13 @@ is a **config migration with a regeneration step** — not a new field alongside
 
 ### 3.6 Volume
 
-No slider. A hair-thin fill bar with the percentage beside it; the wheel adjusts; a click
-mutes; **no thumb and no accent ring**. Mute state must be visually distinguishable from
-zero volume.
+No slider. A hair-thin fill bar that is constantly visible in the transport
+row, filling to the current level, beside the mute icon button; the percentage
+is transient - it appears only while the value changes and clears about 1.4 s
+later, never pinned. The wheel adjusts; a click mutes; **no thumb and no accent
+ring**. Mute state must be visually distinguishable from zero volume.
+
+The transient-percentage behaviour was an owner decision of 2026-10-09.
 
 ### 3.7 Context menus
 
@@ -151,8 +158,9 @@ A change is acceptable when all of these are demonstrated, not asserted:
 - **AC6** A track with no artist/album/track/duration sorts last under every direction and
   every key position.
 - **AC7** Applying any sort leaves the persisted underlying list order unchanged.
-- **AC8** The volume control adjusts by wheel, mutes on click, shows a percentage, and
-  renders no thumb.
+- **AC8** The volume control adjusts by wheel, mutes on click, keeps its fill bar
+  constantly visible, shows the percentage only transiently while the value
+  changes, and renders no thumb.
 - **AC9** The app performs no outbound network call at rest or on launch (unchanged from
   Phase 1, re-asserted).
 
