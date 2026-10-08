@@ -62,8 +62,8 @@ walkdir = "2.5.0"
 incremental = true # Compile your binary in smaller steps.
 
 [profile.release]
-codegen-units = 1 # Allows LLVM to perform better optimization.
-lto = true # Enables link-time-optimizations.
+codegen-units = 16 # Spreads codegen across all 16 threads.
+lto = "thin" # Parallel link-time optimization across threads.
 opt-level = "s" # Prioritizes small binary size. Use `3` if you prefer speed.
 panic = "abort" # Higher performance by disabling panic handlers.
 strip = true # Ensures debug symbols are removed.

@@ -123,6 +123,8 @@ export default defineConfig({
       '**/src/generated/**/*.ts',
       '**/src-tauri/target/**/*',
       '**/src-tauri/gen/**/*',
+      '**/.playwright-mcp/**',
+      '**/docs/**',
     ],
   },
   lint: {
@@ -145,6 +147,8 @@ export default defineConfig({
       '**/src/generated/**/*.ts',
       '**/src-tauri/target/**/*',
       '**/src-tauri/gen/**/*',
+      '**/.playwright-mcp/**',
+      '**/docs/**',
     ],
     rules: {
       'typescript/no-floating-promises': [

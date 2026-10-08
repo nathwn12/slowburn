@@ -35,3 +35,9 @@ release
 # Playwright/vitest screenshot artifacts
 src/__tests__/__screenshots__/
 .vitest-attachments/
+
+# Tool caches
+.serena/
+
+# Deferred partial capture: hero screenshot draft, not ready to publish
+docs/screenshots/
