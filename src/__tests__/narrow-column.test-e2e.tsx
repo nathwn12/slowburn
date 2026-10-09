@@ -204,20 +204,18 @@ for (const vp of VIEWPORTS) {
       expect(hitOf(SEL_SEEK), 'seek hit-test').toBe('self');
 
       // 4. Reachability. Reset to the column start: the metadata must be
-      //    genuinely present at rest, not merely clipped below the fold. When
-      //    the stack overflows, the column must really scroll to its end —
-      //    proving the content is scrollable-to, not hidden.
+      //    genuinely present at rest, not merely clipped below the fold.
+      //    Scrolling to the end clamps at the maximum: with an overflowing
+      //    stack that maximum is above zero (the content is scrollable-to,
+      //    not hidden); without overflow it stays at zero.
       const el = document.querySelector(SEL_COLUMN) as HTMLElement;
       el.scrollTop = 0;
       await settle();
       expect(hitOf(SEL_TECH), 'metadata reachable at scrollTop 0').toBe('self');
-      if (el.scrollHeight > el.clientHeight + 1) {
-        el.scrollTop = el.scrollHeight;
-        await settle();
-        expect(el.scrollTop, 'column scrolls to its overflow').toBeGreaterThan(
-          0,
-        );
-      }
+      const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+      el.scrollTop = el.scrollHeight;
+      await settle();
+      expect(el.scrollTop, 'column scrolls to its end').toBe(maxScroll);
     },
   );
 }

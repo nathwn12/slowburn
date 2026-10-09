@@ -267,6 +267,10 @@ test('a clean config boots Full with the ledger and the queue column', async () 
   // still absent before the S8 Full-boot claim means anything.
   await waitForConfig((config) => config != null && !('ui_mode' in config));
 
+  // Own setup: isolation clears the player between tests, so build the queue
+  // this test asserts on (same scan-and-play pattern as the tests above).
+  await playFirstTrack();
+
   await expect.element(ledger()).toBeVisible();
   await expect.element(nowPlaying()).toBeVisible();
 

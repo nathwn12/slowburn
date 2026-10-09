@@ -7,9 +7,9 @@ mod plugins;
 use libs::init::init;
 use libs::utils::get_theme_from_name;
 use log::{LevelFilter, info};
-use plugins::config::{ConfigManager, get_storage_dir};
+use plugins::config::{ConfigManager, UiMode, get_storage_dir};
 use std::env;
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{LogicalSize, Manager, Size, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_log::fern::colors::ColoredLevelConfig;
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_prevent_default::Flags;
@@ -34,6 +34,41 @@ use tauri_plugin_window_state::StateFlags;
 fn enforce_frameless<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>) {
     let _ = window.set_decorations(true);
     let _ = window.set_decorations(false);
+}
+
+/// Native window geometry (logical px), one floor per mode.
+///
+/// These mirror the frontend geometry in `src/lib/mini-window.ts`
+/// (`FULL_WINDOW_SIZE`, `FULL_WINDOW_MIN_SIZE`, `MINI_WINDOW_SIZE`,
+/// `MINI_WINDOW_MIN_SIZE`): that module owns runtime transitions after boot,
+/// this module owns the boot size and floor. Keep them in sync by hand; the
+/// unit tests below pin the values so drift fails `cargo test`.
+const FULL_WINDOW_WIDTH: f64 = 960.0;
+const FULL_WINDOW_HEIGHT: f64 = 600.0;
+const FULL_FLOOR_WIDTH: f64 = 900.0;
+const FULL_FLOOR_HEIGHT: f64 = 600.0;
+const MINI_WINDOW_WIDTH: f64 = 420.0;
+const MINI_WINDOW_HEIGHT: f64 = 660.0;
+const MINI_FLOOR_WIDTH: f64 = 320.0;
+const MINI_FLOOR_HEIGHT: f64 = 420.0;
+
+/// Boot (initial size, floor) for a stored mode. Pure so the mapping is
+/// unit-testable: Mini boots straight at its compact footprint with its own
+/// small floor (never flashing the Full size first); every other mode boots
+/// Full, so a stale Mini floor from an earlier session can never leak into
+/// a Full boot.
+fn boot_geometry_for_ui_mode(mode: &UiMode) -> ((f64, f64), (f64, f64)) {
+    if *mode == UiMode::Mini {
+        (
+            (MINI_WINDOW_WIDTH, MINI_WINDOW_HEIGHT),
+            (MINI_FLOOR_WIDTH, MINI_FLOOR_HEIGHT),
+        )
+    } else {
+        (
+            (FULL_WINDOW_WIDTH, FULL_WINDOW_HEIGHT),
+            (FULL_FLOOR_WIDTH, FULL_FLOOR_HEIGHT),
+        )
+    }
 }
 
 fn main() {
@@ -142,14 +177,28 @@ fn main() {
             let config_manager = app.state::<ConfigManager>();
             let conf = config_manager.get()?;
 
+            // One floor per mode, decided at boot from the stored `ui_mode`:
+            // a restart straight into Mini opens at the Mini footprint with
+            // the Mini floor, and a Full boot always re-asserts the Full
+            // floor even when an earlier session lowered it via `setMinSize`
+            // (Mini entry) or left a saved size behind. The declared floor
+            // was observed not to hold (~470-720px windows against a 900px
+            // declaration): the window-state SIZE restore is already excluded
+            // above, so the live suspects are the Mini `setMinSize` lowering
+            // with no native restore, `set_size` bypassing the constraint,
+            // and the delayed frameless style rewrite below dropping it -
+            // hence the native re-asserts after build.
+            let ((boot_w, boot_h), (floor_w, floor_h)) =
+                boot_geometry_for_ui_mode(&conf.ui_mode);
+
             // We intentionally create the window ourselves to set the window theme to the right value
             let window_builder =
                 WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                     .title("Slowburn")
                     .visible(false)
                     .theme(get_theme_from_name(&conf.theme))
-                    .inner_size(960.0, 600.0)
-                    .min_inner_size(900.0, 600.0)
+                    .inner_size(boot_w, boot_h)
+                    .min_inner_size(floor_w, floor_h)
                     .fullscreen(false)
                     .resizable(true)
                     .zoom_hotkeys_enabled(true);
@@ -170,6 +219,15 @@ fn main() {
                 // Plain `set_decorations(false)` is a no-op here (see
                 // `enforce_frameless`): the toggle forces a real tao diff.
                 enforce_frameless(&window);
+                // Native re-assert of the boot floor: the builder value above
+                // is the same number, but the delayed frameless rewrite below
+                // re-applies window styles on Windows after this point, and a
+                // previous Mini session may have lowered the live floor via
+                // `setMinSize` - this call is the single native source of
+                // truth for the floor at boot.
+                let _ = window.set_min_size(Some(Size::Logical(
+                    LogicalSize::new(floor_w, floor_h),
+                )));
                 // Bounded one-shot re-assert for windows shown by any other
                 // path (single-instance focus, etc.): tao applies styles
                 // during its creation pass, after the early `decorations`
@@ -180,6 +238,14 @@ fn main() {
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
                     enforce_frameless(&frameless);
+                    // The style rewrite above can drop the size constraint on
+                    // Windows frameless windows, so re-apply the boot floor
+                    // with it. Boot-only values: later Mini/Full transitions
+                    // are owned by the frontend (`src/lib/mini-window.ts`)
+                    // and always run after this one-shot fires.
+                    let _ = frameless.set_min_size(Some(Size::Logical(
+                        LogicalSize::new(floor_w, floor_h),
+                    )));
                 });
             }
 
@@ -190,4 +256,43 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|_app_handle, _event| {});
+}
+
+#[cfg(test)]
+mod window_floor_tests {
+    use super::*;
+
+    /// The Full floor is the smallest width at which the full layout (queue
+    /// column + now-playing column) stays clean, and must match
+    /// `FULL_WINDOW_MIN_SIZE` in `src/lib/mini-window.ts`.
+    #[test]
+    fn full_floor_matches_frontend_contract() {
+        assert_eq!((FULL_FLOOR_WIDTH, FULL_FLOOR_HEIGHT), (900.0, 600.0));
+        assert_eq!((FULL_WINDOW_WIDTH, FULL_WINDOW_HEIGHT), (960.0, 600.0));
+    }
+
+    /// The Mini floor is the smallest size at which the condensed mini stack
+    /// stays clean, and must match `MINI_WINDOW_MIN_SIZE` /
+    /// `MINI_WINDOW_SIZE` in `src/lib/mini-window.ts`.
+    #[test]
+    fn mini_floor_matches_frontend_contract() {
+        assert_eq!((MINI_FLOOR_WIDTH, MINI_FLOOR_HEIGHT), (320.0, 420.0));
+        assert_eq!((MINI_WINDOW_WIDTH, MINI_WINDOW_HEIGHT), (420.0, 660.0));
+    }
+
+    #[test]
+    fn boot_geometry_selects_floor_per_mode() {
+        // `minimal` is a content-density choice, not a footprint: it boots
+        // Full geometry like `full` does.
+        for mode in [UiMode::Minimal, UiMode::Full] {
+            assert_eq!(
+                boot_geometry_for_ui_mode(&mode),
+                ((960.0, 600.0), (900.0, 600.0))
+            );
+        }
+        assert_eq!(
+            boot_geometry_for_ui_mode(&UiMode::Mini),
+            ((420.0, 660.0), (320.0, 420.0))
+        );
+    }
 }
