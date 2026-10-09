@@ -92,16 +92,32 @@ const MOCK_TRACKS: Array<Track> = [
   },
 ];
 
-// Weirdly, when using a class property, accessing it is extremely slow. No idea why. May be a webkit issue.
-let tracks: Array<Track> = [];
+// Module-level mock state lives on `globalThis` (like the AB-loop store,
+// recorded plays, and scan-failure hooks below) so every test hook observes
+// the same library even when the mock module is instantiated more than once
+// (e.g. direct import vs `vi.doMock` redirect).
+type MockLibraryHolder = typeof globalThis & {
+  __MUSEEKS_MOCK_TRACKS?: Array<Track>;
+};
+
+function trackStore(): Array<Track> {
+  const holder = globalThis as MockLibraryHolder;
+  holder.__MUSEEKS_MOCK_TRACKS ??= [];
+  return holder.__MUSEEKS_MOCK_TRACKS;
+}
+
+/** Test hook: restore the mock library to its initial empty state. */
+export function resetMockLibrary(): void {
+  (globalThis as MockLibraryHolder).__MUSEEKS_MOCK_TRACKS = [];
+}
 
 class DatabaseBridge implements DatabaseBridgeInterface {
   async getAllTracks(): Promise<Array<Track>> {
-    return tracks;
+    return trackStore();
   }
 
   async getTracks(trackIDs: Array<string>): Promise<Array<Track>> {
-    return tracks.filter((track) => trackIDs.includes(track.id));
+    return trackStore().filter((track) => trackIDs.includes(track.id));
   }
 
   async updateTrack(_track: Track): Promise<Track> {
@@ -124,7 +140,7 @@ class DatabaseBridge implements DatabaseBridgeInterface {
     _importPaths: Array<string>,
     _refresh = false,
   ): Promise<ScanResult> {
-    tracks = MOCK_TRACKS;
+    (globalThis as MockLibraryHolder).__MUSEEKS_MOCK_TRACKS = MOCK_TRACKS;
 
     return {
       playlist_count: 0,

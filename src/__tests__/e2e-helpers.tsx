@@ -4,6 +4,7 @@ import { render } from 'vitest-browser-react';
 import { page } from 'vitest/context';
 
 import { MOCK_CONFIG } from '../lib/__mocks__/bridge-config.ts';
+import { resetMockLibrary } from '../lib/__mocks__/bridge-database.ts';
 import { messages } from '../translations/en.po';
 
 type Whatever = () => void | Promise<void>;
@@ -58,6 +59,22 @@ export function beforeEachSetup() {
     vi.doMock('../lib/bridge-database');
     vi.doMock('../lib/bridge-config');
     vi.doMock('../lib/cover');
+
+    // Every e2e test starts with an empty mock library: importTracks()
+    // permanently populates mock state, so reset it per test. The track
+    // query is Infinite-stale, so its cache must go too - otherwise a later
+    // test reuses the previous test's scanned library instead of refetching
+    // from the reset mock. (Dynamic import: queries.ts reads
+    // window.__MUSEEKS_INITIAL_CONFIG at module load, so it must load after
+    // the stubs above.)
+    resetMockLibrary();
+    const { default: queryClient } = await import('../lib/query-client.ts');
+    const { allTracksQuery } = await import('../lib/queries.ts');
+    queryClient.removeQueries({ queryKey: allTracksQuery.queryKey });
+    // A previous test may have left the shared player singleton playing its
+    // scanned queue; without this, full mode opens on that leftover queue
+    // (rows, no empty state) instead of starting empty.
+    window.__MUSEEKS_PLAYER?.stop();
 
     // Initial Location
     window.location.hash = '#/library';

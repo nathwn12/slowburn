@@ -4,9 +4,11 @@ import { defineConfig } from 'vite-plus';
 import { playwright } from 'vite-plus/test/browser-playwright';
 
 import { VITE_PLUGINS } from './vite.config';
+import './vitest.global-setup';
 
 export default defineConfig({
   test: {
+    globalSetup: ['./vitest.global-setup.ts'],
     projects: [
       {
         test: {
