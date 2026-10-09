@@ -184,18 +184,82 @@ test('the Burn sliders expose their value to assistive tech', async () => {
   expect(liveTexts).toContain(reverbText);
 });
 
-test('the A-B tag docks to the region start instead of floating centred', async () => {
+test('the A-B region band renders alone without overlapping the seek times', async () => {
   await playFirstTrack();
   const p = player();
   await p.setAbPoint('A', 3);
   await p.setAbPoint('B', 6);
 
-  // Exact text: the details panel also renders `SAVED A-B LOOP ...`, which a
-  // loose regex matches (strict-mode violation). The tag span is the only
-  // element whose full text is exactly `A-B LOOP`.
-  const tag = page.getByText('A–B LOOP', { exact: true });
-  await expect.element(tag).toBeVisible();
-  const style = getComputedStyle(tag.element());
-  expect(style.left).toBe('0px');
-  expect(style.transform).toBe('none');
+  const seekGroup = page.getByRole('group', {
+    name: 'Seek bar with A-B loop region',
+  });
+
+  // The floating pill is gone: no exact `A-B LOOP` text inside the seek
+  // group (the details `SAVED A-B LOOP` header lives outside it).
+  await expect
+    .element(seekGroup.getByText('A-B LOOP', { exact: true }))
+    .not.toBeInTheDocument();
+
+  // (a) The hatched band is the sole indicator: wait for it, then read its
+  // region left/width (3s-6s of the 300s mock track = 1% left, 1% wide).
+  await waitFor(() => {
+    const group = document.querySelector(
+      '[aria-label="Seek bar with A-B loop region"]',
+    );
+    if (group == null) return false;
+    return Array.from(group.querySelectorAll('div')).some(
+      (el) =>
+        (el as HTMLElement).style.left !== '' &&
+        (el as HTMLElement).style.width !== '',
+    );
+  }, 3000);
+  const groupEl = seekGroup.element() as HTMLElement;
+  const band = Array.from(groupEl.querySelectorAll('div')).find(
+    (el) =>
+      (el as HTMLElement).style.left !== '' &&
+      (el as HTMLElement).style.width !== '',
+  ) as HTMLElement | undefined;
+  expect(band).not.toBeUndefined();
+  if (band == null) return;
+  expect(band.style.left).toBe('1%');
+  expect(band.style.width).toBe('1%');
+  expect(band.style.display).toBe('block');
+
+  // (b) Nothing overlaps the seek times row: the topmost element at its
+  // centre is inside the times row itself (the removed pill floated at
+  // top:-16px into this row).
+  const times = groupEl.firstElementChild as HTMLElement;
+  const rect = times.getBoundingClientRect();
+  expect(rect.width).toBeGreaterThan(0);
+  expect(rect.height).toBeGreaterThan(0);
+  const hit = document.elementFromPoint(
+    rect.left + rect.width / 2,
+    rect.top + rect.height / 2,
+  );
+  expect(hit).not.toBeNull();
+  expect(times.contains(hit)).toBe(true);
+
+  // The band sits below the times row, never intersecting it.
+  const bandRect = band.getBoundingClientRect();
+  expect(bandRect.top).toBeGreaterThanOrEqual(rect.bottom - 1);
+
+  // Passing-run capture for pixel review (not an assertion): widen the
+  // saved region so the band-only indicator is unmistakable (90s-240s of
+  // the 300s mock track = 30% left, 50% wide), then screenshot.
+  await p.setAbPoint('A', 90);
+  await p.setAbPoint('B', 240);
+  await waitFor(() => {
+    const group = document.querySelector(
+      '[aria-label="Seek bar with A-B loop region"]',
+    );
+    if (group == null) return false;
+    return Array.from(group.querySelectorAll('div')).some(
+      (el) =>
+        (el as HTMLElement).style.left === '30%' &&
+        (el as HTMLElement).style.width === '50%',
+    );
+  }, 3000);
+  await page.screenshot({
+    path: '../components/__tests__/__screenshots__/ab-band-only.png',
+  });
 });

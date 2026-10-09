@@ -1,12 +1,16 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { Track } from '../generated/typings';
 import { usePlayerState } from '../hooks/usePlayer';
-import { isDeadRegion, resolveSetA, resolveSetB } from '../lib/dense-ab';
+import { resolveSetA, resolveSetB } from '../lib/dense-ab';
 import player from '../lib/player';
-import { formatTimeInput, parseTimeInput } from './time-input';
+import {
+  formatTimeInput,
+  resolvePointCommit,
+  type PointCommitResult,
+} from './time-input';
 
 type Props = {
   trackPlaying: Track;
@@ -15,11 +19,31 @@ type Props = {
 type Point = 'A' | 'B';
 
 /**
- * The `.ab-row`. A and B are TYPED fields (the owner's ask — no drag fatigue):
- * type a time, Enter/blur commits, Escape reverts. The A/B buttons and the
- * `[` / `]` keys remain as the instant capture-the-playhead path. Every write
- * goes through the one engine source of truth (`player.setAbPoint`), so
- * per-file persistence and auto-apply-on-open are unchanged.
+ * Idle pause after the last keystroke before a parseable field commits on its
+ * own. Long enough that char-by-char typing (`5` inside `5:60`) never plants
+ * an intermediate point, short enough that the commit still feels instant -
+ * no Enter, blur, or button press required.
+ */
+const INSTANT_COMMIT_MS = 500;
+
+/**
+ * The `.ab-row`. A and B are TYPED fields (the owner's ask - no drag fatigue):
+ * type a time and it takes effect INSTANTLY - a parseable value commits
+ * shortly after typing stops, with no Enter, blur, or button press, and the
+ * playhead seeks to the entered time whenever it lands exactly inside the
+ * track. The A/B buttons and the `[` / `]` keys remain as the instant
+ * capture-the-playhead path. Every write goes through the one engine source
+ * of truth (`player.setAbPoint`), so per-file persistence and
+ * auto-apply-on-open are unchanged.
+ *
+ * Two deliberate limits on the seek. The instant commit is debounced, not
+ * per-keystroke: char-by-char typing passes through values that parse on
+ * their own (`5` inside `5:60`), and committing those would plant a wrong
+ * point (and steal an Escape-revert). And a clamped or geometry-moved point
+ * commits the region without seeking: jumping to an adjusted value would
+ * surprise, and seeking at/past the media end would end the track outright.
+ * Invalid input only paints the `!` mark and never commits; an emptied field
+ * stays neutral until Enter/blur reverts it to the stored value.
  */
 export default function LoopControls({ trackPlaying }: Props) {
   const abLoop = usePlayerState((state) => state.abLoop);
@@ -42,52 +66,101 @@ export default function LoopControls({ trackPlaying }: Props) {
   const looping =
     abLoop.enabled && a != null && b != null && b - a > 0.05 && !isPaused;
 
+  // Pending instant commits, one per field. Fired from `onChange`; cancelled
+  // by further typing, Enter/blur (which commit now), Escape, capture, and
+  // unmount - so a stale timer can never clobber a newer point.
+  const instantTimers = useRef<{
+    A: ReturnType<typeof setTimeout> | null;
+    B: ReturnType<typeof setTimeout> | null;
+  }>({ A: null, B: null });
+  useEffect(
+    () => () => {
+      if (instantTimers.current.A != null) {
+        clearTimeout(instantTimers.current.A);
+      }
+      if (instantTimers.current.B != null) {
+        clearTimeout(instantTimers.current.B);
+      }
+    },
+    [],
+  );
+  const cancelInstant = (point: Point) => {
+    const pending = instantTimers.current[point];
+    if (pending != null) {
+      clearTimeout(pending);
+      instantTimers.current[point] = null;
+    }
+  };
+
   const stored = (point: Point): string =>
     formatTimeInput(point === 'A' ? a : b);
   const value = (point: Point): string => draft[point] ?? stored(point);
 
-  const commit = (point: Point) => {
-    const parsed = parseTimeInput(value(point));
-    // An empty field is not an error: clearing a point leaves the loop
-    // untouched and the field stays neutral until something invalid is typed.
-    if (parsed.kind === 'empty') {
-      revert(point);
-      return;
-    }
-    if (parsed.kind === 'invalid') {
-      setInvalid((prev) => ({ ...prev, [point]: true }));
-      return;
-    }
-
-    const seconds = Math.min(duration, Math.max(0, parsed.seconds));
-    if (point === 'A') {
-      const next = resolveSetA(seconds, b, duration);
-      // Never persist a dead region (inverted or below the 2% gap): it would
-      // claim to be a saved loop that can never loop. The geometry above
-      // already prevents this; this is the last-ditch guard.
-      if (isDeadRegion(next.a, next.b, duration)) {
-        revert(point);
-        return;
-      }
-      void player.setAbPoint('A', next.a);
-      if (next.b != null && next.b !== b) void player.setAbPoint('B', next.b);
-    } else {
-      const next = resolveSetB(a, seconds, duration);
-      if (isDeadRegion(next.a, next.b, duration)) {
-        revert(point);
-        return;
-      }
-      if (next.a != null && next.a !== a) void player.setAbPoint('A', next.a);
-      void player.setAbPoint('B', next.b);
-    }
-
+  const revert = (point: Point) => {
+    cancelInstant(point);
     setInvalid((prev) => ({ ...prev, [point]: false }));
     setDraft((prev) => ({ ...prev, [point]: null }));
   };
 
-  const revert = (point: Point) => {
+  const applyCommit = (
+    point: Point,
+    result: PointCommitResult,
+    current: { a: number | null; b: number | null },
+  ) => {
+    if (point === 'A') {
+      void player.setAbPoint('A', result.a as number);
+      if (result.b != null && result.b !== current.b) {
+        void player.setAbPoint('B', result.b);
+      }
+    } else {
+      if (result.a != null && result.a !== current.a) {
+        void player.setAbPoint('A', result.a);
+      }
+      void player.setAbPoint('B', result.b as number);
+    }
+    // The owner's ask: entering a time moves the playhead there - when the
+    // typed point landed exactly inside the track (see `resolvePointCommit`).
+    if (result.seek != null) player.setCurrentTime(result.seek);
+  };
+
+  const commit = (point: Point) => {
+    commitText(point, value(point));
+  };
+
+  const commitText = (point: Point, text: string) => {
+    // Fresh points, not the render closure's: a debounced timer may fire
+    // after a capture button or another field already moved the region.
+    const loop = player.getAbLoop();
+    const current = { a: loop.startSeconds, b: loop.endSeconds };
+    const result = resolvePointCommit(point, text, current, duration);
+    // An empty field is not an error: clearing a point leaves the loop
+    // untouched and the field stays neutral until something invalid is typed.
+    // A dead region reverts the same way (the geometry already prevents it;
+    // this is the last-ditch guard).
+    if (result.kind === 'empty' || result.kind === 'dead') {
+      revert(point);
+      return;
+    }
+    if (result.kind === 'invalid') {
+      setInvalid((prev) => ({ ...prev, [point]: true }));
+      return;
+    }
+
+    applyCommit(point, result, current);
     setInvalid((prev) => ({ ...prev, [point]: false }));
     setDraft((prev) => ({ ...prev, [point]: null }));
+  };
+
+  const scheduleInstantCommit = (point: Point, text: string) => {
+    cancelInstant(point);
+    instantTimers.current[point] = setTimeout(() => {
+      instantTimers.current[point] = null;
+      // The text travels with the timer: the scheduling render's `draft`
+      // still holds the pre-keystroke value, so reading it here would commit
+      // stale (usually empty) input. Each keystroke reschedules, so this is
+      // always the latest typed value.
+      commitText(point, text);
+    }, INSTANT_COMMIT_MS);
   };
 
   const capture = (point: Point) => {
@@ -166,22 +239,48 @@ export default function LoopControls({ trackPlaying }: Props) {
           onChange={(event) => {
             const next = event.currentTarget.value;
             setDraft((prev) => ({ ...prev, [point]: next }));
-            if (invalid[point]) {
-              setInvalid((prev) => ({ ...prev, [point]: false }));
+            // The instant path: a parseable value commits shortly after
+            // typing stops. Invalid input only paints the `!` mark and never
+            // commits; an emptied (or dead-region) value stays neutral until
+            // Enter/blur decides.
+            const live = resolvePointCommit(point, next, { a, b }, duration);
+            if (live.kind === 'commit') {
+              if (invalid[point]) {
+                setInvalid((prev) => ({ ...prev, [point]: false }));
+              }
+              scheduleInstantCommit(point, next);
+            } else if (live.kind === 'invalid') {
+              cancelInstant(point);
+              if (!invalid[point]) {
+                setInvalid((prev) => ({ ...prev, [point]: true }));
+              }
+            } else {
+              cancelInstant(point);
+              if (invalid[point]) {
+                setInvalid((prev) => ({ ...prev, [point]: false }));
+              }
             }
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault();
+              // Commit now instead of waiting out the instant timer (which
+              // would recommit the same value harmlessly - cancel it first).
+              cancelInstant(point);
               event.currentTarget.blur();
               commit(point);
             } else if (event.key === 'Escape') {
               event.preventDefault();
               // Revert without blurring: a blur would commit the stale draft.
+              // Cancelling first so no pending instant commit fires after.
               revert(point);
             }
           }}
-          onBlur={() => commit(point)}
+          onBlur={() => {
+            // Commit now instead of waiting out the instant timer.
+            cancelInstant(point);
+            commit(point);
+          }}
           {...stylex.props(
             styles.abInput,
             invalid[point] && styles.abInputInvalid,
@@ -205,45 +304,46 @@ export default function LoopControls({ trackPlaying }: Props) {
       {pointField('A')}
       {pointField('B')}
 
-      <span {...stylex.props(styles.spacer)} />
-
-      <span
-        {...stylex.props(styles.saved, saved && styles.savedYes)}
-        title={
-          saved
-            ? t`A saved A-B loop exists for this file and auto-applies when reopened.`
-            : t`No A-B loop is stored for this file.`
-        }
-      >
-        <span {...stylex.props(styles.savedMark)} aria-hidden="true">
-          {saved ? '◆' : '◇'}
-        </span>
-        {saved ? t`Saved loop` : t`No saved loop`}
-      </span>
-
-      {looping && (
+      <span {...stylex.props(styles.spacer)} aria-hidden="true" />
+      <span {...stylex.props(styles.trailingGroup)}>
         <span
-          {...stylex.props(styles.loopLive)}
-          title={t`Playback is looping the A-B region`}
+          {...stylex.props(styles.saved, saved && styles.savedYes)}
+          title={
+            saved
+              ? t`A saved A-B loop exists for this file and auto-applies when reopened.`
+              : t`No A-B loop is stored for this file.`
+          }
         >
-          ● LOOPING
+          <span {...stylex.props(styles.savedMark)} aria-hidden="true">
+            {saved ? '◆' : '◇'}
+          </span>
+          {saved ? t`Saved loop` : t`No saved loop`}
         </span>
-      )}
 
-      <button
-        type="button"
-        onClick={() => void player.clearAbLoop()}
-        disabled={!saved}
-        aria-disabled={!saved ? true : undefined}
-        title={t`Clear the A-B region for this track (key: \\)`}
-        aria-label={t`Clear the A-B region for this track`}
-        {...stylex.props(styles.abClear, !saved && styles.abClearIdle)}
-      >
-        {t`Clear`}
-        <span {...stylex.props(styles.clearKeycap)} aria-hidden="true">
-          \
-        </span>
-      </button>
+        {looping && (
+          <span
+            {...stylex.props(styles.loopLive)}
+            title={t`Playback is looping the A-B region`}
+          >
+            ● LOOPING
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={() => void player.clearAbLoop()}
+          disabled={!saved}
+          aria-disabled={!saved ? true : undefined}
+          title={t`Clear the A-B region for this track (key: \\)`}
+          aria-label={t`Clear the A-B region for this track`}
+          {...stylex.props(styles.abClear, !saved && styles.abClearIdle)}
+        >
+          {t`Clear`}
+          <span {...stylex.props(styles.clearKeycap)} aria-hidden="true">
+            \
+          </span>
+        </button>
+      </span>
     </div>
   );
 }
@@ -258,6 +358,7 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     columnGap: '6px',
+    rowGap: '6px',
     minHeight: '22px',
     flexWrap: 'wrap',
   },
@@ -365,7 +466,14 @@ const styles = stylex.create({
     fontWeight: 800,
     lineHeight: 1,
   },
+  trailingGroup: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    columnGap: '6px',
+    flexWrap: 'wrap',
+  },
   spacer: {
+    display: 'flex',
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 'auto',
@@ -424,9 +532,16 @@ const styles = stylex.create({
     },
   },
   abClear: {
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    columnGap: '6px',
     height: '22px',
-    paddingInline: 'var(--space-2)',
+    paddingInline: '9px',
     borderRadius: 'var(--radius)',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--border-soft)',
     color: {
       default: 'var(--text-faint)',
       ':hover': 'var(--danger)',
@@ -438,13 +553,14 @@ const styles = stylex.create({
     fontSize: 'var(--text-xs)',
     fontWeight: 600,
     lineHeight: 1,
-    borderStyle: 'none',
     cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    columnGap: '6px',
   },
   clearKeycap: {
+    position: 'absolute',
+    right: '4px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    pointerEvents: 'none',
     fontFamily: 'var(--mono-font)',
     fontSize: '9px',
     fontWeight: 700,

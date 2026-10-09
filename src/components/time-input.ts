@@ -1,3 +1,4 @@
+import { isDeadRegion, resolveSetA, resolveSetB } from '../lib/dense-ab';
 import { formatClockMs } from '../lib/dense-format';
 
 /**
@@ -62,4 +63,70 @@ export function parseTimeInput(raw: string): ParsedTimeInput {
 export function formatTimeInput(seconds: number | null | undefined): string {
   if (seconds == null) return '';
   return formatClockMs(seconds);
+}
+
+export type AbPoint = 'A' | 'B';
+
+/** The resolved write of one typed point (both points: the other may move). */
+export type PointCommitResult = {
+  a: number | null;
+  b: number | null;
+  /**
+   * Where the playhead goes on commit, or `null` when it stays put: the typed
+   * point did not land exactly (clamped past the track end, or the geometry
+   * moved it), or the target sits at/past the end of the track, where no
+   * seek can land - the platform would end the track instead.
+   */
+  seek: number | null;
+};
+
+export type PointCommit =
+  | { kind: 'empty' }
+  | { kind: 'invalid' }
+  | { kind: 'dead' }
+  | ({ kind: 'commit' } & PointCommitResult);
+
+/**
+ * The shared parse/commit path for a typed A-B point: parse `raw`, clamp to
+ * the track, and resolve through the dense geometry (`resolveSetA/B`), so the
+ * live-on-change path and the Enter/blur path commit exactly the same region.
+ * `invalid` never commits; `empty` and `dead` leave the loop untouched.
+ */
+export function resolvePointCommit(
+  point: AbPoint,
+  raw: string,
+  current: { a: number | null; b: number | null },
+  duration: number,
+): PointCommit {
+  const parsed = parseTimeInput(raw);
+  if (parsed.kind === 'empty') return { kind: 'empty' };
+  if (parsed.kind === 'invalid') return { kind: 'invalid' };
+
+  const seconds = Math.min(duration, Math.max(0, parsed.seconds));
+  // The playhead follows the typed time only when it lands exactly and
+  // strictly inside the track. A clamped or geometry-moved point commits the
+  // region but does not seek: jumping to an adjusted value would surprise,
+  // and seeking at/past the media end would end the track outright.
+  const seek = seconds < duration ? seconds : null;
+  if (point === 'A') {
+    const next = resolveSetA(seconds, current.b, duration);
+    // Last-ditch guard (the geometry already prevents this): never persist a
+    // dead region (inverted or below the 2% gap) that claims to be a saved
+    // loop but can never loop.
+    if (isDeadRegion(next.a, next.b, duration)) return { kind: 'dead' };
+    return {
+      kind: 'commit',
+      a: next.a,
+      b: next.b,
+      seek: next.a === seconds ? seek : null,
+    };
+  }
+  const next = resolveSetB(current.a, seconds, duration);
+  if (isDeadRegion(next.a, next.b, duration)) return { kind: 'dead' };
+  return {
+    kind: 'commit',
+    a: next.a,
+    b: next.b,
+    seek: next.b === seconds ? seek : null,
+  };
 }

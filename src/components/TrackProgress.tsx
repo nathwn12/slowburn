@@ -143,6 +143,7 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
 
       <div
         ref={trackRef}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom seek bar with waveform, A-B region, drag and arrow-key handling: a native range input cannot express it
         role="slider"
         tabIndex={0}
         aria-label={t`Seek`}
@@ -186,9 +187,7 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
               width: `${(regionWidth / denom) * 100}%`,
               display: 'block',
             }}
-          >
-            <span {...stylex.props(styles.abTag)}>A–B LOOP</span>
-          </div>
+          />
         )}
 
         <div
@@ -481,30 +480,6 @@ const styles = stylex.create({
     borderTopColor: 'var(--accent)',
     borderBottomColor: 'var(--accent)',
     borderRadius: '3px',
-  },
-  abTag: {
-    position: 'absolute',
-    top: '-16px',
-    // Docked to the region start instead of centred: centred collided with
-    // the time labels above at narrow widths (the gutter is overflow:visible).
-    // Hidden entirely once the viewport squeezes the column (~300px column).
-    left: 0,
-    display: {
-      default: 'block',
-      '@media (max-width: 560px)': 'none',
-    },
-    fontSize: '8.5px',
-    fontWeight: 800,
-    lineHeight: 1,
-    letterSpacing: '.09em',
-    color: 'var(--on-accent-ink)',
-    backgroundColor: 'var(--accent)',
-    paddingBlock: '3px',
-    paddingInline: '7px',
-    borderRadius: '9999px',
-    whiteSpace: 'nowrap',
-    boxShadow: 'var(--shadow-elevated)',
-    pointerEvents: 'none',
   },
   seekElapsed: {
     position: 'absolute',

@@ -108,16 +108,16 @@ beforeEach(() => {
       currentWebview: { label: 'main' },
     },
     callbacks: new Map(),
-    invoke: vi.fn(),
+    invoke: vi.fn<(...args: any[]) => any>(),
     convertFileSrc: (path: string) => path,
-    ipc: vi.fn(),
-    postMessage: vi.fn(),
-    runCallback: vi.fn(),
-    transformCallback: vi.fn(),
-    unregisterCallback: vi.fn(),
+    ipc: vi.fn<(...args: any[]) => any>(),
+    postMessage: vi.fn<(...args: any[]) => any>(),
+    runCallback: vi.fn<(...args: any[]) => any>(),
+    transformCallback: vi.fn<(...args: any[]) => any>(),
+    unregisterCallback: vi.fn<(...args: any[]) => any>(),
   });
   vi.stubGlobal('__TAURI_EVENT_PLUGIN_INTERNALS__', {
-    unregisterListener: vi.fn(),
+    unregisterListener: vi.fn<(...args: any[]) => any>(),
   });
 
   vi.doMock('../lib/bridge-config');
@@ -235,7 +235,8 @@ test('effect layer (slowed rate + reverb) still works', async () => {
   await sleep(50);
   expect(player.getPlaybackRate()).toBeCloseTo(0.8, 3);
 
-  // Reverb crossfades dry/wet, while the output stays silent.
+  // Reverb uses additive mixing (dry stays at unity, wet tail added on
+  // top), while the output stays silent.
   player.setEffectsConfig({ reverbEnabled: true, reverbIntensity: 0.5 });
   await sleep(300);
   const gains = effects.debugGains();
@@ -244,7 +245,9 @@ test('effect layer (slowed rate + reverb) still works', async () => {
   expect(gains.output).toBe(0);
   expect(gains.master).toBe(0);
   expect(gains.dry).not.toBeNull();
-  expect(gains.dry as number).toBeLessThan(1);
+  expect(gains.dry as number).toBe(1);
+  expect(gains.wet).not.toBeNull();
+  expect(gains.wet as number).toBe(1);
 
   // The graph is live even though nothing reaches the speakers.
   const rms = await effects.measureRms(500);
