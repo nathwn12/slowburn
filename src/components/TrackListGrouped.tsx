@@ -54,6 +54,7 @@ export default function TrackListGroupedLayout(props: Props) {
   return (
     <Scrollable
       ref={innerScrollableRef}
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- multiselectable option list with interactive rows and drag-and-drop: native select only allows option children
       role="listbox"
       aria-label={t`Track list`}
       aria-multiselectable="true"

@@ -42,6 +42,13 @@ const styles = stylex.create({
     justifyContent: 'center',
     rowGap: 'var(--space-2)',
     height: '100%',
+    // The queue tabpanel renders with `display: contents`, so this is a
+    // direct flex child of the non-scrolling queue column: without a zero
+    // minimum it cannot shrink (`min-height: auto`) and the CTA clips off
+    // the bottom in short windows. Zero minimum plus its own scroll keeps
+    // every line and the button reachable instead of clipped.
+    minHeight: 0,
+    overflowY: 'auto',
     textAlign: 'center',
     color: 'var(--text-faint)',
     padding: 'var(--space-5)',
@@ -67,7 +74,11 @@ const styles = stylex.create({
   small: {
     fontSize: 'var(--text-xs)',
     lineHeight: 1.5,
-    maxWidth: '230px',
+    // Wide enough for the two-sentence copy to settle on two balanced lines:
+    // at 230px it wrapped to three with a dangling word. `balance` keeps the
+    // lines even across translations instead of orphaning the last word.
+    maxWidth: '320px',
+    textWrap: 'balance',
   },
   cta: {
     marginTop: 'var(--space-1)',

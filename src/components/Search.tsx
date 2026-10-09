@@ -92,7 +92,11 @@ const styles = stylex.create({
     height: '28px',
     width: '210px',
     flexShrink: 1,
-    minWidth: '90px',
+    // Narrow windows (mini floor and tight full sizes): the pill yields
+    // further so the breadcrumb icons, the Full/Mini button and the settings
+    // gear keep their room instead of compressing. The Ctrl K hint hides
+    // here - the input keeps its accessible name and placeholder.
+    minWidth: '64px',
     paddingInline: '8px',
     backgroundColor: {
       default: 'var(--surface-2)',
@@ -159,6 +163,13 @@ const styles = stylex.create({
   // every flavour and matches the menu-hint convention.
   kbd: {
     flexShrink: 0,
+    // Hidden at narrow widths (the mini footprint): inside a 64px pill the
+    // hint crowds out the text itself. Same 640px breakpoint as the
+    // breadcrumb icon collapse in Navigation.
+    display: {
+      default: 'inline-block',
+      '@media (max-width: 640px)': 'none',
+    },
     fontFamily: 'var(--mono-font)',
     fontSize: '9px',
     fontWeight: 600,

@@ -73,6 +73,7 @@ export default function ShortcutsPanel() {
       role="presentation"
       onClick={() => setOpen(false)}
     >
+      {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- this click only stops backdrop-close propagation; Escape and the Close button are the existing keyboard paths */}
       <div
         role="dialog"
         aria-modal="true"

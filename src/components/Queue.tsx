@@ -206,6 +206,7 @@ export default function Queue(props: Props) {
         role="tablist"
         aria-label={t`Panel source`}
         ref={tablistRef}
+        tabIndex={-1}
         onKeyDown={onTabListKeyDown}
         {...stylex.props(styles.tabs)}
       >
@@ -772,6 +773,10 @@ const styles = stylex.create({
     justifyContent: 'center',
     rowGap: 'var(--space-2)',
     height: '100%',
+    // Same anti-clip contract as the empty state above: a direct flex
+    // child of the non-scrolling queue column in short windows.
+    minHeight: 0,
+    overflowY: 'auto',
     textAlign: 'center',
     color: 'var(--text-faint)',
     padding: 'var(--space-5)',

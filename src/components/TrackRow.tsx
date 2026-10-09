@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
 import type React from 'react';
+import type { KeyboardEvent } from 'react';
 
 import type { Track } from '../generated/typings';
 import useFormattedDuration from '../hooks/useFormattedDuration';
@@ -88,8 +89,17 @@ export default function TrackRow(props: Props) {
   const isDropAbove = isOver && overIndex < activeIndex;
   const isDropBelow = isOver && overIndex > activeIndex;
 
+  // Keyboard path (mirrors QueueListItem): Enter/Space starts playback, like
+  // a double-click. Placed after `...listeners` so it wins over the dnd-kit
+  // keyboard activation, which was unreachable while rows were unfocusable.
+  // `tabIndex={-1}` keeps every row out of the tab order.
+  const onKeyDown = (event: KeyboardEvent<HTMLLIElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onPlaybackStart(track.id);
+  };
+
   return (
-    // oxlint-disable-next-line jsx_a11y/click-events-have-key-events - given by ...listeners
     <li
       onDoubleClick={() => onPlaybackStart(track.id)}
       onMouseDown={(e) => onTrackSelect(e, track.id, index)}
@@ -107,6 +117,8 @@ export default function TrackRow(props: Props) {
       aria-posinset={index + 1}
       aria-setsize={props.setSize}
       role="option" // technically already given by attributes, but that'll make the linter happy
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
       // styles
       {...stylex.props(
         trackStyles.track,
@@ -190,6 +202,10 @@ const trackStyles = stylex.create({
     borderLeftStyle: 'solid',
     borderLeftColor: 'transparent',
     cursor: 'default',
+    outline: {
+      ':focus-visible': '2px solid var(--focus-color)',
+    },
+    outlineOffset: '-2px',
   },
   trackSelected: {
     backgroundColor: 'var(--info-soft)',

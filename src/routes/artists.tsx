@@ -54,11 +54,7 @@ function ViewArtists() {
           {...stylex.props(styles.empty)}
         >{t`No artists in your library`}</div>
       ) : (
-        <ul
-          role="listbox"
-          aria-label={t`Artists`}
-          {...stylex.props(styles.list)}
-        >
+        <ul aria-label={t`Artists`} {...stylex.props(styles.list)}>
           {artists.map((artist) => (
             <li key={artist}>
               <Link

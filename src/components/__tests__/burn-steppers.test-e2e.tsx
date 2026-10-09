@@ -28,6 +28,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { page } from 'vite-plus/test/browser';
 import { cleanup, render } from 'vitest-browser-react';
 
+import type { EffectsConfig } from '../../lib/effects';
 import { messages } from '../../translations/en.po';
 import EffectControls from '../EffectControls';
 
@@ -61,8 +62,8 @@ const harness = vi.hoisted(() => {
       reverbIntensity: 0,
     },
     player: {
-      getEffectsConfig: vi.fn(),
-      setEffectsConfig: vi.fn(),
+      getEffectsConfig: vi.fn<() => EffectsConfig>(),
+      setEffectsConfig: vi.fn<(patch: Partial<EffectsConfig>) => void>(),
       on: vi.fn<(event: string, cb: () => void) => void>(),
       off: vi.fn<(event: string, cb: () => void) => void>(),
       _listeners: listeners,

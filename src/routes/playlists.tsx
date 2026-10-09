@@ -90,11 +90,7 @@ function ViewPlaylists() {
           </button>
         </div>
       ) : (
-        <ul
-          role="listbox"
-          aria-label={t`Playlists`}
-          {...stylex.props(styles.list)}
-        >
+        <ul aria-label={t`Playlists`} {...stylex.props(styles.list)}>
           {playlists.map((playlist) => (
             <li key={playlist.id}>
               <Link

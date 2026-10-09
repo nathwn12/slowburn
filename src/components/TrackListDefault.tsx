@@ -119,6 +119,7 @@ export default function TrackListDefault(props: Props) {
 
         {/* The large inner element to hold all of the items */}
         <ul
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- virtualized multiselectable option list with sortable interactive rows: native select only allows option children
           role="listbox"
           aria-multiselectable="true"
           aria-label={t`Track list`}
@@ -179,5 +180,9 @@ const styles = stylex.create({
     listStyle: 'none',
     padding: 0,
     margin: 0,
+    // Stable gutter reserves the scrollbar lane up front so the bar never
+    // paints over row-end content and the layout cannot shift when it
+    // appears (mirrors the queue list convention).
+    scrollbarGutter: 'stable',
   },
 });

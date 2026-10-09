@@ -129,7 +129,12 @@ export default function QueueList(props: Props) {
       modifiers={DND_MODIFIERS}
       sensors={sensors}
     >
-      <ul role="listbox" aria-label={t`Queue`} {...stylex.props(styles.list)}>
+      <ul
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- sortable option list with buttons in rows and roving tabindex: native select only allows option children
+        role="listbox"
+        aria-label={t`Queue`}
+        {...stylex.props(styles.list)}
+      >
         {trackPlaying != null &&
           (!savedOnly || savedIds.has(trackPlaying.id)) && (
             <NowRow track={trackPlaying} />
@@ -238,7 +243,28 @@ const styles = stylex.create({
     listStyle: 'none',
     margin: 0,
     padding: 0,
-    paddingBlock: '2px',
+    // Breathing room past the last row so it never sits flush-clipped
+    // against the panel bottom edge.
+    paddingBlockStart: '2px',
+    paddingBlockEnd: '8px',
+    // This list is its own scroller (not wrapped in `Scrollable`), so it
+    // carries the same thin themed scrollbar and stable gutter: the gutter
+    // reserves the scrollbar lane up front, so the bar never paints over
+    // the duration / action controls at the row ends.
+    scrollbarWidth: 'thin',
+    scrollbarColor: 'var(--text-faint) transparent',
+    scrollbarGutter: 'stable',
+    '::-webkit-scrollbar': {
+      width: '8px',
+      height: '8px',
+    },
+    '::-webkit-scrollbar-track': {
+      backgroundColor: 'transparent',
+    },
+    '::-webkit-scrollbar-thumb': {
+      backgroundColor: 'var(--text-faint)',
+      borderRadius: '9999px',
+    },
   },
   row: {
     display: 'flex',

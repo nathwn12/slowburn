@@ -131,6 +131,8 @@ row, filling to the current level, beside the mute icon button; the percentage
 is transient - it appears only while the value changes and clears about 1.4 s
 later, never pinned. The wheel adjusts; a click mutes; **no thumb and no accent
 ring**. Mute state must be visually distinguishable from zero volume.
+Orientation is vertical (standing): the bar grows bottom-to-top at a constant
+width (owner ruling, 2026-10-09).
 
 The transient-percentage behaviour was an owner decision of 2026-10-09.
 
@@ -160,7 +162,8 @@ A change is acceptable when all of these are demonstrated, not asserted:
 - **AC7** Applying any sort leaves the persisted underlying list order unchanged.
 - **AC8** The volume control adjusts by wheel, mutes on click, keeps its fill bar
   constantly visible, shows the percentage only transiently while the value
-  changes, and renders no thumb.
+  changes, renders no thumb, and stands vertical (bottom-to-top fill at a
+  constant width, owner ruling 2026-10-09).
 - **AC9** The app performs no outbound network call at rest or on launch (unchanged from
   Phase 1, re-asserted).
 
