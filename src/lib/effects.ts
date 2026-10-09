@@ -7,16 +7,16 @@
  *  - the Dattorro plate reverb (ported worklet, loaded from a Blob URL), and
  *  - a slowed playback rate with pitch drop.
  *
- * Design follows the extension's hard-won semantics (see
- * `slowed-reverb-audio/content-script.js`, Source B):
+ * Design mirrors pear-desktop's slowed-reverb controller
+ * (`src/plugins/player-actions/slowed-reverb/`):
  *
- *  - dry gain mirrors `1 - wetGain` so raising reverb intensity crossfades
- *    instead of stacking loudness;
+ *  - additive mixing: the dry path stays at unity and only the wet tail is
+ *    added on top;
  *  - the master gain tracks the element volume and every gain change is a
  *    `setTargetAtTime` ramp (tau ~15 ms) to avoid clicks;
- *  - the reverb tank stays primed even at intensity 0 using the
- *    last-nonzero-intensity trick, so raising intensity does not wind up from
- *    silence;
+ *  - the reverb tank is parked at intensity 0 (intensity-0 params, silent
+ *    output with an early return that skips the tank) and resets on the
+ *    0 -> nonzero transition;
  *  - the worklet is loaded from a Blob URL, so nothing has to be shipped.
  *
  * The element is routed through `createMediaElementSource` exactly once. The
@@ -27,7 +27,7 @@
 import {
   clampIntensity,
   clampSlow,
-  computePostParams,
+  computeDattorroParams,
   DATTORRO_WORKLET_SOURCE,
   normalize,
 } from './effects-core';
@@ -37,7 +37,7 @@ const RAMP_TIME_CONSTANT = 0.015;
 /** How often the rate watchdog checks for host-reset playback rate (ms). */
 const WATCHDOG_INTERVAL_MS = 2000;
 /** Rate drift above which the watchdog rewrites `playbackRate`. */
-const RATE_DRIFT_TOLERANCE = 0.02;
+const RATE_DRIFT_TOLERANCE = 0.001;
 /** Writes that would not change the rate are skipped if within this. */
 const RATE_EPSILON = 0.001;
 /** Registered `AudioWorkletProcessor` name. */
@@ -135,7 +135,7 @@ export class EffectsController {
   private workletLoad: Promise<void> | null = null;
 
   private silentTest = false;
-  private lastNonzeroIntensity = 0;
+  private lastWetGain = 0;
 
   /**
    * User-facing volume. The graph's master gain owns loudness; the element is
@@ -233,8 +233,8 @@ export class EffectsController {
       return false;
     }
 
-    // The reverb tank should be primed from the start, so the worklet is built
-    // with the graph whenever the reverb feature is enabled at all.
+    // The reverb tank is parked at rest (intensity-0 params), so the worklet
+    // is built with the graph whenever the reverb feature is enabled at all.
     if (this.config.enabled && this.config.reverbEnabled) {
       void this.loadWorklet();
     }
@@ -366,9 +366,19 @@ export class EffectsController {
     // Give the element its volume back before the graph is gone.
     this.audio.volume = this.volume;
     try {
+      this.reverbNode?.port.postMessage({ type: 'dispose' });
+    } catch {
+      // Already gone.
+    }
+    try {
       this.reverbNode?.disconnect();
     } catch {
       // Already disconnected.
+    }
+    try {
+      this.reverbNode?.port.close();
+    } catch {
+      // Already closed.
     }
     try {
       this.source?.disconnect();
@@ -418,22 +428,26 @@ export class EffectsController {
     const intensity = this.isReverbActive()
       ? clampIntensity(this.config.reverbIntensity)
       : 0;
-    if (intensity > 0) this.lastNonzeroIntensity = intensity;
-
-    // The last-nonzero-intensity trick: while the wet output is silent, keep
-    // feeding the tank meaningful parameters so it stays primed.
-    const params = computePostParams(
-      intensity,
-      this.lastNonzeroIntensity > 0 ? this.lastNonzeroIntensity : 0.5,
-    );
-    if (this.reverbNode) {
-      try {
-        this.reverbNode.port.postMessage({ type: 'setParams', params });
-      } catch {
-        // Node torn down between checks.
-      }
+    const params = computeDattorroParams(intensity);
+    // Additive only: the dry path stays at unity and the wet tail is added
+    // on top. The wet output is silent at intensity 0 (params.wetGain 0
+    // inside the worklet), so enabling at defaults changes no loudness.
+    if (this.dryGain) {
+      this.dryGain.gain.value = 1;
     }
-    this.rampGain(this.dryGain, 1 - params.wetGain);
+    if (this.wetGain) {
+      this.wetGain.gain.value = 1;
+    }
+    const prevWet = this.lastWetGain;
+    this.lastWetGain = params.wetGain;
+    try {
+      if (prevWet === 0 && params.wetGain > 0) {
+        this.reverbNode?.port.postMessage({ type: 'reset' });
+      }
+      this.reverbNode?.port.postMessage({ type: 'setParams', params });
+    } catch {
+      // Node torn down between checks.
+    }
   }
 
   private async loadWorklet(): Promise<void> {

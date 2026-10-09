@@ -8,9 +8,11 @@ unmodified apart from the attribution headers below.
 ## `dattorro.ts`
 
 Dattorro plate-reverb parameter map + portable `AudioWorkletProcessor` source.
-The processor source is the original `slowed-reverb-audio/dattorro-worklet.js`
-(project owner's own code, "Source B"), kept as a JS string so any
-`AudioContext.audioWorklet` host can load it from a Blob URL.
+The processor source imitates pear-desktop
+`src/plugins/player-actions/slowed-reverb/worklet.ts` (direct `wetGain`
+writes, early-return silence while `wetGain === 0`, `dispose` support), kept
+as a JS string so any `AudioContext.audioWorklet` host can load it from a
+Blob URL.
 
 ## `slowed.ts`
 

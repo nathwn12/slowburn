@@ -1,16 +1,13 @@
 /**
  * Dattorro plate-reverb DSP.
  *
- * The processor source is the original `slowed-reverb-audio/dattorro-worklet.js`
- * (Source B, the project owner's own code). It is kept as a portable JS source
- * string so any `AudioContext.audioWorklet` host can load it from a Blob URL,
- * and it never references the DOM, Node, or a bundler.
- *
- * Source A (`pear-desktop .../slowed-reverb/worklet.ts`) claims to be an
- * "exact port" of this file but diverges: it writes `wetGain` directly and
- * early-returns silence when the gain is 0, dropping Source B's 5 ms wet-gain
- * ramp and tank priming. Source B's version is preferred — see README
- * "Source disagreements".
+ * Parameter map + portable `AudioWorkletProcessor` source imitating
+ * pear-desktop `src/plugins/player-actions/slowed-reverb/` as closely as
+ * possible (owner's bar: "as close as possible to its quality, mixing,
+ * etc."). The tank DSP matches pear sample-for-sample; the worklet writes
+ * `wetGain` directly, early-returns silence while it is 0 (skipping the
+ * tank), and supports a `dispose` message. The tank is parked at intensity 0
+ * and resets on the 0 -> nonzero transition (see `src/lib/effects.ts`).
  */
 
 /**
@@ -38,9 +35,9 @@ export interface DattorroParams {
 
 /**
  * Maps a `0..1` reverb intensity to worklet parameters. Intensity is clamped
- * first; a zero (or below) intensity yields the silent parameter set.
+ * first; a zero (or below) intensity yields the silent (parked) parameter set.
  *
- * Identical in Source A and Source B.
+ * Matches pear-desktop `computeDattorroParams`.
  */
 export function computeDattorroParams(intensity: number): DattorroParams {
   const i = Math.min(Math.max(Number(intensity) || 0, 0), 1);
@@ -60,24 +57,10 @@ export function computeDattorroParams(intensity: number): DattorroParams {
 }
 
 /**
- * Source B's `computePostParams`: keeps the tank parameters alive at a
- * meaningful intensity even at rest, while forcing the wet output to zero when
- * the requested intensity is not positive. `fallbackIntensity` stands in for
- * Source B's remembered `lastNonzeroIntensity` and defaults to 0.5.
- */
-export function computePostParams(
-  intensity: number,
-  fallbackIntensity = 0.5,
-): DattorroParams {
-  const fallback = fallbackIntensity > 0 ? fallbackIntensity : 0.5;
-  const base = computeDattorroParams(intensity > 0 ? intensity : fallback);
-  return { ...base, wetGain: intensity > 0 ? base.wetGain : 0 };
-}
-
-/**
  * Portable `AudioWorkletProcessor` source for the Dattorro plate reverb,
  * registered as `"dattorro-reverb"`. Feed it with `setParams` messages
- * carrying {@link DattorroParams} and `{ type: 'reset' }` to clear the tank.
+ * carrying {@link DattorroParams}, `{ type: 'reset' }` to clear the tank,
+ * and `{ type: 'dispose' }` to retire the processor.
  *
  * Load it host-side, e.g.:
  * ```ts
@@ -116,11 +99,14 @@ export const DATTORRO_WORKLET_SOURCE: string = `class DelayLine {
 class DattorroReverbProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
+    this.disposed = false;
     this.port.onmessage = (e) => this.handleMessage(e.data);
     this.init();
   }
 
   handleMessage(data) {
+    if (data.type === 'dispose') { this.disposed = true; return; }
+    if (this.disposed) return;
     if (data.type === 'reset') {
       this.init();
       return;
@@ -137,7 +123,7 @@ class DattorroReverbProcessor extends AudioWorkletProcessor {
         this.decayDiff2Amt = Math.min(Math.max(p.decay + 0.15, 0.25), 0.50);
       }
       if (p.damping !== undefined) this.dampingAmt = p.damping;
-      if (p.wetGain !== undefined) this.wetTarget = p.wetGain;
+      if (p.wetGain !== undefined) this.wetGain = p.wetGain;
     }
   }
 
@@ -159,7 +145,6 @@ class DattorroReverbProcessor extends AudioWorkletProcessor {
     this.decayDiff2Amt = 0.50;
     this.dampingAmt = 0.95;
     this.wetGain = 0;
-    this.wetTarget = 0;
     this.preFilter = 0;
     this.damping = [0, 0];
     this.hpf = 0;
@@ -220,6 +205,7 @@ class DattorroReverbProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs) {
+    if (this.disposed) return false;
     const inp = inputs[0];
     const out = outputs[0];
     if (!inp || !inp.length || !out || !out.length) return true;
@@ -229,8 +215,12 @@ class DattorroReverbProcessor extends AudioWorkletProcessor {
     const n = L.length;
     const outL = out[0];
     const outR = out.length > 1 ? out[1] : out[0];
+    if (this.wetGain === 0) {
+      outL.fill(0);
+      if (outR !== outL) outR.fill(0);
+      return true;
+    }
     const sr = this.sr;
-    const wetAlpha = 1 - Math.exp(-1 / (0.005 * sr));
 
     for (let i = 0; i < n; i++) {
       let x = (L[i] + R[i]) * 0.5;
@@ -284,35 +274,27 @@ class DattorroReverbProcessor extends AudioWorkletProcessor {
       x2 = this.allpassDL(this.decayDiff2[1], this.decayDiff2Amt, x2);
       this.postDampDL[1].write(this.t, x2);
 
-      this.wetGain += (this.wetTarget - this.wetGain) * wetAlpha;
-      if (Math.abs(this.wetGain) < 1e-6) this.wetGain = 0;
+      const lpfCoeff = 0.5;
+      const wL = (this.preDampDL[1].readTap(this.t, 'out1')
+            + this.preDampDL[1].readTap(this.t, 'out2')
+            - this.decayDiff2[1].readTap(this.t, 'out2')
+            + this.postDampDL[1].readTap(this.t, 'out2')
+            - this.preDampDL[0].readTap(this.t, 'out3')
+            - this.decayDiff2[0].readTap(this.t, 'out1')
+            + this.postDampDL[0].readTap(this.t, 'out1'));
+      const wR = (this.preDampDL[0].readTap(this.t, 'out1')
+            + this.preDampDL[0].readTap(this.t, 'out2')
+            - this.decayDiff2[0].readTap(this.t, 'out2')
+            + this.postDampDL[0].readTap(this.t, 'out2')
+            - this.preDampDL[1].readTap(this.t, 'out3')
+            - this.decayDiff2[1].readTap(this.t, 'out1')
+            + this.postDampDL[1].readTap(this.t, 'out1'));
 
-      if (this.wetGain === 0) {
-        outL[i] = 0;
-        outR[i] = 0;
-      } else {
-        const lpfCoeff = 0.5;
-        const wL = (this.preDampDL[1].readTap(this.t, 'out1')
-              + this.preDampDL[1].readTap(this.t, 'out2')
-              - this.decayDiff2[1].readTap(this.t, 'out2')
-              + this.postDampDL[1].readTap(this.t, 'out2')
-              - this.preDampDL[0].readTap(this.t, 'out3')
-              - this.decayDiff2[0].readTap(this.t, 'out1')
-              + this.postDampDL[0].readTap(this.t, 'out1'));
-        const wR = (this.preDampDL[0].readTap(this.t, 'out1')
-              + this.preDampDL[0].readTap(this.t, 'out2')
-              - this.decayDiff2[0].readTap(this.t, 'out2')
-              + this.postDampDL[0].readTap(this.t, 'out2')
-              - this.preDampDL[1].readTap(this.t, 'out3')
-              - this.decayDiff2[1].readTap(this.t, 'out1')
-              + this.postDampDL[1].readTap(this.t, 'out1'));
+      this.wetLpf[0] += lpfCoeff * (wL - this.wetLpf[0]);
+      this.wetLpf[1] += lpfCoeff * (wR - this.wetLpf[1]);
 
-        this.wetLpf[0] += lpfCoeff * (wL - this.wetLpf[0]);
-        this.wetLpf[1] += lpfCoeff * (wR - this.wetLpf[1]);
-
-        outL[i] = this.wetGain * (this.wetLpf[0] / (1 + Math.abs(this.wetLpf[0])));
-        outR[i] = this.wetGain * (this.wetLpf[1] / (1 + Math.abs(this.wetLpf[1])));
-      }
+      outL[i] = this.wetGain * (this.wetLpf[0] / (1 + Math.abs(this.wetLpf[0])));
+      outR[i] = this.wetGain * (this.wetLpf[1] / (1 + Math.abs(this.wetLpf[1])));
 
       this.t++;
     }

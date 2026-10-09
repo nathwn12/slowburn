@@ -94,11 +94,9 @@ const sanitizeCases: {
 ];
 
 describe('sanitizeSaved', () => {
-  for (const { name, raw, expected } of sanitizeCases) {
-    test(name, () => {
-      expect(sanitizeSaved(raw)).toStrictEqual(expected);
-    });
-  }
+  test.each(sanitizeCases)('$name', ({ raw, expected }) => {
+    expect(sanitizeSaved(raw)).toStrictEqual(expected);
+  });
 });
 
 const lookupCases: {
@@ -132,11 +130,9 @@ const lookupCases: {
 ];
 
 describe('lookupSaved', () => {
-  for (const { name, saved, trackId, expected } of lookupCases) {
-    test(name, () => {
-      expect(lookupSaved(saved, trackId)).toStrictEqual(expected);
-    });
-  }
+  test.each(lookupCases)('$name', ({ saved, trackId, expected }) => {
+    expect(lookupSaved(saved, trackId)).toStrictEqual(expected);
+  });
 });
 
 const upsertCases: {
@@ -196,9 +192,7 @@ const upsertCases: {
 ];
 
 describe('upsertSaved', () => {
-  for (const { name, saved, entry: next, expected } of upsertCases) {
-    test(name, () => {
-      expect(upsertSaved(saved, next)).toStrictEqual(expected);
-    });
-  }
+  test.each(upsertCases)('$name', ({ saved, entry: next, expected }) => {
+    expect(upsertSaved(saved, next)).toStrictEqual(expected);
+  });
 });

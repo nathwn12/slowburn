@@ -1,21 +1,18 @@
+import { runInNewContext } from 'node:vm';
+
 import { describe, expect, test } from 'vitest';
 
-import {
-  computeDattorroParams,
-  computePostParams,
-  DATTORRO_WORKLET_SOURCE,
-} from './dattorro';
+import { computeDattorroParams, DATTORRO_WORKLET_SOURCE } from './dattorro';
 
 /*
- * Neither source ships unit tests for the reverb parameter map or the worklet
- * (Source B only tests storage-free helpers in qa/shared-unit.js). These tests
- * pin the ported values and prove the embedded worklet source actually runs
- * under Node with `AudioWorkletProcessor`/`registerProcessor`/`sampleRate`
- * stubbed. No audio device is touched.
+ * The reverb imitates pear-desktop's slowed-reverb worklet as closely as
+ * possible: the tank DSP matches sample-for-sample, `wetGain` is written
+ * directly (no ramp), output is silent with an early return while it is 0
+ * (skipping the tank), and a `dispose` message retires the processor.
  */
 
 describe('computeDattorroParams', () => {
-  test('zero intensity is the silent parameter set', () => {
+  test('zero intensity is the parked silent parameter set', () => {
     expect(computeDattorroParams(0)).toStrictEqual({
       wetGain: 0,
       decay: 0,
@@ -54,19 +51,6 @@ describe('computeDattorroParams', () => {
   });
 });
 
-describe('computePostParams', () => {
-  test('forces the wet gain to zero while keeping tank params alive', () => {
-    const params = computePostParams(0, 0.5);
-    expect(params.wetGain).toBe(0);
-    expect(params.decay).toBe(computeDattorroParams(0.5).decay);
-    expect(params.damping).toBe(computeDattorroParams(0.5).damping);
-  });
-
-  test('passes a positive intensity straight through', () => {
-    expect(computePostParams(0.8)).toStrictEqual(computeDattorroParams(0.8));
-  });
-});
-
 describe('DATTORRO_WORKLET_SOURCE', () => {
   test('is a non-empty string that registers the processor', () => {
     expect(typeof DATTORRO_WORKLET_SOURCE).toBe('string');
@@ -76,41 +60,21 @@ describe('DATTORRO_WORKLET_SOURCE', () => {
     expect(DATTORRO_WORKLET_SOURCE).toContain('extends AudioWorkletProcessor');
   });
 
+  test('writes wetGain directly with no ramp state', () => {
+    expect(DATTORRO_WORKLET_SOURCE).toContain('this.wetGain = p.wetGain');
+    expect(DATTORRO_WORKLET_SOURCE).not.toContain('wetTarget');
+    expect(DATTORRO_WORKLET_SOURCE).not.toContain('wetAlpha');
+  });
+
+  test('early-returns silence and supports dispose', () => {
+    expect(DATTORRO_WORKLET_SOURCE).toContain('if (this.wetGain === 0)');
+    expect(DATTORRO_WORKLET_SOURCE).toContain('outL.fill(0)');
+    expect(DATTORRO_WORKLET_SOURCE).toContain("type === 'dispose'");
+    expect(DATTORRO_WORKLET_SOURCE).toContain('this.disposed');
+  });
+
   test('runs: silent at wet gain 0, bounded and finite at full gain', () => {
-    let captured: { name: string; ctor: new () => ProcessorLike } | null = null;
-
-    class AudioWorkletProcessorStub {
-      port = {
-        onmessage: null as ((event: { data: unknown }) => void) | null,
-        postMessage(): void {},
-      };
-    }
-
-    const registerProcessor = (
-      name: string,
-      ctor: new () => ProcessorLike,
-    ): void => {
-      captured = { name, ctor };
-    };
-
-    // The worklet source is plain ES2020 and only needs these three globals.
-    const factory = new Function(
-      'AudioWorkletProcessor',
-      'registerProcessor',
-      'sampleRate',
-      DATTORRO_WORKLET_SOURCE,
-    );
-    factory(AudioWorkletProcessorStub, registerProcessor, 48000);
-
-    expect(captured).not.toBeNull();
-    const registered = captured as unknown as {
-      name: string;
-      ctor: new () => ProcessorLike;
-    };
-    expect(registered.name).toBe('dattorro-reverb');
-
-    const processor = new registered.ctor();
-    expect(processor.port.onmessage).toBeTypeOf('function');
+    const processor = createProcessor();
 
     const block = 128;
     const inputL = new Float32Array(block).fill(0.5);
@@ -118,14 +82,17 @@ describe('DATTORRO_WORKLET_SOURCE', () => {
     const outL = new Float32Array(block);
     const outR = new Float32Array(block);
 
-    // Wet gain 0: the output is silent while the tank still runs.
+    // Wet gain 0: the output is silent and the tank is skipped (t parked).
     processor.process([[inputL], [inputR]], [[outL], [outR]]);
     expect(Array.from(outL).every((value) => value === 0)).toBe(true);
     expect(Array.from(outR).every((value) => value === 0)).toBe(true);
+    expect(processor.t).toBe(0);
 
     processor.port.onmessage?.({
       data: { type: 'setParams', params: { wetGain: 0.42 } },
     });
+    // Direct write: no ramp state, the gain takes effect immediately.
+    expect(processor.wetGain).toBe(0.42);
     for (let i = 0; i < 200; i += 1) {
       processor.process([[inputL], [inputR]], [[outL], [outR]]);
     }
@@ -133,8 +100,56 @@ describe('DATTORRO_WORKLET_SOURCE', () => {
     expect(produced.some((value) => value !== 0)).toBe(true);
     expect(produced.every((value) => Number.isFinite(value))).toBe(true);
     expect(produced.every((value) => Math.abs(value) <= 1)).toBe(true);
+    expect(processor.t).toBeGreaterThan(0);
+  });
+
+  test('dispose retires the processor and ignores later messages', () => {
+    const processor = createProcessor();
+    const outL = new Float32Array(128);
+    const outR = new Float32Array(128);
+    const inputs = [[new Float32Array(128).fill(0.25)]];
+    const outputs = [[outL, outR]];
+
+    // Positive control: live before dispose.
+    expect(processor.process(inputs, outputs)).toBe(true);
+
+    processor.port.onmessage?.({ data: { type: 'dispose' } });
+    expect(processor.process(inputs, outputs)).toBe(false);
+
+    processor.port.onmessage?.({
+      data: { type: 'setParams', params: { wetGain: 0.42 } },
+    });
+    expect(processor.wetGain).toBe(0);
+    expect(processor.process(inputs, outputs)).toBe(false);
   });
 });
+
+function createProcessor(): ProcessorLike & { t: number; wetGain: number } {
+  const registered: Array<
+    new () => ProcessorLike & { t: number; wetGain: number }
+  > = [];
+  runInNewContext(DATTORRO_WORKLET_SOURCE, {
+    sampleRate: 48000,
+    AudioWorkletProcessor: class {
+      port = {
+        onmessage: null as ((event: { data: unknown }) => void) | null,
+        postMessage(): void {},
+      };
+    },
+    registerProcessor: (
+      _name: string,
+      ctor: new () => ProcessorLike & { t: number; wetGain: number },
+    ) => {
+      registered.push(ctor);
+    },
+  });
+
+  const Processor = registered[0];
+  expect(Processor).not.toBeUndefined();
+  const processor = new Processor!();
+  expect(processor.port.onmessage).toBeTypeOf('function');
+  return processor;
+}
 
 interface ProcessorLike {
   port: {

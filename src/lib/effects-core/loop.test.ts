@@ -299,11 +299,9 @@ const resolveCases: {
 ];
 
 describe('resolveSeekTarget', () => {
-  for (const { name, state, player, expected } of resolveCases) {
-    test(name, () => {
-      expect(resolveSeekTarget(state, player)).toBe(expected);
-    });
-  }
+  test.each(resolveCases)('$name', ({ state, player, expected }) => {
+    expect(resolveSeekTarget(state, player)).toBe(expected);
+  });
 });
 
 const endSeekCases: {
@@ -388,11 +386,9 @@ const endSeekCases: {
 ];
 
 describe('resolveEndSeekTarget', () => {
-  for (const { name, state, duration, expected } of endSeekCases) {
-    test(name, () => {
-      expect(resolveEndSeekTarget(state, duration)).toBe(expected);
-    });
-  }
+  test.each(endSeekCases)('$name', ({ state, duration, expected }) => {
+    expect(resolveEndSeekTarget(state, duration)).toBe(expected);
+  });
 });
 
 const engagedCases: { name: string; state: LoopState; expected: boolean }[] = [
@@ -434,9 +430,7 @@ const engagedCases: { name: string; state: LoopState; expected: boolean }[] = [
 ];
 
 describe('isLoopEngaged', () => {
-  for (const { name, state, expected } of engagedCases) {
-    test(name, () => {
-      expect(isLoopEngaged(state)).toBe(expected);
-    });
-  }
+  test.each(engagedCases)('$name', ({ state, expected }) => {
+    expect(isLoopEngaged(state)).toBe(expected);
+  });
 });

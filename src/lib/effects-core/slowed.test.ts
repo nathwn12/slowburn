@@ -88,11 +88,9 @@ const slowCases: {
 ];
 
 describe('isSlowEngaged', () => {
-  for (const { name, config, expected } of slowCases) {
-    test(name, () => {
-      expect(isSlowEngaged(config)).toBe(expected);
-    });
-  }
+  test.each(slowCases)('$name', ({ config, expected }) => {
+    expect(isSlowEngaged(config)).toBe(expected);
+  });
 });
 
 const reverbCases: {
@@ -153,11 +151,9 @@ const reverbCases: {
 ];
 
 describe('isReverbEngaged', () => {
-  for (const { name, config, expected } of reverbCases) {
-    test(name, () => {
-      expect(isReverbEngaged(config)).toBe(expected);
-    });
-  }
+  test.each(reverbCases)('$name', ({ config, expected }) => {
+    expect(isReverbEngaged(config)).toBe(expected);
+  });
 });
 
 describe('clamp helpers', () => {
