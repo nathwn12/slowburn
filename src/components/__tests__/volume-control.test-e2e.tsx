@@ -1,7 +1,14 @@
 /**
- * Minimal volume: a constantly visible hair-thin fill bar beside the mute
- * icon button, and a transient percentage flash that appears only while the
- * value changes (never pinned). No thumb, no accent ring, no popover.
+ * Minimal volume: a constantly visible STANDING hair-thin fill bar beside the
+ * mute icon button (it grows bottom-to-top at a constant width), and a
+ * transient percentage flash that appears only while the value changes (never
+ * pinned). No thumb, no accent ring, no popover.
+ *
+ * Single-domain: player state, the persisted `audio_volume`, and this slider
+ * are all the LINEAR level; the perceptual curve lives in the player alone.
+ * The component must therefore hand linear values to `player.setVolume` -
+ * never the curved gain (the 2026-10-09 drift: stored values were gains of
+ * exact percents, re-curved on every path).
  *
  * Silent by construction: `player` and `usePlayerState` are mocked, so rendering
  * this component never builds an audio graph. The browser is launched with
@@ -13,19 +20,16 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { page, userEvent } from 'vite-plus/test/browser';
 import { cleanup, render } from 'vitest-browser-react';
 
+import { smoothifyVolume, unsmoothifyVolume } from '../../lib/volume-curve';
 import { messages } from '../../translations/en.po';
 import VolumeControl from '../VolumeControl';
-
-const SMOOTHING_FACTOR = 2.5;
-/** The inverse of `unsmoothifyVolume`: stored volume -> raw slider value. */
-const smoothify = (value: number): number => value ** SMOOTHING_FACTOR;
 
 const harness = vi.hoisted(() => ({
   state: { volume: 1, muted: false },
   player: {
-    setVolume: vi.fn(),
-    unmute: vi.fn(),
-    toggleMute: vi.fn(),
+    setVolume: vi.fn<(volume: number) => void>(),
+    unmute: vi.fn<() => Promise<void>>(),
+    toggleMute: vi.fn<() => Promise<void>>(),
   },
 }));
 
@@ -137,7 +141,7 @@ afterEach(async () => {
 });
 
 test('pins no percentage on mount', async () => {
-  harness.state.volume = smoothify(0.42);
+  harness.state.volume = 0.42;
   await mountLive();
   // A static mount is the "unchanged" state: fill bar visible at rest, but no
   // flash and no pinned percentage.
@@ -148,9 +152,9 @@ test('pins no percentage on mount', async () => {
 });
 
 test('flashes the percentage while the value changes, then clears it', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   const screen = await mountLive();
-  await restate(screen, smoothify(0.42), false);
+  await restate(screen, 0.42, false);
   const flash = page.getByRole('status');
   await expect.element(flash).toBeVisible();
   expect(flash.element().textContent).toBe('42%');
@@ -160,7 +164,7 @@ test('flashes the percentage while the value changes, then clears it', async () 
 });
 
 test('flashes 100% at maximum volume', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   const screen = await mountLive();
   await restate(screen, 1, false);
   await expect.element(page.getByText('100%')).toBeVisible();
@@ -168,7 +172,7 @@ test('flashes 100% at maximum volume', async () => {
 });
 
 test('flashes 0% when the volume hits zero while unmuted', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   const screen = await mountLive();
   await restate(screen, 0, false);
   await expect.element(page.getByText('0%')).toBeVisible();
@@ -177,7 +181,7 @@ test('flashes 0% when the volume hits zero while unmuted', async () => {
 });
 
 test('distinguishes muted from zero volume', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   const screen = await mountLive();
   await restate(screen, 0, false);
   await expect.element(page.getByText('0%')).toBeVisible();
@@ -204,7 +208,7 @@ test('calls toggleMute when the bar is clicked', async () => {
 });
 
 test('the fill bar is constantly visible with no interaction', async () => {
-  harness.state.volume = smoothify(0.42);
+  harness.state.volume = 0.42;
   await mountLive();
   // No hover, no focus, no click: the bar renders at rest and fills to the
   // current level.
@@ -217,8 +221,39 @@ test('the fill bar is constantly visible with no interaction', async () => {
   expect(document.querySelector('[data-museeks-action]')).toBeNull();
 });
 
+test('the standing bar grows bottom-to-top at a constant width', async () => {
+  harness.state.volume = 0.25;
+  const screen = await mountLive();
+  const slider = page.getByRole('slider', { name: 'Volume' });
+  await expect.element(slider).toBeVisible();
+  // No test ids by repo convention: the slider's first child is the track,
+  // and the track's first child is the fill.
+  const track = () => slider.element().firstElementChild as HTMLElement;
+  const range = () => track().firstElementChild as HTMLElement;
+
+  const lowTrack = track().getBoundingClientRect();
+  const lowRange = range().getBoundingClientRect();
+  // The fill fraction tracks the level, anchored at the bottom edge, spanning
+  // the full thin width.
+  expect(lowRange.height / lowTrack.height).toBeCloseTo(0.25, 1);
+  expect(lowRange.bottom).toBeCloseTo(lowTrack.bottom, 0);
+  expect(lowRange.width).toBeCloseTo(lowTrack.width, 1);
+
+  await restate(screen, 0.75, false);
+  const highTrack = track().getBoundingClientRect();
+  const highRange = range().getBoundingClientRect();
+  expect(highRange.height / highTrack.height).toBeCloseTo(0.75, 1);
+  expect(highRange.bottom).toBeCloseTo(highTrack.bottom, 0);
+  // Standing, not stretching: the width never changes with the level.
+  expect(highTrack.width).toBeCloseTo(lowTrack.width, 1);
+  expect(highRange.width).toBeCloseTo(lowRange.width, 1);
+  // And it grew from the bottom: taller, with a higher top edge.
+  expect(highRange.height).toBeGreaterThan(lowRange.height);
+  expect(highRange.top).toBeLessThan(lowRange.top);
+});
+
 test('the fill bar renders no thumb and no accent ring', async () => {
-  harness.state.volume = smoothify(0.42);
+  harness.state.volume = 0.42;
   await mountLive();
   const slider = page.getByRole('slider', { name: 'Volume' });
   await expect.element(slider).toBeVisible();
@@ -229,9 +264,47 @@ test('the fill bar renders no thumb and no accent ring', async () => {
     ),
   ).toBeNull();
   expect(slider.element().querySelectorAll('*').length).toBe(2);
-  // No accent ring: the slider carries no focus-ring / outline styling hook.
+  // No accent ring: the slider carries no focus-ring / outline / glow hook.
   const outline = getComputedStyle(slider.element()).outlineStyle;
   expect(outline === 'none' || outline === '').toBe(true);
+  expect(
+    getComputedStyle(slider.element().firstElementChild as Element).boxShadow,
+  ).toBe('none');
+});
+
+test('hands the linear level to persistence: no curve in the component', async () => {
+  harness.state.volume = 0.5;
+  harness.state.muted = false;
+  const screen = await mountLive();
+
+  wheel(bar().element(), -100);
+  // One notch up from 50% persists 51% verbatim - never the curved gain.
+  expect(harness.player.setVolume).toHaveBeenCalledTimes(1);
+  const saved = Number(harness.player.setVolume.mock.calls[0]?.[0]);
+  expect(saved).toBeCloseTo(0.51, 11);
+  expect(saved).not.toBeCloseTo(smoothifyVolume(0.51), 4);
+
+  // Simulate the reload: the persisted level feeds straight back into state
+  // and reads as the same percentage (the player persists its argument
+  // verbatim and keeps state linear, so save -> reload is exact).
+  await restate(screen, saved, false);
+  await expect.element(page.getByText('51%')).toBeVisible();
+  const slider = page.getByRole('slider', { name: 'Volume' });
+  expect(slider.element().getAttribute('aria-valuenow')).toBe('51');
+});
+
+test('the perceptual curve round-trips and pins the reported drift fixtures', () => {
+  // Identity: curving for the audio stage and back restores the level.
+  for (const level of [0, 0.01, 0.39, 0.5, 0.53, 0.75, 0.99, 1]) {
+    expect(unsmoothifyVolume(smoothifyVolume(level))).toBeCloseTo(level, 12);
+  }
+  // 2026-10-09 drift report: the stored values were curved gains of exact
+  // slider percents (53/75/100/39%) - the curve had leaked into persistence.
+  // These pin the factor, so a silent curve change cannot reinterpret levels.
+  expect(smoothifyVolume(0.53)).toBeCloseTo(0.20449828, 7);
+  expect(smoothifyVolume(0.75)).toBeCloseTo(0.48713928, 7);
+  expect(smoothifyVolume(1)).toBe(1);
+  expect(smoothifyVolume(0.39)).toBeCloseTo(0.09498642, 7);
 });
 
 // Residual (named, 2026-10-09): Escape-dismissal of the popover is not
@@ -242,7 +315,7 @@ test('the fill bar renders no thumb and no accent ring', async () => {
 // revisit with the volume-design decision.
 
 test('the wheel adjusts the volume and never scrolls the page', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -262,12 +335,12 @@ test('the wheel adjusts the volume and never scrolls the page', async () => {
   expect(second.defaultPrevented).toBe(true);
   expect(harness.player.setVolume).toHaveBeenCalledTimes(2);
   for (const call of harness.player.setVolume.mock.calls) {
-    expect(call[0]).toBeCloseTo(smoothify(0.51), 11);
+    expect(call[0]).toBeCloseTo(0.51, 11);
   }
 });
 
 test('a sub-notch wheel event steps on the very first event', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -278,14 +351,11 @@ test('a sub-notch wheel event steps on the very first event', async () => {
 
   expect(event.defaultPrevented).toBe(true);
   expect(harness.player.setVolume).toHaveBeenCalledTimes(1);
-  expect(harness.player.setVolume.mock.calls[0]?.[0]).toBeCloseTo(
-    smoothify(0.51),
-    11,
-  );
+  expect(harness.player.setVolume.mock.calls[0]?.[0]).toBeCloseTo(0.51, 11);
 });
 
 test('a continuous wheel gesture stays bounded and proportional, not a single step', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -297,12 +367,12 @@ test('a continuous wheel gesture stays bounded and proportional, not a single st
 
   expect(harness.player.setVolume).toHaveBeenCalledTimes(2);
   for (const call of harness.player.setVolume.mock.calls) {
-    expect(call[0]).toBeCloseTo(smoothify(0.51), 11);
+    expect(call[0]).toBeCloseTo(0.51, 11);
   }
 });
 
 test('N rapid discrete notches yield N steps, not one for the whole roll', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -316,12 +386,12 @@ test('N rapid discrete notches yield N steps, not one for the whole roll', async
   expect(harness.player.setVolume).toHaveBeenCalledTimes(3);
   // Every step is up (+1% from 0.50): a direction bug would report 0.49.
   for (const call of harness.player.setVolume.mock.calls) {
-    expect(call[0]).toBeCloseTo(smoothify(0.51), 11);
+    expect(call[0]).toBeCloseTo(0.51, 11);
   }
 });
 
 test('a direction reversal steps the new way immediately', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -332,18 +402,12 @@ test('a direction reversal steps the new way immediately', async () => {
   wheel(element, -10);
 
   expect(harness.player.setVolume).toHaveBeenCalledTimes(2);
-  expect(harness.player.setVolume.mock.calls[0]?.[0]).toBeCloseTo(
-    smoothify(0.49),
-    11,
-  );
-  expect(harness.player.setVolume.mock.calls[1]?.[0]).toBeCloseTo(
-    smoothify(0.51),
-    11,
-  );
+  expect(harness.player.setVolume.mock.calls[0]?.[0]).toBeCloseTo(0.49, 11);
+  expect(harness.player.setVolume.mock.calls[1]?.[0]).toBeCloseTo(0.51, 11);
 });
 
 test('the gesture re-arms after a quiet gap', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -359,12 +423,12 @@ test('the gesture re-arms after a quiet gap', async () => {
   wheel(element, -10, 250);
   expect(harness.player.setVolume).toHaveBeenCalledTimes(3);
   for (const call of harness.player.setVolume.mock.calls) {
-    expect(call[0]).toBeCloseTo(smoothify(0.51), 11);
+    expect(call[0]).toBeCloseTo(0.51, 11);
   }
 });
 
 test('sub-pixel jitter neither steps nor fakes a reversal', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -379,12 +443,12 @@ test('sub-pixel jitter neither steps nor fakes a reversal', async () => {
 
   expect(harness.player.setVolume).toHaveBeenCalledTimes(2);
   for (const call of harness.player.setVolume.mock.calls) {
-    expect(call[0]).toBeCloseTo(smoothify(0.51), 11);
+    expect(call[0]).toBeCloseTo(0.51, 11);
   }
 });
 
 test('a deliberate slow scroll steps on every event', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -396,12 +460,12 @@ test('a deliberate slow scroll steps on every event', async () => {
 
   expect(harness.player.setVolume).toHaveBeenCalledTimes(10);
   for (const call of harness.player.setVolume.mock.calls) {
-    expect(call[0]).toBeCloseTo(smoothify(0.51), 11);
+    expect(call[0]).toBeCloseTo(0.51, 11);
   }
 });
 
 test('a long sub-notch stream stays proportional, not a single step', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -416,7 +480,7 @@ test('a long sub-notch stream stays proportional, not a single step', async () =
 });
 
 test('arrow keys adjust the volume when the bar is focused', async () => {
-  harness.state.volume = smoothify(0.5);
+  harness.state.volume = 0.5;
   harness.state.muted = false;
   await mount();
 
@@ -424,15 +488,9 @@ test('arrow keys adjust the volume when the bar is focused', async () => {
 
   await userEvent.keyboard('{ArrowRight}');
   expect(harness.player.setVolume).toHaveBeenCalledTimes(1);
-  expect(harness.player.setVolume.mock.calls[0]?.[0]).toBeCloseTo(
-    smoothify(0.51),
-    11,
-  );
+  expect(harness.player.setVolume.mock.calls[0]?.[0]).toBeCloseTo(0.51, 11);
 
   await userEvent.keyboard('{ArrowDown}');
   expect(harness.player.setVolume).toHaveBeenCalledTimes(2);
-  expect(harness.player.setVolume.mock.calls[1]?.[0]).toBeCloseTo(
-    smoothify(0.49),
-    11,
-  );
+  expect(harness.player.setVolume.mock.calls[1]?.[0]).toBeCloseTo(0.49, 11);
 });

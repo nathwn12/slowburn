@@ -16,6 +16,7 @@ import {
 } from './effects-core/loop';
 import { logAndNotifyError } from './utils';
 import { shuffleTracks } from './utils-player';
+import { smoothifyVolume } from './volume-curve';
 
 /** How often an armed A-B loop checks whether the B point was crossed (ms). */
 const AB_TICK_MS = 100;
@@ -83,6 +84,16 @@ export interface PlayerEvents {
 }
 
 /**
+ * Clamps a linear (slider-domain) volume into range. Non-finite input (a
+ * corrupt or missing stored value) falls back to full, matching the effects
+ * layer's own fallback.
+ */
+function clampLinearVolume(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(1, Math.max(0, value));
+}
+
+/**
  * Enhanced Player class that manages both audio playback and queue state.
  * Extends EventEmitter to notify React components of state changes.
  */
@@ -101,8 +112,12 @@ class Player extends EventEmitter<PlayerEvents> {
   // Guards async hydration against the track changing mid-load.
   private abApplyToken = 0;
 
-  // User-facing volume. Kept here (not read back from `audio.volume`) because
-  // the effects graph's master gain owns loudness once it is built.
+  // Linear (slider-domain) user-facing volume: the percentage the owner
+  // sees. The perceptual curve (volume-curve.ts) is applied exactly once,
+  // here in the player, on the way to the audio stage - never in callers and
+  // never across the persistence boundary. Kept here (not read back from
+  // `audio.volume`) because the effects graph's master gain owns loudness
+  // once it is built.
   private volume: number;
 
   // Queue state
@@ -148,7 +163,10 @@ class Player extends EventEmitter<PlayerEvents> {
 
     this.audio.defaultPlaybackRate = mergedOptions.playbackRate;
     this.audio.playbackRate = mergedOptions.playbackRate;
-    this.audio.volume = mergedOptions.volume;
+    // The persisted volume is linear; the element takes the curved gain.
+    this.audio.volume = smoothifyVolume(
+      clampLinearVolume(mergedOptions.volume),
+    );
     this.audio.muted = mergedOptions.muted;
 
     // The effects layer owns the Web Audio graph around this one element:
@@ -163,7 +181,8 @@ class Player extends EventEmitter<PlayerEvents> {
       reverbIntensity: ConfigBridge.getInitial('audio_reverb_intensity') ?? 0,
     });
     this.abEnabled = ConfigBridge.getInitial('audio_ab_enabled') ?? true;
-    this.volume = this.audio.volume;
+    // State stays linear; only the audio stage above is curved.
+    this.volume = clampLinearVolume(mergedOptions.volume);
 
     this.setupAudioListeners();
     this.setupMediaSession();
@@ -725,14 +744,19 @@ class Player extends EventEmitter<PlayerEvents> {
   }
 
   setVolume(volume: number) {
-    this.volume = volume;
-    this.effects.setVolume(volume);
+    // Single-domain contract: callers pass the LINEAR slider value. The
+    // curve is applied here, once, for the audio stage; the linear value is
+    // what persists, so save -> reload round-trips exactly.
+    const linear = clampLinearVolume(volume);
+    this.volume = linear;
+    this.effects.setVolume(smoothifyVolume(linear));
     this.emitStateChange();
-    this.saveVolumeDebounced(volume);
+    this.saveVolumeDebounced(linear);
   }
 
   /**
-   * Debounced volume save to avoid too many writes to config
+   * Debounced volume save to avoid too many writes to config. Persists the
+   * linear level verbatim - no curve crosses this boundary.
    */
   private readonly saveVolumeDebounced = debounce((volume: number) => {
     void ConfigBridge.set('audio_volume', volume);

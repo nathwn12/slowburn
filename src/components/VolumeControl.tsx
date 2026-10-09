@@ -14,13 +14,6 @@ import player from '../lib/player';
 import Icon, { type IconName } from './Icon';
 import { STEP, useWheelStep } from './wheel-step';
 
-// Volume easing - http://www.dr-lex.be/info-stuff/volumecontrols.html#about
-const SMOOTHING_FACTOR = 2.5;
-
-const smoothifyVolume = (value: number): number => value ** SMOOTHING_FACTOR;
-const unsmoothifyVolume = (value: number): number =>
-  value ** (1.0 / SMOOTHING_FACTOR);
-
 const getVolumeIcon = (volume: number, muted: boolean): IconName => {
   if (muted) return 'volumeMute';
   if (volume === 0) return 'volumeOff';
@@ -31,10 +24,15 @@ const getVolumeIcon = (volume: number, muted: boolean): IconName => {
 
 /**
  * Minimal volume (owner ruling 2026-10-09): the transport row always shows a
- * hair-thin fill bar beside the mute icon button - no popover, no
- * hover-to-reveal, no thumb, no accent ring. The wheel adjusts, a click mutes,
- * and the numeric readout is transient: it appears only while the value
- * changes and clears ~1.4 s later, never pinned.
+ * STANDING hair-thin fill bar beside the mute icon button - it grows
+ * bottom-to-top at a constant width, with no popover, no hover-to-reveal, no
+ * thumb, no accent ring. The wheel adjusts, a click mutes, and the numeric
+ * readout is transient: it appears only while the value changes and clears
+ * ~1.4 s later, never pinned.
+ *
+ * Single-domain: the player state, the persisted `audio_volume`, and this
+ * slider are all the LINEAR level. The perceptual curve lives in the player
+ * alone (see `volume-curve.ts`), so what is saved is exactly what reloads.
  */
 export default function VolumeControl() {
   const volume = usePlayerState((state) => state.volume);
@@ -48,16 +46,16 @@ export default function VolumeControl() {
 
   const setPlayerVolume = useCallback(
     (value: number) => {
-      const smoothVolume = smoothifyVolume(value);
+      const linear = Math.min(1, Math.max(0, value));
       // Only unmute when actually muted: an unconditional `unmute()` persisted
       // `audio_muted` on every drag frame (a config write storm).
       if (muted) void player.unmute();
-      player.setVolume(smoothVolume); // Debounced save happens in player
+      player.setVolume(linear); // Debounced save happens in player
     },
     [muted],
   );
 
-  const sliderValue = unsmoothifyVolume(volume);
+  const sliderValue = volume;
   const readout = `${Math.round(sliderValue * 100)}%`;
   const icon = getVolumeIcon(sliderValue, muted);
   const label = muted ? t`Unmute` : t`Mute`;
@@ -81,12 +79,13 @@ export default function VolumeControl() {
   });
 
   const setFromPointer = useCallback(
-    (clientX: number) => {
+    (clientY: number) => {
       const rect = sliderRef.current?.getBoundingClientRect();
-      if (rect == null || rect.width === 0) return;
+      if (rect == null || rect.height === 0) return;
+      // Standing bar: the fill grows bottom-to-top.
       const ratio = Math.min(
         1,
-        Math.max(0, (clientX - rect.left) / rect.width),
+        Math.max(0, (rect.bottom - clientY) / rect.height),
       );
       setPlayerVolume(ratio);
     },
@@ -97,12 +96,12 @@ export default function VolumeControl() {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     setDragging(true);
-    setFromPointer(event.clientX);
+    setFromPointer(event.clientY);
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!dragging) return;
-    setFromPointer(event.clientX);
+    setFromPointer(event.clientY);
   };
 
   const endDrag = () => setDragging(false);
@@ -145,6 +144,7 @@ export default function VolumeControl() {
 
       <div
         ref={sliderRef}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom standing fill bar with pointer, wheel and arrow-key handling: a native range input cannot render the thumb-less vertical geometry
         role="slider"
         tabIndex={0}
         aria-label={t`Volume`}
@@ -163,9 +163,9 @@ export default function VolumeControl() {
           <div
             {...stylex.props(styles.sliderRange)}
             // A runtime percentage cannot be a static StyleX rule; this
-            // matches the existing dynamic-width pattern in
+            // matches the existing dynamic-percentage pattern in
             // TrackProgress.tsx.
-            style={{ width: `${sliderValue * 100}%` }}
+            style={{ height: `${sliderValue * 100}%` }}
           />
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function VolumeControl() {
 }
 
 const styles = stylex.create({
-  // --- Minimal volume: icon + constantly visible hair-thin fill bar ---------
+  // --- Minimal volume: icon + constantly visible standing fill bar ---------
   volumeMini: {
     position: 'relative',
     display: 'flex',
@@ -223,20 +223,22 @@ const styles = stylex.create({
   sliderHit: {
     display: 'flex',
     alignItems: 'center',
-    width: '120px',
-    height: '18px',
+    justifyContent: 'center',
+    width: '20px',
+    height: '28px',
     cursor: 'pointer',
   },
   sliderTrack: {
     backgroundColor: 'var(--track)',
     position: 'relative',
-    width: '100%',
-    height: 'var(--space-1)',
+    width: 'var(--space-1)',
+    height: '20px',
     borderRadius: '9999px',
   },
   sliderRange: {
     position: 'absolute',
-    height: '100%',
+    bottom: 0,
+    width: '100%',
     backgroundColor: 'var(--accent)',
     borderRadius: '9999px',
   },
