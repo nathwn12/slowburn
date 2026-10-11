@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, StyleX, TanStack Query, `@tauri-apps/api` config bridge, Vitest `e2e` project.
 
-**Spec:** `<workspace-root>\PERSONAL\Slowburn\docs\specs\minimal-mode-and-sorting.md` §3.5, AC5. Recon: `Slowburn-ops\ui\recon\recon-sorting.md`, `recon-menus.md`.
+**Spec:** `docs/specs/minimal-mode-and-sorting.md` §3.5, AC5. Recon: `Slowburn-ops\ui\recon\recon-sorting.md`, `recon-menus.md`.
 
 ## Global Constraints
 

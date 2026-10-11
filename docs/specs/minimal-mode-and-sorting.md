@@ -1,7 +1,7 @@
 # Spec: Minimal/Full mode, sorting model, and the volume strip
 
 Status: **approved** (owner, 2026-10-05). Design source:
-`<workspace-root>\PERSONAL\Slowburn-ops\ui\design-minimal-full.md`. This document is the durable
+`../Slowburn-ops/ui/design-minimal-full.md`. This document is the durable
 spec; the design doc is the reasoning behind it and does not override it.
 
 ## 1. Why
@@ -175,7 +175,7 @@ A change is acceptable when all of these are demonstrated, not asserted:
   zero before launch and restores it afterwards.
 - **Never play a track during verification unless muted.** The owner has been disturbed by
   test audio twice; this is the reason every launch harness mutes by construction.
-- Everything lives under `<workspace-root>\PERSONAL\`. Nothing under `INSPIRATIONS`.
+- Everything lives under this repo (or its `../Slowburn-ops` sibling). Nothing under `INSPIRATIONS`.
 - One writer per file. Lanes do not edit a file another lane owns.
 - AIMP is never modified, and AIMP is never driven while the owner is playing a game.
 - Existing behaviour not named in §3 is unchanged. No opportunistic cleanup.

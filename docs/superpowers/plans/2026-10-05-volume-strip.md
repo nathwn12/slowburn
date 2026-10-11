@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, TypeScript, StyleX (`@stylexjs/stylex`), base-ui (`Slider`, `Popover` — both to be removed), Vitest, Tauri v2.
 
-**Spec:** `<workspace-root>\PERSONAL\Slowburn\docs\specs\minimal-mode-and-sorting.md` §3.6, AC8.
+**Spec:** `docs/specs/minimal-mode-and-sorting.md` §3.6, AC8.
 
 ## Global Constraints
 

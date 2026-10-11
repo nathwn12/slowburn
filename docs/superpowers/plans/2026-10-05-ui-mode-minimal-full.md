@@ -8,7 +8,7 @@
 
 **Tech Stack:** Rust (tauri v2 plugin + sqlx config store), ts-rs type generation, React 19, TanStack Query, StyleX, Vitest, Playwright-style component e2e via `vitest` project `e2e`.
 
-**Spec:** `<workspace-root>\PERSONAL\Slowburn\docs\specs\minimal-mode-and-sorting.md` §3.1–§3.3, §3.4, AC1, AC3.
+**Spec:** `docs/specs/minimal-mode-and-sorting.md` §3.1–§3.3, §3.4, AC1, AC3.
 
 ## Global Constraints
 
@@ -72,7 +72,7 @@ fn ui_mode_serializes_lowercase() { /* serde_json to string yields "minimal" and
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `cd <workspace-root>\PERSONAL\Slowburn\src-tauri && cargo test --lib plugins::config`
+Run: `cd src-tauri && cargo test --lib plugins::config`
 Expected: FAIL to compile — `UiMode` does not exist.
 
 - [ ] **Step 3: Add the enum, the field, and the default**
@@ -83,7 +83,7 @@ in Interfaces.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `cd <workspace-root>\PERSONAL\Slowburn\src-tauri && cargo test --lib plugins::config`
+Run: `cd src-tauri && cargo test --lib plugins::config`
 Expected: PASS, both tests.
 
 - [ ] **Step 5: Commit**

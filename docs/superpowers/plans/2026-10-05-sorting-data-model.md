@@ -8,7 +8,7 @@
 
 **Tech Stack:** Rust (tauri v2 plugin, sqlx + SQLite, ts-rs), React/TypeScript, TanStack Query, Vitest.
 
-**Spec:** `<workspace-root>\PERSONAL\Slowburn\docs\specs\minimal-mode-and-sorting.md` §3.5, AC4–AC7. Recon: `Slowburn-ops\ui\recon\recon-sorting.md`, `recon-scanner-mtime.md`.
+**Spec:** `docs/specs/minimal-mode-and-sorting.md` §3.5, AC4–AC7. Recon: `Slowburn-ops\ui\recon\recon-sorting.md`, `recon-scanner-mtime.md`.
 
 ## Global Constraints
 
@@ -71,7 +71,7 @@ fn modified_is_null_when_unset() { /* None in, None out, no zero sentinel */ }
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `cd <workspace-root>\PERSONAL\Slowburn\src-tauri && cargo test --lib database_tests`
+Run: `cd src-tauri && cargo test --lib database_tests`
 Expected: FAIL to compile — `Track` has no field `modified`.
 
 - [ ] **Step 3: Add the migration**
@@ -96,7 +96,7 @@ and is intentionally nullable (null = never successfully read).
 Run: `pnpm run gen:types`
 Expected: `src/generated/typings.ts` gains `modified: number | null` (not `bigint`).
 
-Run: `cd <workspace-root>\PERSONAL\Slowburn\src-tauri && cargo test --lib`
+Run: `cd src-tauri && cargo test --lib`
 Expected: PASS, whole lib suite — the literal updates are what prove no bind list was missed.
 
 - [ ] **Step 6: Commit**
@@ -138,7 +138,7 @@ fn sort_keys_round_trip_through_serde() { /* serde_json to string and back, orde
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `cd <workspace-root>\PERSONAL\Slowburn\src-tauri && cargo test --lib plugins::config`
+Run: `cd src-tauri && cargo test --lib plugins::config`
 Expected: FAIL to compile — `SortField` does not exist.
 
 - [ ] **Step 3: Add the types and the field**
@@ -152,7 +152,7 @@ Run: `pnpm run gen:types`
 Expected: `SortField` and `SortKey` appear as exported TS types, and `library_sort_keys` is a real
 array type — not `unknown[]`.
 
-Run: `cd <workspace-root>\PERSONAL\Slowburn\src-tauri && cargo test --lib plugins::config`
+Run: `cd src-tauri && cargo test --lib plugins::config`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**

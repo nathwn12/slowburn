@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, StyleX, Vitest `e2e` project (the only project that renders components — the `unit` project is node-only and loads no JSX plugins), TanStack Query.
 
-**Spec:** `<workspace-root>\PERSONAL\Slowburn\docs\specs\minimal-mode-and-sorting.md` §3.4, AC2, AC3. Recon: `Slowburn-ops\ui\recon\recon-shell-mode.md` (component tree with line numbers), `recon-sorting.md` (mock paths).
+**Spec:** `docs/specs/minimal-mode-and-sorting.md` §3.4, AC2, AC3. Recon: `Slowburn-ops\ui\recon\recon-shell-mode.md` (component tree with line numbers), `recon-sorting.md` (mock paths).
 
 ## Global Constraints
 
