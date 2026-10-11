@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::sqlite::{SqliteAutoVacuum, SqliteConnectOptions, SqliteJournalMode};
 use sqlx::{Connection, SqliteConnection};
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tauri::Emitter;
@@ -83,6 +83,55 @@ pub struct ScanResult {
     track_failures: usize,
     playlist_count: usize,
     playlist_failures: usize,
+}
+
+/// Parse one `.m3u` playlist file into its resolved track paths, derived
+/// track IDs, and playlist name. Errors are returned so the scan loop's
+/// `Err` arm (which increments `playlist_failures`) owns them instead of
+/// panicking the whole library scan.
+fn load_playlist_contents(
+    playlist_path: &PathBuf,
+) -> AnyResult<(Vec<PathBuf>, Vec<String>, String)> {
+    let mut reader = m3u::Reader::open(playlist_path)?;
+    let playlist_dir_path = playlist_path
+        .parent()
+        .ok_or_else(|| {
+            MuseeksError::Unknown(anyhow::anyhow!(
+                "playlist path has no parent: {:?}",
+                playlist_path
+            ))
+        })?
+        .to_path_buf();
+
+    let track_paths: Vec<PathBuf> = reader
+        .entries()
+        .filter_map(|entry| {
+            let Ok(entry) = entry else {
+                return None;
+            };
+
+            match entry {
+                m3u::Entry::Path(path) => Some(playlist_dir_path.join(path)),
+                _ => None, // We don't support (yet?) URLs in playlists
+            }
+        })
+        .collect();
+
+    // Ok, this is sketchy. To avoid having to create a TrackByPath DB View,
+    // let's guess the ID of the track with UUID::v3
+    let track_ids = track_paths
+        .iter()
+        .flat_map(get_track_id_for_path)
+        .collect::<Vec<String>>();
+
+    let playlist_name = playlist_path
+        .file_stem()
+        .unwrap()
+        .to_str()
+        .unwrap_or("unknown playlist")
+        .to_owned();
+
+    Ok((track_paths, track_ids, playlist_name))
 }
 
 /** ----------------------------------------------------------------------------
@@ -215,36 +264,8 @@ async fn scan_library<R: Runtime>(
     // Start scanning the content of the playlists and adding them to the DB
     for playlist_path in playlist_paths {
         let res = {
-            let mut reader = m3u::Reader::open(&playlist_path).unwrap();
-            let playlist_dir_path = playlist_path.parent().unwrap();
-
-            let track_paths: Vec<PathBuf> = reader
-                .entries()
-                .filter_map(|entry| {
-                    let Ok(entry) = entry else {
-                        return None;
-                    };
-
-                    match entry {
-                        m3u::Entry::Path(path) => Some(playlist_dir_path.join(path)),
-                        _ => None, // We don't support (yet?) URLs in playlists
-                    }
-                })
-                .collect();
-
-            // Ok, this is sketchy. To avoid having to create a TrackByPath DB View,
-            // let's guess the ID of the track with UUID::v3
-            let track_ids = track_paths
-                .iter()
-                .flat_map(get_track_id_for_path)
-                .collect::<Vec<String>>();
-
-            let playlist_name = playlist_path
-                .file_stem()
-                .unwrap()
-                .to_str()
-                .unwrap_or("unknown playlist")
-                .to_owned();
+            let (track_paths, track_ids, playlist_name) =
+                load_playlist_contents(&playlist_path)?;
 
             let tracks = db.get_tracks(&track_ids).await?;
 
@@ -402,6 +423,23 @@ async fn set_playlist_tracks(
         .await
 }
 
+/// Build one `m3u` entry for playlist export, relative to the playlist
+/// directory. Returns `None` when no relative path exists (e.g. the track
+/// and the playlist target are on different Windows drives) so the caller
+/// can `warn!` and return early instead of panicking.
+fn relative_playlist_entry(track_path: &str, playlist_dir: &Path) -> Option<m3u::Entry> {
+    match pathdiff::diff_paths(track_path, playlist_dir) {
+        Some(relative_path) => Some(m3u::path_entry(relative_path)),
+        None => {
+            warn!(
+                "Cannot export playlist: no relative path for {:?} from {:?}",
+                track_path, playlist_dir
+            );
+            None
+        }
+    }
+}
+
 #[tauri::command]
 async fn export_playlist<R: Runtime>(
     window: tauri::Window<R>,
@@ -427,21 +465,41 @@ async fn export_playlist<R: Runtime>(
                 _ => return,
             };
 
-            let playlist_dir_path = playlist_path.parent().unwrap();
+            let Some(playlist_dir_path) = playlist_path.parent() else {
+                warn!(
+                    "Cannot export playlist: target path has no parent: {:?}",
+                    playlist_path
+                );
+                return;
+            };
 
-            let playlist = tracks
-                .iter()
-                .map(|track| {
-                    let relative_path =
-                        pathdiff::diff_paths(&track.path, playlist_dir_path).unwrap();
-                    m3u::path_entry(relative_path)
-                })
-                .collect::<Vec<m3u::Entry>>();
+            // Resolve every entry before creating the file so a failure
+            // aborts without leaving a truncated playlist behind.
+            let mut playlist = Vec::with_capacity(tracks.len());
+            for track in &tracks {
+                let Some(entry) = relative_playlist_entry(&track.path, playlist_dir_path)
+                else {
+                    return;
+                };
+                playlist.push(entry);
+            }
 
-            let mut file = std::fs::File::create(playlist_path).unwrap();
+            let mut file = match std::fs::File::create(&playlist_path) {
+                Ok(file) => file,
+                Err(err) => {
+                    warn!(
+                        "Cannot export playlist: failed to create {:?}: {}",
+                        playlist_path, err
+                    );
+                    return;
+                }
+            };
             let mut writer = m3u::Writer::new(&mut file);
             for entry in &playlist {
-                writer.write_entry(entry).unwrap();
+                if let Err(err) = writer.write_entry(entry) {
+                    warn!("Cannot export playlist: failed to write entry: {}", err);
+                    return;
+                }
             }
         });
 
@@ -549,4 +607,46 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             Ok(())
         })
         .build()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unreadable_playlist_is_a_counted_failure_not_a_panic() {        // A moved/deleted `.m3u` must surface as `Err` so the scan loop's
+        // `Err` arm increments `playlist_failures` instead of panicking the
+        // whole library scan.
+        let missing =
+            PathBuf::from("/definitely/not/here/slowburn_test_missing_playlist.m3u");
+        let res = load_playlist_contents(&missing);
+
+        let mut failures = 0;
+        match res {
+            Ok(_) => {}
+            Err(_) => {
+                failures += 1;
+            }
+        }
+        assert_eq!(failures, 1, "unreadable playlist must count one failure");
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn unrelativizable_export_entry_is_none_not_a_panic() {
+        // When `pathdiff::diff_paths` cannot relativize (e.g. a relative
+        // track path against an absolute playlist directory), the exporter
+        // must get `None` (and `warn!`/return early) instead of panicking.
+        // NOTE: pathdiff 0.2.3 resolves differing Windows drive prefixes to
+        // a `Some(..)` garbage path rather than `None`, so the `None` arm is
+        // exercised here with a relative track path, which `diff_paths`
+        // documents as `None` against an absolute base.
+        let res =
+            relative_playlist_entry("relative\\a.mp3", Path::new("C:\\playlists"));
+        assert!(res.is_none());
+        // Same-drive absolute targets still relativize.
+        assert!(
+            relative_playlist_entry("C:\\music\\a.mp3", Path::new("C:\\music")).is_some()
+        );
+    }
 }

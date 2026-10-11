@@ -47,8 +47,12 @@ fn is_dir_visible(entry: &walkdir::DirEntry) -> bool {
  * Take an entry and filter out non-allowed extensions
  */
 pub fn is_file_valid(path: &Path, allowed_extensions: &[&str]) -> bool {
-    let extension = path.extension().and_then(OsStr::to_str).unwrap_or("");
-    allowed_extensions.contains(&extension)
+    let extension = path
+        .extension()
+        .and_then(OsStr::to_str)
+        .unwrap_or("")
+        .to_lowercase();
+    allowed_extensions.contains(&extension.as_str())
 }
 
 /**
@@ -85,5 +89,22 @@ pub fn get_theme_from_name(theme_name: &str) -> Option<Theme> {
         "dark" => Some(Theme::Dark),
         SYSTEM_THEME => None,
         _ => None, // ? :]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn uppercase_extensions_are_imported() {
+        // Files arrive with any casing (`Song.MP3`, `Album.JPG`) while every
+        // entry in `SUPPORTED_TRACKS_EXTENSIONS` is lowercase: the lookup
+        // must be case-insensitive or those files are silently skipped.
+        assert!(is_file_valid(&PathBuf::from("Song.MP3"), &["mp3"]));
+        assert!(is_file_valid(&PathBuf::from("Album.JPG"), &["jpg"]));
+        assert!(is_file_valid(&PathBuf::from("track.FlAc"), &["flac"]));
+        assert!(!is_file_valid(&PathBuf::from("notes.txt"), &["mp3"]));
     }
 }

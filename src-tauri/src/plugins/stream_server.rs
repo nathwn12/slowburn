@@ -34,6 +34,9 @@ struct StreamParams {
 
 /// Parse a Range header value like "bytes=0-1023" or "bytes=1024-"
 fn parse_range_header(range: &str, file_size: u64) -> Option<(u64, u64)> {
+    if file_size == 0 {
+        return None;
+    }
     let range = range.strip_prefix("bytes=")?;
     let mut parts = range.splitn(2, '-');
     let start_str = parts.next()?;
@@ -205,4 +208,20 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         })
         .js_init_script(init_script)
         .build()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_file_has_no_satisfiable_range() {
+        // Browsers send `Range` for `<audio>`; `file_size - 1` underflows
+        // when `file_size == 0` (panics in debug, wraps to `u64::MAX` in
+        // release), so an empty file must yield `None`.
+        assert!(parse_range_header("bytes=0-", 0).is_none());
+        // Sanity: normal ranges still parse.
+        assert_eq!(parse_range_header("bytes=0-", 10), Some((0, 9)));
+        assert_eq!(parse_range_header("bytes=2-5", 10), Some((2, 5)));
+    }
 }

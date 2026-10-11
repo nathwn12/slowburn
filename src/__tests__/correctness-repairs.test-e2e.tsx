@@ -116,7 +116,7 @@ test('removing a folder prunes only tracks under it, keeping sibling-prefixed fo
     ]);
   const removeSpy = vi
     .spyOn(DatabaseBridge, 'removeTracks')
-    .mockResolvedValue([]);
+    .mockResolvedValue(undefined);
 
   try {
     await LibraryAPI.removeLibraryFolder('/music/rock');

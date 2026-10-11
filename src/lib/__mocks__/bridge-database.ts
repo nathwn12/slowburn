@@ -132,8 +132,8 @@ class DatabaseBridge implements DatabaseBridgeInterface {
     holder.__MUSEEKS_MOCK_RECORD_PLAYS.add(trackID);
   }
 
-  async removeTracks(_trackIDs: Array<string>): Promise<Array<Track>> {
-    return [];
+  async removeTracks(_trackIDs: Array<string>): Promise<void> {
+    return;
   }
 
   async importTracks(
@@ -239,8 +239,8 @@ class DatabaseBridge implements DatabaseBridgeInterface {
     abLoopStore().delete(trackID);
   }
 
-  async reset(): Promise<string | null> {
-    return null;
+  async reset(): Promise<void> {
+    return;
   }
 }
 

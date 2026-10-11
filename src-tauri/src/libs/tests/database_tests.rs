@@ -767,3 +767,48 @@ async fn test_metadata_backfill_over_temp_library() {
 
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[tokio::test]
+async fn remove_tracks_empty_list_is_ok() {
+    // `LibraryAPI.removeTracks` forwards any array and the selection can be
+    // empty: `DELETE FROM tracks WHERE id IN ()` is invalid SQL, so an empty
+    // list must short-circuit to `Ok(())`.
+    let mut db = get_test_db().await;
+    db.insert_tracks(vec![sample_track_1()]).await.unwrap();
+    db.remove_tracks(&vec![]).await.unwrap();
+    assert_eq!(db.get_all_tracks().await.unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn create_playlist_with_non_utf8_path_does_not_panic() {
+    // `import_path` comes from the filesystem and is not guaranteed UTF-8:
+    // storing it must use a lossy conversion, never `to_str().unwrap()`.
+    #[cfg(windows)]
+    let raw: std::ffi::OsString = {
+        use std::os::windows::ffi::OsStringExt;
+        std::ffi::OsString::from_wide(&[0xD800, 0x0061])
+    };
+    #[cfg(unix)]
+    let raw: std::ffi::OsString = {
+        use std::os::unix::ffi::OsStringExt;
+        std::ffi::OsString::from_vec(vec![0xFF, b'a'])
+    };
+    #[cfg(not(any(windows, unix)))]
+    let raw: std::ffi::OsString = std::ffi::OsString::from("weird");
+    let path = PathBuf::from(raw);
+    #[cfg(any(windows, unix))]
+    assert!(
+        path.to_str().is_none(),
+        "precondition: the test path must not be valid UTF-8"
+    );
+
+    let mut db = get_test_db().await;
+    let playlist = db
+        .create_playlist("weird".to_string(), vec![], Some(path.clone()))
+        .await
+        .unwrap();
+    assert_eq!(
+        playlist.import_path.as_deref(),
+        Some(path.to_string_lossy().as_ref())
+    );
+}

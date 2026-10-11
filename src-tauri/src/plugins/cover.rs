@@ -13,6 +13,18 @@ use crate::libs::utils::scan_dir;
 const SUPPORTED_COVER_EXTENSIONS: [&str; 5] = ["png", "jpg", "jpeg", "bmp", "gif"];
 const SUPPORTED_COVER_NAMES: [&str; 5] = ["album", "albumart", "folder", "cover", "front"];
 
+/// Maps a lofty picture MIME to the data-URL MIME label embedded in `img.src`.
+fn cover_mime_label(mime: Option<&MimeType>) -> Option<&'static str> {
+    match mime {
+        Some(MimeType::Png) => Some("image/png"),
+        Some(MimeType::Jpeg) => Some("image/jpeg"),
+        Some(MimeType::Tiff) => Some("image/tiff"),
+        Some(MimeType::Bmp) => Some("image/bmp"),
+        Some(MimeType::Gif) => Some("image/gif"),
+        _ => None,
+    }
+}
+
 #[memoize::memoize]
 fn get_cover_from_id3(path: String) -> Option<String> {
     let tagged_file = match lofty::read_from_path(path) {
@@ -29,14 +41,7 @@ fn get_cover_from_id3(path: String) -> Option<String> {
         .or_else(|| primary_tag.get_picture_type(PictureType::Icon))
         .or_else(|| primary_tag.get_picture_type(PictureType::OtherIcon))?;
 
-    let format = match cover.mime_type() {
-        Some(MimeType::Png) => "png".to_string(),
-        Some(MimeType::Jpeg) => "jpg".to_string(),
-        Some(MimeType::Tiff) => "tiff".to_string(),
-        Some(MimeType::Bmp) => "bmp".to_string(),
-        Some(MimeType::Gif) => "gif".to_string(),
-        _ => return None,
-    };
+    let format = cover_mime_label(cover.mime_type())?;
 
     let cover_base64 = BASE64_STANDARD.encode(cover.data());
     Some(format!("data:{};base64,{}", format, cover_base64))
@@ -83,4 +88,32 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::<R>::new("cover")
         .invoke_handler(tauri::generate_handler![get_cover])
         .build()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn embedded_cover_data_url_uses_full_image_mime() {
+        // `src/lib/cover.ts` uses the string verbatim as `img.src` whenever
+        // it starts with `data:`, so the label must be a full MIME type.
+        assert_eq!(cover_mime_label(Some(&MimeType::Png)), Some("image/png"));
+        assert_eq!(
+            cover_mime_label(Some(&MimeType::Jpeg)),
+            Some("image/jpeg")
+        );
+        assert_eq!(
+            cover_mime_label(Some(&MimeType::Tiff)),
+            Some("image/tiff")
+        );
+        assert_eq!(cover_mime_label(Some(&MimeType::Bmp)), Some("image/bmp"));
+        assert_eq!(cover_mime_label(Some(&MimeType::Gif)), Some("image/gif"));
+        assert_eq!(cover_mime_label(None), None);
+
+        // The assembled data URL must decode as an image.
+        let label = cover_mime_label(Some(&MimeType::Png)).unwrap();
+        let url = format!("data:{};base64,AAAA", label);
+        assert!(url.starts_with("data:image/"));
+    }
 }

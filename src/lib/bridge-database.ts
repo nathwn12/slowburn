@@ -14,7 +14,7 @@ export interface DatabaseBridgeInterface {
   getTracks(trackIDs: Array<string>): Promise<Array<Track>>;
   updateTrack(track: Track): Promise<Track>;
   recordPlay(trackID: string): Promise<void>;
-  removeTracks(trackIDs: Array<string>): Promise<Array<Track>>;
+  removeTracks(trackIDs: Array<string>): Promise<void>;
   importTracks(
     importPaths: Array<string>,
     refresh?: boolean,
@@ -37,7 +37,7 @@ export interface DatabaseBridgeInterface {
     endSeconds: number | null,
   ): Promise<AbLoop | null>;
   clearAbLoop(trackID: string): Promise<void>;
-  reset(): Promise<string | null>;
+  reset(): Promise<void>;
 }
 
 /**
@@ -76,7 +76,7 @@ class DatabaseBridge implements DatabaseBridgeInterface {
   }
 
   @LogExecutionTime
-  async removeTracks(trackIDs: Array<string>): Promise<Array<Track>> {
+  async removeTracks(trackIDs: Array<string>): Promise<void> {
     return invoke('plugin:database|remove_tracks', {
       ids: trackIDs,
     });
@@ -205,7 +205,7 @@ class DatabaseBridge implements DatabaseBridgeInterface {
   // Common
   // ---------------------------------------------------------------------------
   @LogExecutionTime
-  async reset(): Promise<string | null> {
+  async reset(): Promise<void> {
     return invoke('plugin:database|reset');
   }
 }

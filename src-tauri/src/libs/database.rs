@@ -211,6 +211,10 @@ impl DB {
 
     /** Delete multiple tracks by ID */
     pub async fn remove_tracks(&mut self, track_ids: &Vec<String>) -> AnyResult<()> {
+        if track_ids.is_empty() {
+            return Ok(());
+        }
+
         let placeholders = track_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
         let query = format!("DELETE FROM tracks WHERE id IN ({})", placeholders);
 
@@ -623,7 +627,7 @@ impl DB {
         import_path: Option<PathBuf>,
     ) -> AnyResult<Playlist> {
         let playlist_path: Option<String> =
-            import_path.map(|path| path.to_str().unwrap().to_string());
+            import_path.map(|path| path.to_string_lossy().into_owned());
 
         let playlist = Playlist {
             id: uuid::Uuid::new_v4().to_string(),

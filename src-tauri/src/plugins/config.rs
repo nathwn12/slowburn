@@ -277,7 +277,9 @@ impl ConfigManager {
 
     fn save(&self) -> AnyResult<()> {
         let config = self.data.read().map_err(config_err)?;
-        self.manager.save_toml(config.clone()).unwrap();
+        self.manager
+            .save_toml(config.clone())
+            .map_err(|err| MuseeksError::Config(format!("{err:?}")))?;
         info!("Config updated");
         Ok(())
     }
@@ -515,5 +517,23 @@ mod tests {
         let back: Config = serde_json::from_str(&serde_json::to_string(&chosen).unwrap()).unwrap();
         assert!(back.ui_details_open);
         assert!(back.ui_ab_open);
+    }
+
+    #[test]
+    fn save_to_a_failing_target_returns_err_instead_of_panicking() {
+        // A full disk (or any unwritable target) must surface as `Err` from
+        // `set_config`/`update`, never as a backend panic. Point the manager
+        // at an existing directory so `save_toml` deterministically fails.
+        let dir = std::env::temp_dir().join("slowburn_config_save_failure_test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let manager = HomeConfig::with_file(&dir);
+        assert_eq!(manager.path(), &dir);
+        let config_manager = ConfigManager::new(manager, Config::default());
+        let res = config_manager.update(Config::default());
+        assert!(
+            res.is_err(),
+            "a failing config target must return Err, not panic"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

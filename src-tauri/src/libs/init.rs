@@ -4,7 +4,7 @@ use home_config::HomeConfig;
 
 use crate::plugins::config::Config;
 use crate::{
-    libs::error::AnyResult,
+    libs::error::{AnyResult, MuseeksError},
     plugins::config::{get_storage_dir, ConfigManager},
 };
 
@@ -43,14 +43,18 @@ pub fn init() -> AnyResult<ConfigManager> {
             // configs, then backfill any missing keys populated by serde
             // defaults.
             let config = config.migrate_default_view();
-            manager.save_toml(&config).unwrap();
+            manager
+                .save_toml(&config)
+                .map_err(|err| MuseeksError::Config(format!("{err:?}")))?;
 
             ConfigManager::new(manager, config)
         }
         Err(_) => {
             // The config does not exist, so let's instantiate it with defaults
             let default_config = Config::default();
-            manager.save_toml(&default_config).unwrap();
+            manager
+                .save_toml(&default_config)
+                .map_err(|err| MuseeksError::Config(format!("{err:?}")))?;
 
             ConfigManager::new(manager, default_config)
         }
