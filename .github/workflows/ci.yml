@@ -6,8 +6,6 @@
 # bundling needs signing/NSIS and does not belong in a build+test gate.
 name: ci
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
