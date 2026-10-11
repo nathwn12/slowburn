@@ -39,13 +39,18 @@ pub fn init() -> AnyResult<ConfigManager> {
 
     let config = match existing_config {
         Ok(config) => {
-            // One-shot "default to All tracks" migration for pre-existing
-            // configs, then backfill any missing keys populated by serde
-            // defaults.
-            let config = config.migrate_default_view();
-            manager
-                .save_toml(&config)
-                .map_err(|err| MuseeksError::Config(format!("{err:?}")))?;
+            // Ordered, version-stamped migrations: serde defaults still
+            // backfill any missing keys on load, then the chain applies each
+            // step newer than the stamped version in order. Rewrite the file
+            // only when the version actually advanced - a boot with no
+            // pending migration must not touch the disk.
+            let from_version = config.config_version;
+            let (config, to_version) = config.migrate();
+            if to_version != from_version {
+                manager
+                    .save_toml(&config)
+                    .map_err(|err| MuseeksError::Config(format!("{err:?}")))?;
+            }
 
             ConfigManager::new(manager, config)
         }

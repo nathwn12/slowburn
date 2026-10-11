@@ -8,6 +8,7 @@ import ConfigBridge from './bridge-config';
 import bridgeDatabase from './bridge-database';
 import { getCover } from './cover';
 import { EffectsController, type EffectsConfig } from './effects';
+import { normalizePitchQuality } from './effects-core';
 import {
   isLoopEngaged,
   resolveEndSeekTarget,
@@ -170,15 +171,21 @@ class Player extends EventEmitter<PlayerEvents> {
     this.audio.muted = mergedOptions.muted;
 
     // The effects layer owns the Web Audio graph around this one element:
-    // Dattorro reverb + slowed playback rate. It is inert at the defaults
-    // (reverb intensity 0, slow 1x) and records the element's base rate/pitch
-    // so teardown can restore them.
+    // Dattorro reverb + slowed playback rate + independent tempo/pitch. It
+    // is inert at the defaults (reverb intensity 0, slow 1x, tempo 100%,
+    // pitch +0 st) and records the element's base rate/pitch so teardown
+    // can restore them.
     this.effects = new EffectsController(this.audio, {
       enabled: ConfigBridge.getInitial('audio_effects_enabled'),
       slowEnabled: ConfigBridge.getInitial('audio_slow_enabled'),
       slow: ConfigBridge.getInitial('audio_slow') ?? 1,
       reverbEnabled: ConfigBridge.getInitial('audio_reverb_enabled'),
       reverbIntensity: ConfigBridge.getInitial('audio_reverb_intensity') ?? 0,
+      tempo: ConfigBridge.getInitial('audio_tempo') ?? 100,
+      pitch: ConfigBridge.getInitial('audio_pitch') ?? 0,
+      pitchQuality: normalizePitchQuality(
+        ConfigBridge.getInitial('audio_pitch_quality'),
+      ),
     });
     this.abEnabled = ConfigBridge.getInitial('audio_ab_enabled') ?? true;
     // State stays linear; only the audio stage above is curved.

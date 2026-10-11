@@ -93,6 +93,13 @@ pub enum UiMode {
 #[ts(export, export_to = "../../src/generated/typings.ts")]
 #[serde(default)]
 pub struct Config {
+    /// Numeric schema stamp driving ordered migrations (take L2-2): every
+    /// migration step bumps this, and `migrate` applies each step newer
+    /// than the stamped version in order. Legacy files carry no such key,
+    /// so the serde default below stamps them `CONFIG_VERSION_LEGACY`
+    /// (0) - never current - forcing the full chain to run.
+    #[serde(default = "legacy_config_version")]
+    pub config_version: u32,
     pub theme: String,
     pub ui_mode: UiMode,
     pub ui_accent_color: Option<String>,
@@ -120,13 +127,27 @@ pub struct Config {
     pub audio_reverb_intensity: f32,
     pub audio_slow_enabled: bool,
     pub audio_slow: f32,
+    /// Independent tempo in percent, neutral 100. Additive: files written
+    /// before this key fall back to neutral via `default_audio_tempo`.
+    #[serde(default = "default_audio_tempo")]
+    pub audio_tempo: f32,
+    /// Independent pitch shift in semitones, neutral 0 (`f32` serde default
+    /// is already 0.0, so a missing key is neutral).
+    #[serde(default)]
+    pub audio_pitch: f32,
+    /// Pitch-shifter quality tier ("low" | "medium" | "high"), neutral
+    /// "medium". Kept a `String` (validated on the TS side) so an unknown
+    /// stored value can fall back instead of failing the whole file parse.
+    #[serde(default = "default_audio_pitch_quality")]
+    pub audio_pitch_quality: String,
     pub audio_ab_enabled: bool,
     pub default_view: DefaultView,
-    /// One-shot v1 migration flag for the "default to All tracks" change:
-    /// configs written before it may carry any stored `default_view`; the
-    /// first boot with this build resets it to `Library` (the all-tracks
-    /// list) and flips this, so later explicit user choices are never
-    /// touched. Missing on old files, where `#[serde(default)]` yields false.
+    /// Legacy one-shot flag from the pre-chain "default to All tracks"
+    /// migration. Still deserialized so old files on disk (which contain
+    /// this key) keep loading, and still WRITTEN so older builds see a
+    /// consistent marker - but migration DECISIONS now belong solely to the
+    /// version-stamped `migrate` chain, which consults this flag only
+    /// inside `migrate_to_v1`. Never branch on it directly; call `migrate`.
     #[serde(default)]
     pub default_view_migrated_v1: bool,
     pub library_sort_by: SortBy,
@@ -145,17 +166,63 @@ pub struct Config {
     pub menu_bar_visible: bool,
 }
 
+/// Oldest known config schema: a file with no `config_version` key (any
+/// config written before versioning existed) deserializes to this via
+/// `legacy_config_version`, so the chain treats it as pre-everything.
+pub const CONFIG_VERSION_LEGACY: u32 = 0;
+/// Current config schema version. Bump when adding a migration step and
+/// append the step to `Config::migrate` in order.
+pub const CONFIG_VERSION_CURRENT: u32 = 1;
+
+/// Serde default for `config_version`: a missing key means a legacy file
+/// that predates versioning, so stamp it the oldest known version (0),
+/// NOT the current one - otherwise the chain would skip every migration.
+fn legacy_config_version() -> u32 {
+    CONFIG_VERSION_LEGACY
+}
+
+/// Serde default for `audio_tempo`: neutral 100 percent.
+fn default_audio_tempo() -> f32 {
+    100.0
+}
+
+/// Serde default for `audio_pitch_quality`: neutral "medium" tier.
+fn default_audio_pitch_quality() -> String {
+    "medium".to_owned()
+}
+
 impl Config {
-    /// One-shot "default to All tracks" migration (v1): a stored config from
-    /// before this change may carry any `default_view` (e.g. `Playlists`);
-    /// reset it to `Library` - the route that renders the all-tracks list -
-    /// exactly once, then flip the flag so later explicit user choices stick.
-    pub fn migrate_default_view(mut self) -> Self {
+    /// v1 step: "default to All tracks". A stored config from before this
+    /// change may carry any `default_view` (e.g. `Playlists`); reset it to
+    /// `Library` - the route that renders the all-tracks list - exactly
+    /// once, then flip the legacy flag so later explicit user choices
+    /// stick, and stamp the config to version 1. Individually testable;
+    /// invoked by `migrate` when the stamped version is below 1.
+    pub fn migrate_to_v1(mut self) -> Self {
         if !self.default_view_migrated_v1 {
             self.default_view = DefaultView::Library;
             self.default_view_migrated_v1 = true;
         }
+        self.config_version = 1;
         self
+    }
+
+    /// Ordered migration chain: applies every step newer than the stamped
+    /// `config_version`, in order, and returns the migrated config plus the
+    /// resulting version. A file already at (or past) current is returned
+    /// untouched - in particular a version NEWER than current (a future
+    /// file) is left as-is and never downgraded. The caller persists back
+    /// only when the returned version differs from the stamped one.
+    pub fn migrate(mut self) -> (Self, u32) {
+        if self.config_version >= CONFIG_VERSION_CURRENT {
+            let version = self.config_version;
+            return (self, version);
+        }
+        if self.config_version < 1 {
+            self = self.migrate_to_v1();
+        }
+        let version = self.config_version;
+        (self, version)
     }
 }
 
@@ -164,6 +231,7 @@ pub const SYSTEM_THEME: &str = "__system";
 impl Default for Config {
     fn default() -> Self {
         Config {
+            config_version: CONFIG_VERSION_CURRENT,
             theme: SYSTEM_THEME.to_owned(),
             ui_mode: UiMode::Full,
             ui_accent_color: None,
@@ -182,6 +250,9 @@ impl Default for Config {
             audio_reverb_intensity: 0.0,
             audio_slow_enabled: true,
             audio_slow: 1.0,
+            audio_tempo: default_audio_tempo(),
+            audio_pitch: 0.0,
+            audio_pitch_quality: default_audio_pitch_quality(),
             audio_ab_enabled: true,
             default_view: DefaultView::Library,
             default_view_migrated_v1: true,
@@ -343,10 +414,9 @@ mod tests {
         let config = Config::default();
         assert!(matches!(config.default_view, DefaultView::Library));
         assert!(config.default_view_migrated_v1);
-        assert!(matches!(
-            config.migrate_default_view().default_view,
-            DefaultView::Library
-        ));
+        let (migrated, version) = config.migrate();
+        assert!(matches!(migrated.default_view, DefaultView::Library));
+        assert_eq!(version, CONFIG_VERSION_CURRENT);
     }
 
     #[test]
@@ -363,7 +433,7 @@ mod tests {
 
         let loaded: Config = serde_json::from_value(value).unwrap();
         assert!(!loaded.default_view_migrated_v1);
-        let migrated = loaded.migrate_default_view();
+        let migrated = loaded.migrate_to_v1();
         assert!(matches!(migrated.default_view, DefaultView::Library));
         assert!(migrated.default_view_migrated_v1);
 
@@ -371,7 +441,7 @@ mod tests {
         // after this change) is never touched again.
         let mut reselected = migrated;
         reselected.default_view = DefaultView::Artists;
-        let kept = reselected.migrate_default_view();
+        let kept = reselected.migrate_to_v1();
         assert!(matches!(kept.default_view, DefaultView::Artists));
         assert!(kept.default_view_migrated_v1);
     }
@@ -520,6 +590,131 @@ mod tests {
     }
 
     #[test]
+    fn legacy_file_without_version_key_migrates_through_chain_to_library() {
+        // Simulate a pre-versioning config file: no `config_version` key,
+        // no migration flag, and a stored non-Library view.
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.insert(
+            "default_view".to_owned(),
+            serde_json::Value::String("Playlists".to_owned()),
+        );
+        obj.remove("config_version");
+        obj.remove("default_view_migrated_v1");
+
+        let loaded: Config = serde_json::from_value(value).unwrap();
+        // A missing version key stamps the oldest known version, NOT
+        // current - otherwise the chain below would skip every migration.
+        assert_eq!(loaded.config_version, CONFIG_VERSION_LEGACY);
+        assert!(!loaded.default_view_migrated_v1);
+
+        let (migrated, version) = loaded.migrate();
+        assert_eq!(version, CONFIG_VERSION_CURRENT);
+        assert_eq!(migrated.config_version, CONFIG_VERSION_CURRENT);
+        assert!(matches!(migrated.default_view, DefaultView::Library));
+        assert!(migrated.default_view_migrated_v1);
+    }
+
+    #[test]
+    fn config_at_current_version_is_returned_unchanged() {
+        // An explicit user choice on a current file must survive the chain
+        // verbatim, and the returned version must equal the stamped one -
+        // that equality is the signal the `init` call site uses to SKIP the
+        // rewrite, so a boot with no pending migration never touches disk.
+        let config = Config {
+            default_view: DefaultView::Artists,
+            ..Config::default()
+        };
+        let before = serde_json::to_value(&config).unwrap();
+
+        let (kept, version) = config.migrate();
+        assert_eq!(version, CONFIG_VERSION_CURRENT);
+        assert_eq!(kept.config_version, CONFIG_VERSION_CURRENT);
+        assert_eq!(serde_json::to_value(&kept).unwrap(), before);
+        assert!(matches!(kept.default_view, DefaultView::Artists));
+    }
+
+    #[test]
+    fn migration_chain_is_idempotent() {
+        // Running the chain twice equals running it once: after the first
+        // pass the stamp is current, so the second pass is a no-op.
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.insert(
+            "default_view".to_owned(),
+            serde_json::Value::String("Playlists".to_owned()),
+        );
+        obj.remove("config_version");
+        obj.remove("default_view_migrated_v1");
+        let loaded: Config = serde_json::from_value(value).unwrap();
+
+        let (once, once_version) = loaded.migrate();
+        let (twice, twice_version) = once.clone().migrate();
+        assert_eq!(once_version, twice_version);
+        assert_eq!(
+            serde_json::to_value(&twice).unwrap(),
+            serde_json::to_value(&once).unwrap()
+        );
+        assert!(matches!(twice.default_view, DefaultView::Library));
+    }
+
+    #[test]
+    fn future_config_version_is_left_untouched_never_downgraded() {
+        // A file stamped NEWER than current (written by a future build)
+        // must be left exactly as-is: no step runs, the stamp is kept, and
+        // the returned version equals the stamped one so the caller does
+        // not rewrite (and therefore never downgrades) the file.
+        let config = Config {
+            config_version: CONFIG_VERSION_CURRENT + 1,
+            default_view: DefaultView::Playlists,
+            default_view_migrated_v1: false,
+            ..Config::default()
+        };
+        let before = serde_json::to_value(&config).unwrap();
+
+        let (kept, version) = config.migrate();
+        assert_eq!(version, CONFIG_VERSION_CURRENT + 1);
+        assert_eq!(kept.config_version, CONFIG_VERSION_CURRENT + 1);
+        assert_eq!(serde_json::to_value(&kept).unwrap(), before);
+        assert!(matches!(kept.default_view, DefaultView::Playlists));
+        assert!(!kept.default_view_migrated_v1);
+    }
+
+    #[test]
+    fn migrated_config_survives_a_toml_save_and_reload() {
+        // Full round-trip through the real TOML persistence used at boot:
+        // migrate a legacy config, save, reload, and confirm the version
+        // and the migrated values survive.
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.insert(
+            "default_view".to_owned(),
+            serde_json::Value::String("Playlists".to_owned()),
+        );
+        obj.remove("config_version");
+        obj.remove("default_view_migrated_v1");
+        let loaded: Config = serde_json::from_value(value).unwrap();
+        let (migrated, _) = loaded.migrate();
+
+        let dir = std::env::temp_dir().join("slowburn_config_migration_roundtrip_test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("config.toml");
+        let _ = std::fs::remove_file(&path);
+        let manager = HomeConfig::with_file(&path);
+        manager.save_toml(&migrated).unwrap();
+        let reloaded: Config = manager.toml().unwrap();
+
+        assert_eq!(reloaded.config_version, CONFIG_VERSION_CURRENT);
+        assert!(matches!(reloaded.default_view, DefaultView::Library));
+        assert!(reloaded.default_view_migrated_v1);
+        // A reload of the saved file is already current, so the chain is a
+        // no-op and a second boot would not rewrite it.
+        let (_, second_version) = reloaded.clone().migrate();
+        assert_eq!(second_version, reloaded.config_version);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn save_to_a_failing_target_returns_err_instead_of_panicking() {
         // A full disk (or any unwritable target) must surface as `Err` from
         // `set_config`/`update`, never as a backend panic. Point the manager
@@ -534,6 +729,56 @@ mod tests {
             res.is_err(),
             "a failing config target must return Err, not panic"
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn tempo_and_pitch_default_to_neutral() {
+        // Fresh configs carry neutral tempo (100%), neutral pitch (+0 st),
+        // and the default "medium" quality tier.
+        let config = Config::default();
+        assert_eq!(config.audio_tempo, 100.0);
+        assert_eq!(config.audio_pitch, 0.0);
+        assert_eq!(config.audio_pitch_quality, "medium");
+    }
+
+    #[test]
+    fn config_file_without_tempo_pitch_keys_still_deserializes_to_neutral() {
+        // Simulate an existing config file written before these keys:
+        // serialize the default, drop the new keys, and confirm the whole
+        // Config still loads with neutral values (additive-only change).
+        let mut value = serde_json::to_value(Config::default()).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.remove("audio_tempo");
+        obj.remove("audio_pitch");
+        obj.remove("audio_pitch_quality");
+
+        let loaded: Config = serde_json::from_value(value).unwrap();
+        assert_eq!(loaded.audio_tempo, 100.0);
+        assert_eq!(loaded.audio_pitch, 0.0);
+        assert_eq!(loaded.audio_pitch_quality, "medium");
+    }
+
+    #[test]
+    fn tempo_pitch_keys_survive_a_toml_save_and_reload() {
+        // Full round-trip through the real TOML persistence used at boot:
+        // non-neutral values save and reload verbatim.
+        let mut config = Config::default();
+        config.audio_tempo = 150.0;
+        config.audio_pitch = 3.0;
+        config.audio_pitch_quality = "high".to_owned();
+
+        let dir = std::env::temp_dir().join("slowburn_config_tempo_pitch_roundtrip_test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("config.toml");
+        let _ = std::fs::remove_file(&path);
+        let manager = HomeConfig::with_file(&path);
+        manager.save_toml(&config).unwrap();
+        let reloaded: Config = manager.toml().unwrap();
+
+        assert_eq!(reloaded.audio_tempo, 150.0);
+        assert_eq!(reloaded.audio_pitch, 3.0);
+        assert_eq!(reloaded.audio_pitch_quality, "high");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

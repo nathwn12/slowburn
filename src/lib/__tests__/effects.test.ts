@@ -12,7 +12,11 @@ import {
   EffectsController,
   normalizeEffectsConfig,
 } from '../effects';
-import { computeDattorroParams } from '../effects-core';
+import {
+  computeDattorroParams,
+  PITCH_SHIFTER_PROCESSOR_NAME,
+  type PitchQuality,
+} from '../effects-core';
 
 describe('normalizeEffectsConfig', () => {
   test('returns the neutral defaults for empty input', () => {
@@ -80,6 +84,7 @@ interface FakePort {
 }
 
 interface FakeWorkletNode {
+  name: string;
   port: FakePort;
   connect: () => void;
   disconnect: () => void;
@@ -155,6 +160,7 @@ function installAudioMocks() {
       return {
         fftSize: 0,
         connect(): void {},
+        disconnect(): void {},
         getFloatTimeDomainData(): void {},
       };
     }
@@ -165,6 +171,8 @@ function installAudioMocks() {
   }
 
   class FakeAudioWorkletNode {
+    name: string;
+
     port: FakePort = {
       messages: [],
       postMessage: (message: PostedMessage): void => {
@@ -173,7 +181,10 @@ function installAudioMocks() {
       close: vi.fn<() => void>(),
     };
 
-    constructor(_context: unknown, _name: string, _options: unknown) {
+    constructor(context: unknown, name: string, options: unknown) {
+      void context;
+      void options;
+      this.name = name;
       createdNodes.push(this);
     }
 
@@ -210,6 +221,17 @@ function reverbNodeOf(controller: EffectsController): FakeWorkletNode | null {
     (controller as unknown as { reverbNode: FakeWorkletNode | null })
       .reverbNode ?? null
   );
+}
+
+function pitchNodeOf(controller: EffectsController): FakeWorkletNode | null {
+  return (
+    (controller as unknown as { pitchNode: FakeWorkletNode | null })
+      .pitchNode ?? null
+  );
+}
+
+function pitchSetParamsOf(node: FakeWorkletNode): PostedMessage[] {
+  return node.port.messages.filter((message) => message.type === 'setParams');
 }
 
 let controllers: EffectsController[] = [];
@@ -345,6 +367,158 @@ describe('dispose hygiene (pear retireWorklet)', () => {
     await flushWorkletLoad();
 
     const node = reverbNodeOf(controller);
+    expect(node).not.toBeNull();
+    const index = controllers.indexOf(controller);
+    if (index >= 0) controllers.splice(index, 1);
+    controller.destroy();
+
+    const types = node!.port.messages.map((message) => message.type);
+    expect(types).toContain('dispose');
+    expect(node!.port.close).toHaveBeenCalled();
+  });
+});
+
+describe('tempo/pitch config (additive, neutral by default)', () => {
+  test('adds neutral tempo/pitch defaults without changing existing ones', () => {
+    const config = normalizeEffectsConfig(undefined);
+    expect(config).toEqual(DEFAULT_EFFECTS_CONFIG);
+    expect(config.tempo).toBe(100);
+    expect(config.pitch).toBe(0);
+    expect(config.pitchQuality).toBe('medium');
+    // Existing defaults are unchanged.
+    expect(config.slow).toBe(1);
+    expect(config.reverbIntensity).toBe(0);
+    expect(config.enabled).toBe(true);
+    expect(config.slowEnabled).toBe(true);
+    expect(config.reverbEnabled).toBe(true);
+  });
+
+  test('clamps tempo/pitch and falls back on unknown quality', () => {
+    expect(normalizeEffectsConfig({ tempo: 1 }).tempo).toBe(50);
+    expect(normalizeEffectsConfig({ tempo: 500 }).tempo).toBe(200);
+    expect(normalizeEffectsConfig({ tempo: Number.NaN }).tempo).toBe(100);
+    expect(normalizeEffectsConfig({ pitch: 48 }).pitch).toBe(12);
+    expect(normalizeEffectsConfig({ pitch: -48 }).pitch).toBe(-12);
+    expect(normalizeEffectsConfig({ pitch: Number.NaN }).pitch).toBe(0);
+    expect(normalizeEffectsConfig({ pitchQuality: 'high' }).pitchQuality).toBe(
+      'high',
+    );
+    expect(
+      normalizeEffectsConfig({ pitchQuality: 'ultra' as PitchQuality })
+        .pitchQuality,
+    ).toBe('medium');
+  });
+});
+
+describe('composed rate (slow x tempo) and pitch coupling', () => {
+  test('tempo 100 is exactly today: slow-only rate with the pitch drop', () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, { slow: 0.8, tempo: 100 });
+    expect(controller.ensureGraph()).toBe(true);
+    expect(audio.playbackRate).toBe(0.8);
+    expect(audio.preservesPitch).toBe(false);
+  });
+
+  test('neutral slow and tempo releases the rate and restores pitch', () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, {});
+    expect(controller.ensureGraph()).toBe(true);
+    expect(audio.playbackRate).toBe(1);
+    expect(audio.preservesPitch).toBe(true);
+  });
+
+  test('tempo 200 with neutral slow doubles the rate and preserves pitch', () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, { tempo: 200 });
+    expect(controller.ensureGraph()).toBe(true);
+    expect(audio.playbackRate).toBe(2);
+    expect(audio.preservesPitch).toBe(true);
+  });
+
+  test('slow engaged with tempo 200 applies the product and keeps the drop', () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, { slow: 0.8, tempo: 200 });
+    expect(controller.ensureGraph()).toBe(true);
+    expect(audio.playbackRate).toBeCloseTo(1.6, 10);
+    expect(audio.preservesPitch).toBe(false);
+  });
+
+  test('slow <-> tempo transitions flip the pitch flag without releasing', () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, { slow: 0.8, tempo: 200 });
+    expect(controller.ensureGraph()).toBe(true);
+    expect(audio.preservesPitch).toBe(false);
+
+    controller.setConfig({ slow: 1 });
+    expect(audio.playbackRate).toBe(2);
+    expect(audio.preservesPitch).toBe(true);
+
+    controller.setConfig({ slow: 0.8 });
+    expect(audio.playbackRate).toBeCloseTo(1.6, 10);
+    expect(audio.preservesPitch).toBe(false);
+  });
+
+  test('the ratechange handler re-asserts the composed rate, not slow-only', () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, { slow: 0.8, tempo: 200 });
+    expect(controller.ensureGraph()).toBe(true);
+    expect(audio.playbackRate).toBeCloseTo(1.6, 10);
+
+    // A host reset to the slow-only rate must be corrected back up.
+    audio.playbackRate = 0.8;
+    audio.fire('ratechange');
+    expect(audio.playbackRate).toBeCloseTo(1.6, 10);
+
+    // Within tolerance of the composed rate: no rewrite.
+    audio.playbackRate = 1.5995;
+    audio.fire('ratechange');
+    expect(audio.playbackRate).toBe(1.5995);
+  });
+});
+
+describe('pitch worklet (always in the graph)', () => {
+  test('loads the pitch processor and posts neutral semitones at rest', async () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, {});
+    expect(controller.ensureGraph()).toBe(true);
+    await flushWorkletLoad();
+
+    const node = pitchNodeOf(controller);
+    expect(node).not.toBeNull();
+    expect(node!.name).toBe(PITCH_SHIFTER_PROCESSOR_NAME);
+    const sets = pitchSetParamsOf(node!);
+    expect(sets.length).toBeGreaterThan(0);
+    expect(sets[sets.length - 1]!.params?.semitones).toBe(0);
+  });
+
+  test('posts the requested semitones and 0 when back to neutral', async () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, {});
+    expect(controller.ensureGraph()).toBe(true);
+    await flushWorkletLoad();
+
+    const node = pitchNodeOf(controller);
+    expect(node).not.toBeNull();
+    node!.port.messages.length = 0;
+
+    controller.setConfig({ pitch: 3, pitchQuality: 'high' });
+    let sets = pitchSetParamsOf(node!);
+    expect(sets.length).toBeGreaterThan(0);
+    expect(sets[sets.length - 1]!.params?.semitones).toBe(3);
+    expect(sets[sets.length - 1]!.params?.quality).toBe('high');
+
+    controller.setConfig({ pitch: 0 });
+    sets = pitchSetParamsOf(node!);
+    expect(sets[sets.length - 1]!.params?.semitones).toBe(0);
+  });
+
+  test('destroy disposes the pitch node too', async () => {
+    const audio = createFakeAudio();
+    const controller = createController(audio, { pitch: 5 });
+    expect(controller.ensureGraph()).toBe(true);
+    await flushWorkletLoad();
+
+    const node = pitchNodeOf(controller);
     expect(node).not.toBeNull();
     const index = controllers.indexOf(controller);
     if (index >= 0) controllers.splice(index, 1);

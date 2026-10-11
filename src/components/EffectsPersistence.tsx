@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react';
 
 import ConfigBridge from '../lib/bridge-config';
+import { normalizePitchQuality } from '../lib/effects-core';
 import player from '../lib/player';
 
 /**
- * Persists Slow + Reverb across launches. The config already owns
- * `audio_slow` / `audio_reverb_intensity` / the enabled flags; this restores
- * them into the engine on boot and writes changes back (debounced, and only
- * when they actually changed).
+ * Persists Slow + Reverb + Tempo + Pitch across launches. The config already
+ * owns `audio_slow` / `audio_reverb_intensity` / `audio_tempo` / `audio_pitch`
+ * / `audio_pitch_quality` / the enabled flags; this restores them into the
+ * engine on boot and writes changes back (debounced, and only when they
+ * actually changed).
  */
 export default function EffectsPersistence() {
   const ready = useRef(false);
@@ -20,6 +22,11 @@ export default function EffectsPersistence() {
       reverbEnabled: ConfigBridge.getInitial('audio_reverb_enabled'),
       slow: ConfigBridge.getInitial('audio_slow'),
       reverbIntensity: ConfigBridge.getInitial('audio_reverb_intensity'),
+      tempo: ConfigBridge.getInitial('audio_tempo'),
+      pitch: ConfigBridge.getInitial('audio_pitch'),
+      pitchQuality: normalizePitchQuality(
+        ConfigBridge.getInitial('audio_pitch_quality'),
+      ),
     });
     ready.current = true;
     last.current = JSON.stringify(player.getEffectsConfig());
@@ -42,6 +49,9 @@ export default function EffectsPersistence() {
           audio_reverb_enabled: config.reverbEnabled,
           audio_slow: config.slow,
           audio_reverb_intensity: config.reverbIntensity,
+          audio_tempo: config.tempo,
+          audio_pitch: config.pitch,
+          audio_pitch_quality: config.pitchQuality,
         }).catch(() => {
           // Persistence is best-effort; a failed write must not break playback.
         });

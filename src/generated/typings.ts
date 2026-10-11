@@ -9,7 +9,15 @@
  */
 export type AbLoop = { track_id: string, start_seconds: number | null, end_seconds: number | null, };
 
-export type Config = { theme: string, ui_mode: UiMode, ui_accent_color: string | null, ui_art_tint: boolean, 
+export type Config = { 
+/**
+ * Numeric schema stamp driving ordered migrations (take L2-2): every
+ * migration step bumps this, and `migrate` applies each step newer
+ * than the stamped version in order. Legacy files carry no such key,
+ * so the serde default below stamps them `CONFIG_VERSION_LEGACY`
+ * (0) - never current - forcing the full chain to run.
+ */
+config_version: number, theme: string, ui_mode: UiMode, ui_accent_color: string | null, ui_art_tint: boolean, 
 /**
  * Explicit user choice for the now-playing Details disclosure.
  * Collapsed on a fresh config; a toggle writes it back via the config
@@ -21,13 +29,30 @@ ui_details_open: boolean,
  * Explicit user choice for the now-playing A-B disclosure. Same
  * collapsed-by-default, persisted-on-toggle contract as above.
  */
-ui_ab_open: boolean, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, audio_ab_enabled: boolean, default_view: DefaultView, 
+ui_ab_open: boolean, audio_volume: number, audio_playback_rate: number | null, audio_follow_playing_track: boolean, audio_muted: boolean, audio_shuffle: boolean, audio_repeat: Repeat, audio_stream_server: boolean, audio_effects_enabled: boolean, audio_reverb_enabled: boolean, audio_reverb_intensity: number, audio_slow_enabled: boolean, audio_slow: number, 
 /**
- * One-shot v1 migration flag for the "default to All tracks" change:
- * configs written before it may carry any stored `default_view`; the
- * first boot with this build resets it to `Library` (the all-tracks
- * list) and flips this, so later explicit user choices are never
- * touched. Missing on old files, where `#[serde(default)]` yields false.
+ * Independent tempo in percent, neutral 100. Additive: files written
+ * before this key fall back to neutral via `default_audio_tempo`.
+ */
+audio_tempo: number, 
+/**
+ * Independent pitch shift in semitones, neutral 0 (`f32` serde default
+ * is already 0.0, so a missing key is neutral).
+ */
+audio_pitch: number, 
+/**
+ * Pitch-shifter quality tier ("low" | "medium" | "high"), neutral
+ * "medium". Kept a `String` (validated on the TS side) so an unknown
+ * stored value can fall back instead of failing the whole file parse.
+ */
+audio_pitch_quality: string, audio_ab_enabled: boolean, default_view: DefaultView, 
+/**
+ * Legacy one-shot flag from the pre-chain "default to All tracks"
+ * migration. Still deserialized so old files on disk (which contain
+ * this key) keep loading, and still WRITTEN so older builds see a
+ * consistent marker - but migration DECISIONS now belong solely to the
+ * version-stamped `migrate` chain, which consults this flag only
+ * inside `migrate_to_v1`. Never branch on it directly; call `migrate`.
  */
 default_view_migrated_v1: boolean, library_sort_by: SortBy, library_sort_order: SortOrder, 
 /**

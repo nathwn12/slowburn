@@ -1,6 +1,7 @@
 import type { Config } from '../../generated/typings';
 
 export const MOCK_CONFIG: Config = {
+  config_version: 1,
   theme: 'light',
   ui_mode: 'minimal',
   ui_accent_color: null,
@@ -19,6 +20,9 @@ export const MOCK_CONFIG: Config = {
   audio_reverb_intensity: 0.0,
   audio_slow_enabled: true,
   audio_slow: 1.0,
+  audio_tempo: 100,
+  audio_pitch: 0,
+  audio_pitch_quality: 'medium',
   audio_ab_enabled: true,
   default_view: 'Library',
   default_view_migrated_v1: true,

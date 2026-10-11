@@ -1,8 +1,20 @@
 import { Slider } from '@base-ui/react/slider';
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
+import type { ReactNode } from 'react';
 
 import useEffectsConfig from '../hooks/useEffectsConfig';
+import type { PitchQuality } from '../lib/effects-core';
+import {
+  formatPitch,
+  formatTempo,
+  PITCH_DEFAULT_SEMITONES,
+  PITCH_MAX_SEMITONES,
+  PITCH_MIN_SEMITONES,
+  TEMPO_DEFAULT_PERCENT,
+  TEMPO_MAX_PERCENT,
+  TEMPO_MIN_PERCENT,
+} from '../lib/effects-core/tempo-pitch';
 import player from '../lib/player';
 import Icon from './Icon';
 import { REVERB_STEP, STEP, useWheelStep } from './wheel-step';
@@ -19,9 +31,11 @@ function clamp(value: number, lo: number, hi: number): number {
 }
 
 /**
- * The always-visible Burn strip (design §3): Slow + Reverb as one row of two
- * controls, directly under the transport. The mono readout is the truth; the
- * sliders are a coarse sweep. Neutral means exactly 1.00× / 0%.
+ * The always-visible Burn strip (design §3): Slow + Reverb + Tempo + Pitch as
+ * two rows of two controls, directly under the transport. The mono readout is
+ * the truth; the sliders are a coarse sweep. Neutral means exactly 1.00× /
+ * 0% / 100% / +0 st. Tempo preserves pitch; the coupled-rate case stays on
+ * the existing Slow control, whose behaviour is unchanged.
  */
 export default function EffectControls() {
   const { t } = useLingui();
@@ -31,6 +45,20 @@ export default function EffectControls() {
   const reverbPct = Math.round(clamp(effects.reverbIntensity, 0, 1) * 100);
   const slowEngaged = Math.abs(slow - 1) > 0.0001;
   const reverbEngaged = reverbPct > 0;
+  const tempo = Math.round(
+    clamp(effects.tempo, TEMPO_MIN_PERCENT, TEMPO_MAX_PERCENT),
+  );
+  const pitch = Math.round(
+    clamp(effects.pitch, PITCH_MIN_SEMITONES, PITCH_MAX_SEMITONES),
+  );
+  const tempoEngaged = tempo !== TEMPO_DEFAULT_PERCENT;
+  const pitchEngaged = pitch !== PITCH_DEFAULT_SEMITONES;
+  const pitchQuality: PitchQuality = effects.pitchQuality;
+  const qualityLabels: Record<PitchQuality, string> = {
+    low: t`Low`,
+    medium: t`Medium`,
+    high: t`High`,
+  };
 
   const setSlow = (value: number) => {
     player.setEffectsConfig({
@@ -46,11 +74,26 @@ export default function EffectControls() {
       reverbIntensity: clamp(Math.round(pct), 0, 100) / 100,
     });
   };
+  const setTempo = (value: number) => {
+    player.setEffectsConfig({
+      enabled: true,
+      tempo: clamp(Math.round(value), TEMPO_MIN_PERCENT, TEMPO_MAX_PERCENT),
+    });
+  };
+  const setPitch = (value: number) => {
+    player.setEffectsConfig({
+      enabled: true,
+      pitch: clamp(Math.round(value), PITCH_MIN_SEMITONES, PITCH_MAX_SEMITONES),
+    });
+  };
+  const setPitchQuality = (value: PitchQuality) => {
+    player.setEffectsConfig({ enabled: true, pitchQuality: value });
+  };
 
   return (
     <div
       {...stylex.props(styles.burn)}
-      aria-label={t`Effects: slow and reverb`}
+      aria-label={t`Effects: slow, reverb, tempo and pitch`}
     >
       <BurnControl
         label={t`SLOW`}
@@ -99,6 +142,83 @@ export default function EffectControls() {
         resetLabel={t`Reset reverb to dry`}
         resetTitle={t`Reset to dry (0%)`}
       />
+
+      <BurnControl
+        label={t`TEMPO`}
+        engaged={tempoEngaged}
+        readout={formatTempo(tempo)}
+        sliderValue={tempo}
+        sliderMin={TEMPO_MIN_PERCENT}
+        sliderMax={TEMPO_MAX_PERCENT}
+        sliderStep={1}
+        onChange={setTempo}
+        onStepDown={() => setTempo(tempo - 1)}
+        onStepUp={() => setTempo(tempo + 1)}
+        onReset={() => setTempo(TEMPO_DEFAULT_PERCENT)}
+        canDown={tempo > TEMPO_MIN_PERCENT}
+        canUp={tempo < TEMPO_MAX_PERCENT}
+        decreaseLabel={t`Decrease tempo`}
+        decreaseTitle={t`Slower tempo (−1%)`}
+        increaseLabel={t`Increase tempo`}
+        increaseTitle={t`Faster tempo (+1%)`}
+        sliderLabel={t`Tempo, pitch preserved`}
+        resetLabel={t`Reset tempo to normal`}
+        resetTitle={t`Reset to 100%`}
+      />
+
+      <div {...stylex.props(styles.burnSep)} aria-hidden="true" />
+
+      <BurnControl
+        label={t`PITCH`}
+        engaged={pitchEngaged}
+        readout={formatPitch(pitch)}
+        sliderValue={pitch}
+        sliderMin={PITCH_MIN_SEMITONES}
+        sliderMax={PITCH_MAX_SEMITONES}
+        sliderStep={1}
+        onChange={setPitch}
+        onStepDown={() => setPitch(pitch - 1)}
+        onStepUp={() => setPitch(pitch + 1)}
+        onReset={() => setPitch(PITCH_DEFAULT_SEMITONES)}
+        canDown={pitch > PITCH_MIN_SEMITONES}
+        canUp={pitch < PITCH_MAX_SEMITONES}
+        decreaseLabel={t`Lower pitch`}
+        decreaseTitle={t`Down one semitone (−1 st)`}
+        increaseLabel={t`Raise pitch`}
+        increaseTitle={t`Up one semitone (+1 st)`}
+        sliderLabel={t`Pitch shift in semitones`}
+        resetLabel={t`Reset pitch to neutral`}
+        resetTitle={t`Reset to +0 st`}
+        trailing={
+          <div
+            role="group"
+            aria-label={t`Pitch quality`}
+            {...stylex.props(styles.quality)}
+          >
+            {(['low', 'medium', 'high'] as const).map((tier) => (
+              <button
+                key={tier}
+                type="button"
+                onClick={() => setPitchQuality(tier)}
+                aria-pressed={pitchQuality === tier}
+                title={
+                  tier === 'low'
+                    ? t`Low quality (cheapest)`
+                    : tier === 'medium'
+                      ? t`Medium quality (balanced)`
+                      : t`High quality (smoothest)`
+                }
+                {...stylex.props(
+                  styles.qualityBtn,
+                  pitchQuality === tier && styles.qualityBtnOn,
+                )}
+              >
+                {qualityLabels[tier]}
+              </button>
+            ))}
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -124,6 +244,8 @@ type BurnControlProps = {
   sliderLabel: string;
   resetLabel: string;
   resetTitle: string;
+  /** Optional extra control rendered after the reset button (same flex row). */
+  trailing?: ReactNode;
 };
 
 function BurnControl(props: BurnControlProps) {
@@ -219,6 +341,8 @@ function BurnControl(props: BurnControlProps) {
       >
         <Icon name="reset" size={12} />
       </button>
+
+      {props.trailing}
     </div>
   );
 }
@@ -260,9 +384,9 @@ const styles = stylex.create({
     minWidth: 0,
   },
   // Shared label column: a floor both rows hit, so the −/readout/+ group starts
-  // at the same x. Both labels ("SLOW" 32.7px, "REVERB" 57.9px incl. dot+gap)
-  // fit under 58px, hence both columns measure exactly 58px. A minWidth (not a
-  // fixed width) keeps longer future labels from clipping.
+  // at the same x. All four labels ("SLOW", "REVERB", "TEMPO", "PITCH" incl.
+  // dot+gap) fit under 58px, hence every column measures exactly 58px. A
+  // minWidth (not a fixed width) keeps longer future labels from clipping.
   burnId: {
     display: 'flex',
     alignItems: 'center',
@@ -376,6 +500,44 @@ const styles = stylex.create({
       default: 'pointer',
       ':disabled': 'default',
     },
+  },
+  // Pitch-quality tier group: the same flat button idiom as `step` above, as
+  // text tiers instead of glyphs. All tiers stay visible (no dropdown); the
+  // pressed tier reads in the accent text, reusing only existing tokens.
+  quality: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '2px',
+    flexShrink: 0,
+  },
+  qualityBtn: {
+    minHeight: '18px',
+    flexShrink: 0,
+    borderRadius: '3px',
+    display: 'grid',
+    placeItems: 'center',
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': 'var(--surface-hover)',
+    },
+    borderStyle: 'none',
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingInline: '6px',
+    color: {
+      default: 'var(--text-faint)',
+      ':hover': 'var(--text-bright)',
+    },
+    fontSize: '9.5px',
+    fontWeight: 800,
+    lineHeight: 1,
+    letterSpacing: '.08em',
+    textTransform: 'uppercase',
+    cursor: 'pointer',
+  },
+  qualityBtnOn: {
+    backgroundColor: 'var(--surface-hover)',
+    color: 'var(--accent-text)',
   },
 
   sliderRoot: {

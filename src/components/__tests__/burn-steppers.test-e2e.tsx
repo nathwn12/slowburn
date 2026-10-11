@@ -60,6 +60,9 @@ const harness = vi.hoisted(() => {
       slow: 1,
       reverbEnabled: true,
       reverbIntensity: 0,
+      tempo: 100,
+      pitch: 0,
+      pitchQuality: 'medium' as EffectsConfig['pitchQuality'],
     },
     player: {
       getEffectsConfig: vi.fn<() => EffectsConfig>(),
@@ -191,6 +194,9 @@ beforeEach(() => {
     slow: 1,
     reverbEnabled: true,
     reverbIntensity: 0,
+    tempo: 100,
+    pitch: 0,
+    pitchQuality: 'medium' as EffectsConfig['pitchQuality'],
   };
   harness.player.getEffectsConfig.mockImplementation(() => ({
     ...harness.config,
@@ -207,6 +213,14 @@ async function mount(): Promise<void> {
       <EffectControls />
     </I18nProvider>,
   );
+}
+
+/** Re-seeds the mocked engine config before a mount in the same test. */
+function seedConfig(patch: Partial<EffectsConfig>): void {
+  harness.config = { ...harness.config, ...patch };
+  harness.player.getEffectsConfig.mockImplementation(() => ({
+    ...harness.config,
+  }));
 }
 
 /**
@@ -332,4 +346,79 @@ test('wide (1400x900): each Burn row keeps the same internal control offsets', a
     Math.abs(slow.plus - reverb.plus),
     '+ offset differs',
   ).toBeLessThanOrEqual(WIDE_TOL);
+});
+
+/**
+ * The two new rows render neutral (100% / +0 st) with a three-tier quality
+ * group defaulting to Medium, while the existing Slow/Reverb readouts stay
+ * exactly as before.
+ */
+test('tempo and pitch rows render neutral with a medium quality tier', async () => {
+  await setViewport(720, 480);
+  await mount();
+
+  expect(steppersOf('Decrease speed').readout.textContent).toBe('1.00×');
+  expect(steppersOf('Decrease reverb').readout.textContent).toBe('0%');
+  expect(steppersOf('Decrease tempo').readout.textContent).toBe('100%');
+  expect(steppersOf('Lower pitch').readout.textContent).toBe('+0 st');
+
+  const group = page.getByRole('group', { name: 'Pitch quality' });
+  await expect.element(group).toBeVisible();
+  const tiers: Array<{ name: string; pressed: string }> = [
+    { name: 'Low', pressed: 'false' },
+    { name: 'Medium', pressed: 'true' },
+    { name: 'High', pressed: 'false' },
+  ];
+  for (const tier of tiers) {
+    const button = page.getByRole('button', { name: tier.name, exact: true });
+    await expect.element(button).toBeVisible();
+    await expect.element(button).toHaveAttribute('aria-pressed', tier.pressed);
+  }
+});
+
+/**
+ * Out-of-range engine values pin to the row bounds (tempo 50..200, pitch
+ * −12..+12) and the spent stepper disables, mirroring the Slow/Reverb
+ * clamp-and-disable contract.
+ */
+test('tempo and pitch clamp at their bounds and disable the spent stepper', async () => {
+  seedConfig({ tempo: 999, pitch: -99 });
+  await setViewport(720, 480);
+  await mount();
+
+  const tempo = steppersOf('Decrease tempo');
+  expect(tempo.readout.textContent).toBe('200%');
+  expect((tempo.plus as HTMLButtonElement).disabled).toBe(true);
+  expect((tempo.minus as HTMLButtonElement).disabled).toBe(false);
+
+  const pitch = steppersOf('Lower pitch');
+  expect(pitch.readout.textContent).toBe('-12 st');
+  expect((pitch.minus as HTMLButtonElement).disabled).toBe(true);
+  expect((pitch.plus as HTMLButtonElement).disabled).toBe(false);
+});
+
+/**
+ * One step on each new row and one quality-tier pick reach the mocked player
+ * as a partial effects patch.
+ */
+test('tempo, pitch and quality changes reach the player', async () => {
+  await setViewport(720, 480);
+  await mount();
+
+  await page
+    .getByRole('button', { name: 'Increase tempo', exact: true })
+    .click();
+  expect(harness.player.setEffectsConfig).toHaveBeenCalledWith(
+    expect.objectContaining({ tempo: 101 }),
+  );
+
+  await page.getByRole('button', { name: 'Raise pitch', exact: true }).click();
+  expect(harness.player.setEffectsConfig).toHaveBeenCalledWith(
+    expect.objectContaining({ pitch: 1 }),
+  );
+
+  await page.getByRole('button', { name: 'High', exact: true }).click();
+  expect(harness.player.setEffectsConfig).toHaveBeenCalledWith(
+    expect.objectContaining({ pitchQuality: 'high' }),
+  );
 });
