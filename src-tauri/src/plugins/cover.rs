@@ -49,25 +49,19 @@ fn get_cover_from_id3(path: String) -> Option<String> {
 
 #[memoize::memoize]
 fn get_cover_from_filesystem(path: String) -> Option<String> {
-    let dir_path = PathBuf::from_str(&path)
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf();
+    let dir_path = PathBuf::from_str(&path).ok()?.parent()?.to_path_buf();
 
     scan_dir(&dir_path, &SUPPORTED_COVER_EXTENSIONS)
         .iter()
         .find(|file| {
             let file_stem = file
                 .file_stem()
-                .unwrap()
-                .to_str()
-                .unwrap_or("???")
-                .to_lowercase();
+                .map(|stem| stem.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
 
             SUPPORTED_COVER_NAMES.contains(&file_stem.as_str())
         })
-        .map(|path| path.to_str().unwrap().into())
+        .map(|path| path.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -115,5 +109,13 @@ mod tests {
         let label = cover_mime_label(Some(&MimeType::Png)).unwrap();
         let url = format!("data:{};base64,AAAA", label);
         assert!(url.starts_with("data:image/"));
+    }
+
+    #[test]
+    fn root_path_returns_none_instead_of_panicking() {
+        // `"/"` has no parent dir and no cover: the old
+        // `.parent().unwrap()` chain panicked here, the guarded chain
+        // returns `None`.
+        assert_eq!(get_cover_from_filesystem("/".to_string()), None);
     }
 }

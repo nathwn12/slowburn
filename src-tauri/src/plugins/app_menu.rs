@@ -3,7 +3,9 @@ use tauri::Emitter;
 use tauri::image::Image;
 use tauri::{
     Manager, Runtime, State,
-    menu::{AboutMetadataBuilder, MenuBuilder, MenuId, MenuItemBuilder, SubmenuBuilder},
+    menu::{
+        AboutMetadata, AboutMetadataBuilder, MenuBuilder, MenuId, MenuItemBuilder, SubmenuBuilder,
+    },
     plugin::{Builder, TauriPlugin},
 };
 use tauri_plugin_opener::OpenerExt;
@@ -78,6 +80,32 @@ pub async fn show_window<R: Runtime>(window: tauri::Window<R>) -> AnyResult<()> 
     Ok(())
 }
 
+/// Best-effort load of the bundled Help > About icon.
+///
+/// Any failure yields `Ok(None)` so the caller falls back to icon-less
+/// metadata instead of panicking: an `Err` resource dir propagates through
+/// `?` and a missing/unreadable icon file maps to `None` via `.ok()`.
+fn try_load_menu_icon(resource_dir: tauri::Result<PathBuf>) -> tauri::Result<Option<Image<'static>>> {
+    let dir = resource_dir?;
+    Ok(Image::from_path(dir.join("icons").join("icon.png")).ok())
+}
+
+/// Build the Help > About metadata, omitting the icon when it is unavailable.
+fn build_about_metadata(
+    version: Option<String>,
+    authors: Vec<String>,
+    icon: Option<Image<'static>>,
+) -> AboutMetadata<'static> {
+    AboutMetadataBuilder::new()
+        .version(version)
+        .authors(Some(authors))
+        .license("MIT".into())
+        .website("https://museeks.io".into())
+        .website_label("museeks.io".into())
+        .icon(icon)
+        .build()
+}
+
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("app-menu")
         .invoke_handler(tauri::generate_handler![show, hide, show_window])
@@ -89,19 +117,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             // -----------------------------------------------------------------
             let package_info = app_handle.package_info();
             let version = package_info.version.to_string().into();
-            let resource_path: PathBuf = app_handle.path().resource_dir().unwrap();
-            let icon_path = resource_path.join("icons").join("icon.png");
-            let icon = Image::from_path(&icon_path)
-                .unwrap_or_else(|_| panic!("Failed to load icon from path: {:?}", &icon_path));
+            let icon = try_load_menu_icon(app_handle.path().resource_dir()).unwrap_or(None);
 
-            let about_metadata = AboutMetadataBuilder::new()
-                .version(version)
-                .authors(Some(vec![package_info.authors.to_string()]))
-                .license("MIT".into())
-                .website("https://museeks.io".into())
-                .website_label("museeks.io".into())
-                .icon(Some(icon))
-                .build();
+            let about_metadata =
+                build_about_metadata(version, vec![package_info.authors.to_string()], icon);
 
             // -----------------------------------------------------------------
             // File sub-menu (AIMP-familiar entry point; Quit lives here)
@@ -345,4 +364,33 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             });
         })
         .build()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resource_dir_error_falls_back_to_icon_less() {
+        // An unavailable resource dir must not panic: the resolver returns
+        // the `Err` and the call-site `unwrap_or(None)` falls back to `None`.
+        let icon =
+            try_load_menu_icon(Err(tauri::Error::AssetNotFound("missing".into()))).unwrap_or(None);
+        assert!(icon.is_none());
+
+        let metadata = build_about_metadata(Some("0.0.0".to_string()), vec!["test".to_string()], icon);
+        assert!(metadata.icon.is_none());
+        assert_eq!(metadata.version.as_deref(), Some("0.0.0"));
+    }
+
+    #[test]
+    fn missing_icon_file_falls_back_to_icon_less() {
+        // An existing resource dir without the bundled icon also yields
+        // `Ok(None)` instead of panicking.
+        let icon = try_load_menu_icon(Ok(PathBuf::from(
+            "definitely-missing-slowburn-test-dir",
+        )))
+        .unwrap();
+        assert!(icon.is_none());
+    }
 }
