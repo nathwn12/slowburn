@@ -81,73 +81,165 @@ msgstr "Drop folders anywhere"
 msgid "Drop audio files anywhere to queue them"
 msgstr "Drop audio files anywhere to queue them"
 
-#: src/components/EffectControls.tsx:53
-msgid "Effects: slow and reverb"
-msgstr "Effects: slow and reverb"
+#: src/components/EffectControls.tsx:58
+msgid "Low"
+msgstr "Low"
 
-#: src/components/EffectControls.tsx:56
+#: src/components/EffectControls.tsx:59
+msgid "Medium"
+msgstr "Medium"
+
+#: src/components/EffectControls.tsx:60
+msgid "High"
+msgstr "High"
+
+#: src/components/EffectControls.tsx:96
+msgid "Effects: slow, reverb, tempo and pitch"
+msgstr "Effects: slow, reverb, tempo and pitch"
+
+#: src/components/EffectControls.tsx:99
 msgid "SLOW"
 msgstr "SLOW"
 
-#: src/components/EffectControls.tsx:69
+#: src/components/EffectControls.tsx:112
 msgid "Decrease speed"
 msgstr "Decrease speed"
 
-#: src/components/EffectControls.tsx:70
+#: src/components/EffectControls.tsx:113
 msgid "Slower (−0.01×)"
 msgstr "Slower (−0.01×)"
 
-#: src/components/EffectControls.tsx:71
+#: src/components/EffectControls.tsx:114
 msgid "Increase speed"
 msgstr "Increase speed"
 
-#: src/components/EffectControls.tsx:72
+#: src/components/EffectControls.tsx:115
 msgid "Faster (+0.01×)"
 msgstr "Faster (+0.01×)"
 
-#: src/components/EffectControls.tsx:73
+#: src/components/EffectControls.tsx:116
 msgid "Playback speed, pitch follows"
 msgstr "Playback speed, pitch follows"
 
-#: src/components/EffectControls.tsx:74
+#: src/components/EffectControls.tsx:117
 msgid "Reset speed to normal"
 msgstr "Reset speed to normal"
 
-#: src/components/EffectControls.tsx:75
+#: src/components/EffectControls.tsx:118
 msgid "Reset to 1.00×"
 msgstr "Reset to 1.00×"
 
-#: src/components/EffectControls.tsx:81
+#: src/components/EffectControls.tsx:124
 msgid "REVERB"
 msgstr "REVERB"
 
-#: src/components/EffectControls.tsx:94
+#: src/components/EffectControls.tsx:137
 msgid "Decrease reverb"
 msgstr "Decrease reverb"
 
-#: src/components/EffectControls.tsx:95
+#: src/components/EffectControls.tsx:138
 msgid "Less reverb (−1%)"
 msgstr "Less reverb (−1%)"
 
-#: src/components/EffectControls.tsx:96
+#: src/components/EffectControls.tsx:139
 msgid "Increase reverb"
 msgstr "Increase reverb"
 
-#: src/components/EffectControls.tsx:97
+#: src/components/EffectControls.tsx:140
 msgid "More reverb (+1%)"
 msgstr "More reverb (+1%)"
 
-#: src/components/EffectControls.tsx:98
+#: src/components/EffectControls.tsx:141
 msgid "Reverb intensity"
 msgstr "Reverb intensity"
 
-#: src/components/EffectControls.tsx:99
+#: src/components/EffectControls.tsx:142
 msgid "Reset reverb to dry"
 msgstr "Reset reverb to dry"
 
-#: src/components/EffectControls.tsx:100
+#: src/components/EffectControls.tsx:143
 msgid "Reset to dry (0%)"
 msgstr "Reset to dry (0%)"
+
+#: src/components/EffectControls.tsx:147
+msgid "TEMPO"
+msgstr "TEMPO"
+
+#: src/components/EffectControls.tsx:160
+msgid "Decrease tempo"
+msgstr "Decrease tempo"
+
+#: src/components/EffectControls.tsx:161
+msgid "Slower tempo (−1%)"
+msgstr "Slower tempo (−1%)"
+
+#: src/components/EffectControls.tsx:162
+msgid "Increase tempo"
+msgstr "Increase tempo"
+
+#: src/components/EffectControls.tsx:163
+msgid "Faster tempo (+1%)"
+msgstr "Faster tempo (+1%)"
+
+#: src/components/EffectControls.tsx:164
+msgid "Tempo, pitch preserved"
+msgstr "Tempo, pitch preserved"
+
+#: src/components/EffectControls.tsx:165
+msgid "Reset tempo to normal"
+msgstr "Reset tempo to normal"
+
+#: src/components/EffectControls.tsx:166
+msgid "Reset to 100%"
+msgstr "Reset to 100%"
+
+#: src/components/EffectControls.tsx:172
+msgid "PITCH"
+msgstr "PITCH"
+
+#: src/components/EffectControls.tsx:185
+msgid "Lower pitch"
+msgstr "Lower pitch"
+
+#: src/components/EffectControls.tsx:186
+msgid "Down one semitone (−1 st)"
+msgstr "Down one semitone (−1 st)"
+
+#: src/components/EffectControls.tsx:187
+msgid "Raise pitch"
+msgstr "Raise pitch"
+
+#: src/components/EffectControls.tsx:188
+msgid "Up one semitone (+1 st)"
+msgstr "Up one semitone (+1 st)"
+
+#: src/components/EffectControls.tsx:189
+msgid "Pitch shift in semitones"
+msgstr "Pitch shift in semitones"
+
+#: src/components/EffectControls.tsx:190
+msgid "Reset pitch to neutral"
+msgstr "Reset pitch to neutral"
+
+#: src/components/EffectControls.tsx:191
+msgid "Reset to +0 st"
+msgstr "Reset to +0 st"
+
+#: src/components/EffectControls.tsx:195
+msgid "Pitch quality"
+msgstr "Pitch quality"
+
+#: src/components/EffectControls.tsx:206
+msgid "Low quality (cheapest)"
+msgstr "Low quality (cheapest)"
+
+#: src/components/EffectControls.tsx:208
+msgid "Medium quality (balanced)"
+msgstr "Medium quality (balanced)"
+
+#: src/components/EffectControls.tsx:209
+msgid "High quality (smoothest)"
+msgstr "High quality (smoothest)"
 
 #: src/components/GlobalErrors.tsx:33
 msgid "Something wrong happened: {errorMessage}"
@@ -218,6 +310,59 @@ msgstr "Mini"
 #: src/components/Header.tsx:106
 msgid "Full"
 msgstr "Full"
+
+#: src/components/History.tsx:48
+msgid "Loading history..."
+msgstr "Loading history..."
+
+#: src/components/History.tsx:56
+msgid "HISTORY"
+msgstr "HISTORY"
+
+#: src/components/History.tsx:58
+#: src/components/Queue.tsx:180
+#: src/components/StatusBar.tsx:90
+#: src/routes/settings.library.tsx:113
+msgid "track"
+msgstr "track"
+
+#: src/components/History.tsx:58
+#: src/components/Queue.tsx:180
+#: src/components/StatusBar.tsx:90
+#: src/routes/settings.library.tsx:113
+msgid "tracks"
+msgstr "tracks"
+
+#: src/components/History.tsx:63
+msgid "Newest first. Playing a track starts a new queue."
+msgstr "Newest first. Playing a track starts a new queue."
+
+#: src/components/History.tsx:72
+msgid "Play history"
+msgstr "Play history"
+
+#: src/components/History.tsx:163
+#: src/components/History.tsx:164
+#: src/components/QueueList.tsx:223
+#: src/components/QueueList.tsx:224
+#: src/components/QueueListItem.tsx:116
+#: src/components/QueueListItem.tsx:117
+#: src/components/TrackRow.tsx:173
+#: src/components/TrackRow.tsx:174
+msgid "Saved A-B loop"
+msgstr "Saved A-B loop"
+
+#: src/components/HistoryEmpty.tsx:22
+msgid "No play history yet"
+msgstr "No play history yet"
+
+#: src/components/HistoryEmpty.tsx:25
+msgid "Tracks you finish playing will appear here, newest first."
+msgstr "Tracks you finish playing will appear here, newest first."
+
+#: src/components/HistoryEmpty.tsx:32
+msgid "Browse the library"
+msgstr "Browse the library"
 
 #: src/components/LoopControls.tsx:194
 msgid "Loop point A"
@@ -383,9 +528,9 @@ msgid "Report an issue"
 msgstr "Report an issue"
 
 #: src/components/Navigation.tsx:51
-#: src/components/Navigation.tsx:74
-#: src/components/Navigation.tsx:88
-#: src/components/Navigation.tsx:102
+#: src/components/Navigation.tsx:81
+#: src/components/Navigation.tsx:95
+#: src/components/Navigation.tsx:109
 #: src/components/Queue.tsx:245
 #: src/components/ShortcutsPanel.tsx:54
 #: src/routes/settings.tsx:34
@@ -393,41 +538,46 @@ msgid "Library"
 msgstr "Library"
 
 #: src/components/Navigation.tsx:65
-#: src/components/Navigation.tsx:200
+#: src/components/Navigation.tsx:212
 #: src/routes/playlists.tsx:93
 #: src/routes/settings.ui.tsx:196
 msgid "Playlists"
 msgstr "Playlists"
 
 #: src/components/Navigation.tsx:70
-#: src/components/Navigation.tsx:185
+#: src/components/Navigation.tsx:192
 #: src/components/Queue.tsx:228
 #: src/components/QueueList.tsx:135
 msgid "Queue"
 msgstr "Queue"
 
-#: src/components/Navigation.tsx:81
-#: src/components/Navigation.tsx:195
+#: src/components/Navigation.tsx:74
+#: src/components/Navigation.tsx:197
+msgid "History"
+msgstr "History"
+
+#: src/components/Navigation.tsx:88
+#: src/components/Navigation.tsx:207
 #: src/routes/artists.tsx:57
 #: src/routes/settings.ui.tsx:193
 msgid "Artists"
 msgstr "Artists"
 
-#: src/components/Navigation.tsx:95
+#: src/components/Navigation.tsx:102
 msgid "Track"
 msgstr "Track"
 
-#: src/components/Navigation.tsx:109
-#: src/components/Navigation.tsx:190
+#: src/components/Navigation.tsx:116
+#: src/components/Navigation.tsx:202
 msgid "All tracks"
 msgstr "All tracks"
 
-#: src/components/Navigation.tsx:162
-#: src/components/Navigation.tsx:163
+#: src/components/Navigation.tsx:169
+#: src/components/Navigation.tsx:170
 msgid "Switch view"
 msgstr "Switch view"
 
-#: src/components/Navigation.tsx:180
+#: src/components/Navigation.tsx:187
 msgid "Views"
 msgstr "Views"
 
@@ -572,18 +722,6 @@ msgstr "Effects neutral (1.00× · dry)"
 msgid "QUEUE"
 msgstr "QUEUE"
 
-#: src/components/Queue.tsx:180
-#: src/components/StatusBar.tsx:90
-#: src/routes/settings.library.tsx:113
-msgid "track"
-msgstr "track"
-
-#: src/components/Queue.tsx:180
-#: src/components/StatusBar.tsx:90
-#: src/routes/settings.library.tsx:113
-msgid "tracks"
-msgstr "tracks"
-
 #: src/components/Queue.tsx:186
 #: src/components/Queue.tsx:188
 msgid "Shuffle queue"
@@ -697,15 +835,6 @@ msgstr "Add tracks to queue"
 #: src/components/QueueList.tsx:183
 msgid "See more"
 msgstr "See more"
-
-#: src/components/QueueList.tsx:223
-#: src/components/QueueList.tsx:224
-#: src/components/QueueListItem.tsx:116
-#: src/components/QueueListItem.tsx:117
-#: src/components/TrackRow.tsx:173
-#: src/components/TrackRow.tsx:174
-msgid "Saved A-B loop"
-msgstr "Saved A-B loop"
 
 #: src/components/QueueListItem.tsx:90
 msgid "Drag to reorder"
@@ -1216,7 +1345,7 @@ msgstr "Muted"
 msgid "Volume"
 msgstr "Volume"
 
-#: src/routes/__root.tsx:167
+#: src/routes/__root.tsx:180
 msgid "Application main content"
 msgstr "Application main content"
 

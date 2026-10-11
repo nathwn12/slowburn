@@ -63,20 +63,20 @@ Space     play / pause
 
 Every shortcut below is real — press `?` any time inside the app to see them all.
 
-| Keys | Does |
-| ---- | ---- |
-| `Space` | Play / pause |
-| `[` | Set loop point A |
-| `]` | Set loop point B |
-| `\` | Clear the loop |
-| `<-` / `->` | Seek 10 seconds |
-| `Shift` + `<-` / `->` | Seek 1 second (fine) |
-| `Ctrl` + `K` | Focus search |
-| `Ctrl` + `O` | Import a folder or files |
-| `Ctrl` + `M` | Toggle mini mode |
-| `Alt` | Toggle the menu bar |
-| `?` | Open the shortcuts panel |
-| `Esc` | Close the shortcuts panel |
+| Keys                  | Does                      |
+| --------------------- | ------------------------- |
+| `Space`               | Play / pause              |
+| `[`                   | Set loop point A          |
+| `]`                   | Set loop point B          |
+| `\`                   | Clear the loop            |
+| `<-` / `->`           | Seek 10 seconds           |
+| `Shift` + `<-` / `->` | Seek 1 second (fine)      |
+| `Ctrl` + `K`          | Focus search              |
+| `Ctrl` + `O`          | Import a folder or files  |
+| `Ctrl` + `M`          | Toggle mini mode          |
+| `Alt`                 | Toggle the menu bar       |
+| `?`                   | Open the shortcuts panel  |
+| `Esc`                 | Close the shortcuts panel |
 
 ## Build from source
 
