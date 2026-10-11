@@ -114,7 +114,7 @@ Notes:
 **Unverified** — as-is, use at your own risk.
 This is a personal fork, offered as-is.
 
-## Credits & licence
+## Credits
 
 - Upstream: **[Museeks](https://github.com/martpie/museeks)** by **Pierre-Louis Maugin (martpie)** and contributors.
 - Slowburn is not affiliated with or endorsed by the Museeks authors — everything good inherited here is their work.
