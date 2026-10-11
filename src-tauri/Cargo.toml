@@ -2,7 +2,7 @@
 
 [package]
 name = "slowburn"
-version = "0.23.6"
+version = "0.23.7"
 description = "A simple, clean, and cross-platform music player"
 authors = ["Pierre de la Martinière <pierre.de.la.martiniere@gmail.com>"]
 license = "MIT"
