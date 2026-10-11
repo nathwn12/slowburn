@@ -1,6 +1,6 @@
 import { useLingui } from '@lingui/react/macro';
 import * as stylex from '@stylexjs/stylex';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import type { Track } from '../generated/typings';
 import { usePlayerState } from '../hooks/usePlayer';
@@ -19,31 +19,23 @@ type Props = {
 type Point = 'A' | 'B';
 
 /**
- * Idle pause after the last keystroke before a parseable field commits on its
- * own. Long enough that char-by-char typing (`5` inside `5:60`) never plants
- * an intermediate point, short enough that the commit still feels instant -
- * no Enter, blur, or button press required.
- */
-const INSTANT_COMMIT_MS = 500;
-
-/**
  * The `.ab-row`. A and B are TYPED fields (the owner's ask - no drag fatigue):
- * type a time and it takes effect INSTANTLY - a parseable value commits
- * shortly after typing stops, with no Enter, blur, or button press, and the
- * playhead seeks to the entered time whenever it lands exactly inside the
- * track. The A/B buttons and the `[` / `]` keys remain as the instant
- * capture-the-playhead path. Every write goes through the one engine source
- * of truth (`player.setAbPoint`), so per-file persistence and
- * auto-apply-on-open are unchanged.
+ * type a time and it takes effect on blur or Enter, and the playhead seeks to
+ * the entered time whenever it lands exactly inside the track. While a field
+ * holds focus nothing commits and nothing re-applies, so mid-entry values
+ * never plant a wrong point and focus churn never seeks. The A/B buttons and
+ * the `[` / `]` keys remain as the instant capture-the-playhead path. Every
+ * write goes through the one engine source of truth (`player.setAbPoint`), so
+ * per-file persistence and auto-apply-on-open are unchanged.
  *
- * Two deliberate limits on the seek. The instant commit is debounced, not
- * per-keystroke: char-by-char typing passes through values that parse on
- * their own (`5` inside `5:60`), and committing those would plant a wrong
- * point (and steal an Escape-revert). And a clamped or geometry-moved point
- * commits the region without seeking: jumping to an adjusted value would
- * surprise, and seeking at/past the media end would end the track outright.
- * Invalid input only paints the `!` mark and never commits; an emptied field
- * stays neutral until Enter/blur reverts it to the stored value.
+ * Two deliberate limits on the commit. A commit whose resolved region equals
+ * the already-committed region is a no-op (no state write, no seek): clicking
+ * into a field and back out re-applies nothing. And a clamped or
+ * geometry-moved point commits the region without seeking: jumping to an
+ * adjusted value would surprise, and seeking at/past the media end would end
+ * the track outright. Invalid input only paints the `!` mark and never
+ * commits; an emptied field stays neutral until Enter/blur reverts it to the
+ * stored value.
  */
 export default function LoopControls({ trackPlaying }: Props) {
   const abLoop = usePlayerState((state) => state.abLoop);
@@ -66,38 +58,11 @@ export default function LoopControls({ trackPlaying }: Props) {
   const looping =
     abLoop.enabled && a != null && b != null && b - a > 0.05 && !isPaused;
 
-  // Pending instant commits, one per field. Fired from `onChange`; cancelled
-  // by further typing, Enter/blur (which commit now), Escape, capture, and
-  // unmount - so a stale timer can never clobber a newer point.
-  const instantTimers = useRef<{
-    A: ReturnType<typeof setTimeout> | null;
-    B: ReturnType<typeof setTimeout> | null;
-  }>({ A: null, B: null });
-  useEffect(
-    () => () => {
-      if (instantTimers.current.A != null) {
-        clearTimeout(instantTimers.current.A);
-      }
-      if (instantTimers.current.B != null) {
-        clearTimeout(instantTimers.current.B);
-      }
-    },
-    [],
-  );
-  const cancelInstant = (point: Point) => {
-    const pending = instantTimers.current[point];
-    if (pending != null) {
-      clearTimeout(pending);
-      instantTimers.current[point] = null;
-    }
-  };
-
   const stored = (point: Point): string =>
     formatTimeInput(point === 'A' ? a : b);
   const value = (point: Point): string => draft[point] ?? stored(point);
 
   const revert = (point: Point) => {
-    cancelInstant(point);
     setInvalid((prev) => ({ ...prev, [point]: false }));
     setDraft((prev) => ({ ...prev, [point]: null }));
   };
@@ -128,8 +93,8 @@ export default function LoopControls({ trackPlaying }: Props) {
   };
 
   const commitText = (point: Point, text: string) => {
-    // Fresh points, not the render closure's: a debounced timer may fire
-    // after a capture button or another field already moved the region.
+    // Fresh points, not the render closure's: Enter blurs (which commits)
+    // and then commits again, so the second pass must read the moved region.
     const loop = player.getAbLoop();
     const current = { a: loop.startSeconds, b: loop.endSeconds };
     const result = resolvePointCommit(point, text, current, duration);
@@ -146,21 +111,17 @@ export default function LoopControls({ trackPlaying }: Props) {
       return;
     }
 
+    // Focus churn lands here with the stored text: the resolved region equals
+    // the committed one, so write nothing and seek nowhere.
+    if (result.a === current.a && result.b === current.b) {
+      setInvalid((prev) => ({ ...prev, [point]: false }));
+      setDraft((prev) => ({ ...prev, [point]: null }));
+      return;
+    }
+
     applyCommit(point, result, current);
     setInvalid((prev) => ({ ...prev, [point]: false }));
     setDraft((prev) => ({ ...prev, [point]: null }));
-  };
-
-  const scheduleInstantCommit = (point: Point, text: string) => {
-    cancelInstant(point);
-    instantTimers.current[point] = setTimeout(() => {
-      instantTimers.current[point] = null;
-      // The text travels with the timer: the scheduling render's `draft`
-      // still holds the pre-keystroke value, so reading it here would commit
-      // stale (usually empty) input. Each keystroke reschedules, so this is
-      // always the latest typed value.
-      commitText(point, text);
-    }, INSTANT_COMMIT_MS);
   };
 
   const capture = (point: Point) => {
@@ -239,46 +200,36 @@ export default function LoopControls({ trackPlaying }: Props) {
           onChange={(event) => {
             const next = event.currentTarget.value;
             setDraft((prev) => ({ ...prev, [point]: next }));
-            // The instant path: a parseable value commits shortly after
-            // typing stops. Invalid input only paints the `!` mark and never
-            // commits; an emptied (or dead-region) value stays neutral until
-            // Enter/blur decides.
+            // Validation feedback only: nothing commits while the field holds
+            // focus. Invalid input paints the `!` mark; an emptied (or
+            // dead-region) value stays neutral until Enter/blur decides.
             const live = resolvePointCommit(point, next, { a, b }, duration);
-            if (live.kind === 'commit') {
-              if (invalid[point]) {
-                setInvalid((prev) => ({ ...prev, [point]: false }));
-              }
-              scheduleInstantCommit(point, next);
-            } else if (live.kind === 'invalid') {
-              cancelInstant(point);
+            if (live.kind === 'invalid') {
               if (!invalid[point]) {
                 setInvalid((prev) => ({ ...prev, [point]: true }));
               }
-            } else {
-              cancelInstant(point);
-              if (invalid[point]) {
-                setInvalid((prev) => ({ ...prev, [point]: false }));
-              }
+            } else if (invalid[point]) {
+              setInvalid((prev) => ({ ...prev, [point]: false }));
             }
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault();
-              // Commit now instead of waiting out the instant timer (which
-              // would recommit the same value harmlessly - cancel it first).
-              cancelInstant(point);
+              // The blur below already commits; the explicit commit covers a
+              // blur that never fires. Both write the same value and the
+              // second is an equal-value no-op, so the playhead seeks once.
               event.currentTarget.blur();
               commit(point);
             } else if (event.key === 'Escape') {
               event.preventDefault();
               // Revert without blurring: a blur would commit the stale draft.
-              // Cancelling first so no pending instant commit fires after.
               revert(point);
             }
           }}
           onBlur={() => {
-            // Commit now instead of waiting out the instant timer.
-            cancelInstant(point);
+            // The only commit paths are blur and Enter. With no edit there is
+            // no draft, so focus churn re-applies nothing and seeks nowhere.
+            if (draft[point] == null) return;
             commit(point);
           }}
           {...stylex.props(

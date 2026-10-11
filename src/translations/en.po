@@ -364,66 +364,66 @@ msgstr "Tracks you finish playing will appear here, newest first."
 msgid "Browse the library"
 msgstr "Browse the library"
 
-#: src/components/LoopControls.tsx:194
+#: src/components/LoopControls.tsx:155
 msgid "Loop point A"
 msgstr "Loop point A"
 
-#: src/components/LoopControls.tsx:194
+#: src/components/LoopControls.tsx:155
 msgid "Loop point B"
 msgstr "Loop point B"
 
-#: src/components/LoopControls.tsx:207
+#: src/components/LoopControls.tsx:168
 msgid "Set loop point A at the playhead (key: [)"
 msgstr "Set loop point A at the playhead (key: [)"
 
-#: src/components/LoopControls.tsx:208
+#: src/components/LoopControls.tsx:169
 msgid "Set loop point B at the playhead (key: ])"
 msgstr "Set loop point B at the playhead (key: ])"
 
-#: src/components/LoopControls.tsx:210
+#: src/components/LoopControls.tsx:171
 #: src/components/ShortcutsPanel.tsx:41
 msgid "Set loop point A"
 msgstr "Set loop point A"
 
-#: src/components/LoopControls.tsx:210
+#: src/components/LoopControls.tsx:171
 #: src/components/ShortcutsPanel.tsx:42
 msgid "Set loop point B"
 msgstr "Set loop point B"
 
-#: src/components/LoopControls.tsx:234
-#: src/components/LoopControls.tsx:292
+#: src/components/LoopControls.tsx:195
+#: src/components/LoopControls.tsx:243
 msgid "Invalid time - use minutes:seconds"
 msgstr "Invalid time - use minutes:seconds"
 
-#: src/components/LoopControls.tsx:313
+#: src/components/LoopControls.tsx:264
 msgid "A saved A-B loop exists for this file and auto-applies when reopened."
 msgstr "A saved A-B loop exists for this file and auto-applies when reopened."
 
-#: src/components/LoopControls.tsx:314
+#: src/components/LoopControls.tsx:265
 msgid "No A-B loop is stored for this file."
 msgstr "No A-B loop is stored for this file."
 
-#: src/components/LoopControls.tsx:320
+#: src/components/LoopControls.tsx:271
 msgid "Saved loop"
 msgstr "Saved loop"
 
-#: src/components/LoopControls.tsx:320
+#: src/components/LoopControls.tsx:271
 msgid "No saved loop"
 msgstr "No saved loop"
 
-#: src/components/LoopControls.tsx:326
+#: src/components/LoopControls.tsx:277
 msgid "Playback is looping the A-B region"
 msgstr "Playback is looping the A-B region"
 
-#: src/components/LoopControls.tsx:337
+#: src/components/LoopControls.tsx:288
 msgid "Clear the A-B region for this track (key: \\)"
 msgstr "Clear the A-B region for this track (key: \\)"
 
-#: src/components/LoopControls.tsx:338
+#: src/components/LoopControls.tsx:289
 msgid "Clear the A-B region for this track"
 msgstr "Clear the A-B region for this track"
 
-#: src/components/LoopControls.tsx:341
+#: src/components/LoopControls.tsx:292
 msgid "Clear"
 msgstr "Clear"
 

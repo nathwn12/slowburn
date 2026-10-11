@@ -1,20 +1,21 @@
 /**
- * A-B instant commit: typing a time into the A (or B) field takes effect with
- * no Enter, blur, or button press - the point is set AND the playhead seeks
- * there. The owner's ask, verbatim: "if i enter a number on A, it should go
- * there."
+ * A-B typed-field commit: typing a time into the A (or B) field commits
+ * NOTHING while the field holds focus - the commit lands on blur or Enter,
+ * setting the point AND seeking the playhead there. The owner's ask, verbatim
+ * (slowburn A-B bug hunt): "while the field holds focus nothing commits and
+ * nothing re-applies."
  *
- * Each test fills the field once (a single input event, no keyboard Enter,
- * no blur) and then asserts the engine state. The commit itself lands on a
- * short idle timer after typing stops, so the assertions poll with `waitFor`.
- * Focus is asserted still inside the field to prove no blur was involved.
+ * Each test fills the field once (a single input event), waits past the old
+ * idle-commit window to prove nothing fired, and only then commits
+ * explicitly. The A/B buttons and the `[` / `]` keys stay instant - that path
+ * is covered elsewhere and untouched here.
  *
  * Silent: the browser is launched with `--mute-audio` and playback is
  * silenced via `setSilentTest` + volume 0. Helpers are copied into this file
  * rather than imported across test files, per repo convention.
  */
 import { afterEach, beforeEach, expect, test } from 'vite-plus/test';
-import { page } from 'vite-plus/test/browser';
+import { page, userEvent } from 'vite-plus/test/browser';
 
 import {
   beforeEachSetup,
@@ -88,31 +89,37 @@ async function playFirstTrack(): Promise<void> {
 }
 
 test(
-  'typing a time into A sets the point and seeks the playhead without Enter',
+  'typing a time into A commits nothing until blur, then sets and seeks',
   { timeout: 60_000 },
   async () => {
     await playFirstTrack();
     const p = player();
     await p.clearAbLoop();
+    p.pause();
     await openDisclosure('A-B loop options');
 
     const fieldA = page.getByRole('textbox', { name: 'Loop point A' });
     // One fill, then hands off the keyboard: no Enter, no blur, no button.
     await fieldA.fill('0:05');
 
-    await waitFor(() => p.getAbLoop().startSeconds === 5, 5000);
-    expect(p.getAbLoop().startSeconds).toBe(5);
-    // The field keeps focus: nothing was blurred to land this commit.
+    // Past any idle window: still untouched, focus still inside the field.
+    await sleep(800);
+    expect(p.getAbLoop().startSeconds).toBeNull();
     expect(
       (fieldA.element() as HTMLInputElement) === document.activeElement,
     ).toBe(true);
+
+    // Blur commits the finished value...
+    (fieldA.element() as HTMLInputElement).blur();
+    await waitFor(() => p.getAbLoop().startSeconds === 5, 5000);
+    expect(p.getAbLoop().startSeconds).toBe(5);
     // ...and the playhead went there.
     expect(Math.abs(p.getCurrentTime() - 5)).toBeLessThan(1.5);
   },
 );
 
 test(
-  'typing a time into B sets the point and seeks the playhead without Enter',
+  'typing a time into B commits nothing until Enter, then sets and seeks',
   { timeout: 60_000 },
   async () => {
     await playFirstTrack();
@@ -128,12 +135,17 @@ test(
     // One fill, then hands off the keyboard: no Enter, no blur, no button.
     await fieldB.fill('0:20');
 
-    await waitFor(() => p.getAbLoop().endSeconds === 20, 5000);
-    expect(p.getAbLoop().endSeconds).toBe(20);
-    // The field keeps focus: nothing was blurred to land this commit.
+    // Past any idle window: still untouched, focus still inside the field.
+    await sleep(800);
+    expect(p.getAbLoop().endSeconds).toBeNull();
     expect(
       (fieldB.element() as HTMLInputElement) === document.activeElement,
     ).toBe(true);
+
+    // Enter commits the finished value...
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => p.getAbLoop().endSeconds === 20, 5000);
+    expect(p.getAbLoop().endSeconds).toBe(20);
     // ...and the playhead went there.
     expect(Math.abs(p.getCurrentTime() - 20)).toBeLessThan(1.5);
   },
@@ -151,7 +163,7 @@ test(
     const fieldA = page.getByRole('textbox', { name: 'Loop point A' });
     await fieldA.fill('xyz');
 
-    // Past the instant-commit idle window: still marked, still untouched.
+    // Past the old instant-commit idle window: still marked, still untouched.
     await sleep(700);
     await expect.element(fieldA).toHaveAttribute('aria-invalid', 'true');
     expect(p.getAbLoop().startSeconds).toBeNull();
