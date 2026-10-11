@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Slowburn",
   "mainBinaryName": "slowburn",
-  "version": "0.23.5",
+  "version": "0.23.6",
   "identifier": "com.nathwn.slowburn",
   "build": {
     "beforeDevCommand": "vp run dev",
