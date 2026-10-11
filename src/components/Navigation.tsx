@@ -68,6 +68,13 @@ export default function Navigation() {
     });
   } else if (pathname.startsWith('/queue')) {
     trail.push({ key: 'queue', label: t`Queue`, icon: 'list', view: 'queue' });
+  } else if (pathname.startsWith('/history')) {
+    trail.push({
+      key: 'history',
+      label: t`History`,
+      icon: 'list',
+      view: 'library',
+    });
   } else if (pathname.startsWith('/artists')) {
     trail.push({
       key: 'library',
@@ -184,6 +191,11 @@ export default function Navigation() {
               to="/queue"
               label={t`Queue`}
               onPick={() => pick('queue')}
+            />
+            <ChromeMenuLink
+              to="/history"
+              label={t`History`}
+              onPick={() => pick('library')}
             />
             <ChromeMenuLink
               to="/library"

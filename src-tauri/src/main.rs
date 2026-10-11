@@ -13,7 +13,7 @@ use tauri::{LogicalSize, Manager, Size, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_log::fern::colors::ColoredLevelConfig;
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_prevent_default::Flags;
-use tauri_plugin_window_state::StateFlags;
+use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 /**
  * The beast
@@ -68,6 +68,142 @@ fn boot_geometry_for_ui_mode(mode: &UiMode) -> ((f64, f64), (f64, f64)) {
             (FULL_WINDOW_WIDTH, FULL_WINDOW_HEIGHT),
             (FULL_FLOOR_WIDTH, FULL_FLOOR_HEIGHT),
         )
+    }
+}
+
+/// Window placement restored across launches. All fields share one pixel
+/// space; the boot-time caller passes physical pixels and scales the floor
+/// by the window scale factor, so HiDPI monitors compare correctly.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct SavedPlacement {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+/// Available monitor rectangle in the same pixel space as `SavedPlacement`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct MonitorRect {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+/// Windows reports (-32000,-32000) as the position of a minimized window.
+/// Restoring it opens the app minimized, which reads as "no window", so any
+/// placement at or beyond it is never a real on-screen position.
+const MINIMIZED_SENTINEL: f64 = -32000.0;
+
+/// Usability rule: a saved placement is USABLE iff (1) x, y, width and height
+/// are all finite, (2) width and height are positive and at least the current
+/// boot-mode floor, (3) neither x nor y is at or below the Windows minimized
+/// sentinel (-32000), and (4) the rectangle overlaps at least one available
+/// monitor by at least one pixel. A rectangle only partially on a monitor is
+/// accepted unchanged with no clamping, so the visible part keeps the window
+/// reachable and user intent is preserved. Anything else is unusable and the
+/// caller falls back to the boot geometry.
+fn is_usable_window_placement(
+    saved: SavedPlacement,
+    monitors: &[MonitorRect],
+    min_size: (f64, f64),
+) -> bool {
+    let (min_w, min_h) = min_size;
+    if !saved.x.is_finite() || !saved.y.is_finite() {
+        return false;
+    }
+    if !saved.width.is_finite() || !saved.height.is_finite() {
+        return false;
+    }
+    if saved.width <= 0.0 || saved.height <= 0.0 {
+        return false;
+    }
+    if saved.width < min_w || saved.height < min_h {
+        return false;
+    }
+    if saved.x <= MINIMIZED_SENTINEL || saved.y <= MINIMIZED_SENTINEL {
+        return false;
+    }
+    monitors.iter().any(|m| {
+        saved.x < m.x + m.width
+            && saved.x + saved.width > m.x
+            && saved.y < m.y + m.height
+            && saved.y + saved.height > m.y
+    })
+}
+
+/// Validated restore: the saved placement unchanged when it is usable, else
+/// the caller-provided fallback (the boot geometry). Pure so the guard is
+/// unit-testable; the single runtime caller is `enforce_restored_geometry`.
+fn resolve_window_placement(
+    saved: SavedPlacement,
+    monitors: &[MonitorRect],
+    min_size: (f64, f64),
+    fallback: SavedPlacement,
+) -> SavedPlacement {
+    if is_usable_window_placement(saved, monitors, min_size) {
+        saved
+    } else {
+        fallback
+    }
+}
+
+/// State restored from disk. VISIBLE stays excluded: the window is born
+/// hidden and shown later by `showWindow`. DECORATIONS stays excluded:
+/// restoring it would re-apply the OS title bar over the custom TitleBar
+/// (frameless is enforced at build). SIZE and POSITION are restored and then
+/// validated by the monitor-bounds guard below.
+fn window_restore_flags() -> StateFlags {
+    StateFlags::all() & !StateFlags::VISIBLE & !StateFlags::DECORATIONS
+}
+
+/// Boot-time guard for the restored geometry: when the live window (just
+/// restored from disk) fails the usability rule, reset to the boot size and
+/// center on-screen so a bad placement can never leave an invisible or
+/// unreachable window. Best effort: failures are ignored because the builder
+/// size is already a safe default.
+fn enforce_restored_geometry<R: tauri::Runtime>(
+    window: &tauri::WebviewWindow<R>,
+    boot_w: f64,
+    boot_h: f64,
+    floor_w: f64,
+    floor_h: f64,
+) {
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let scale = if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    };
+    let (size, pos) = match (window.inner_size(), window.outer_position()) {
+        (Ok(size), Ok(pos)) => (size, pos),
+        _ => return,
+    };
+    let monitors: Vec<MonitorRect> = window
+        .available_monitors()
+        .unwrap_or_default()
+        .iter()
+        .map(|m| MonitorRect {
+            x: m.position().x as f64,
+            y: m.position().y as f64,
+            width: m.size().width as f64,
+            height: m.size().height as f64,
+        })
+        .collect();
+    let saved = SavedPlacement {
+        x: pos.x as f64,
+        y: pos.y as f64,
+        width: size.width as f64,
+        height: size.height as f64,
+    };
+    if !is_usable_window_placement(saved, &monitors, (floor_w * scale, floor_h * scale)) {
+        let _ = window.set_size(Size::Logical(LogicalSize::new(boot_w, boot_h)));
+        let _ = window.center();
+        info!(
+            "Discarded unusable restored placement ({}, {} {}x{}); fell back to boot geometry",
+            saved.x, saved.y, saved.width, saved.height
+        );
     }
 }
 
@@ -145,22 +281,16 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(
             tauri_plugin_window_state::Builder::default()
-                .with_state_flags(
-                    // Slowburn manages its visible state by itself, and the
-                    // declared `inner_size` (960×600) must win over any saved
-                    // geometry. POSITION is dropped too: a saved minimised /
-                    // off-screen position (-32000,-32000) makes the app open
-                    // minimised, which reads as "no window".
-                    StateFlags::all()
-                        & !StateFlags::VISIBLE
-                        & !StateFlags::SIZE
-                        & !StateFlags::POSITION
-                        // Never restore decorations: the window-state plugin
-                        // calls `set_decorations(state.decorated)` on launch,
-                        // which would re-apply the OS title bar over our
-                        // custom TitleBar. Frameless is enforced below.
-                        & !StateFlags::DECORATIONS,
-                )
+                .with_state_flags(window_restore_flags())
+                // Skip the automatic restore: `setup` restores manually and
+                // then runs the monitor-bounds guard, so the guard always runs
+                // after the restore (the plugin notifies over the main
+                // thread, which would otherwise race a post-build check).
+                // Slowburn manages its visible state by itself (the window is
+                // born hidden and shown by `showWindow`), and frameless is
+                // enforced at build - hence VISIBLE and DECORATIONS stay
+                // excluded in `window_restore_flags`.
+                .skip_initial_state("main")
                 .build(),
         );
 
@@ -183,8 +313,10 @@ fn main() {
             // floor even when an earlier session lowered it via `setMinSize`
             // (Mini entry) or left a saved size behind. The declared floor
             // was observed not to hold (~470-720px windows against a 900px
-            // declaration): the window-state SIZE restore is already excluded
-            // above, so the live suspects are the Mini `setMinSize` lowering
+            // declaration): the saved SIZE/POSITION restore below is validated
+            // by the monitor-bounds guard, so a stale or off-screen saved
+            // value can never shrink the window; the live suspects for a
+            // dropped floor are the Mini `setMinSize` lowering
             // with no native restore, `set_size` bypassing the constraint,
             // and the delayed frameless style rewrite below dropping it -
             // hence the native re-asserts after build.
@@ -213,6 +345,13 @@ fn main() {
                     .decorations(false)
                     .disable_drag_drop_handler()
                     .build()?;
+                // L1-5: restore the saved SIZE/POSITION now (auto-restore is
+                // skipped above) and validate it: a usable placement is kept,
+                // anything off-screen, degenerate, or below the boot floor
+                // falls back to the boot size centered on-screen, so a bad
+                // saved value can never leave an invisible window.
+                let _ = window.restore_state(window_restore_flags());
+                enforce_restored_geometry(&window, boot_w, boot_h, floor_w, floor_h);
                 // Belt-and-braces: a stale saved state (from before DECORATIONS
                 // was excluded above) could still re-enable the OS chrome on
                 // first launch, so force frameless off again after build.
@@ -293,6 +432,180 @@ mod window_floor_tests {
         assert_eq!(
             boot_geometry_for_ui_mode(&UiMode::Mini),
             ((420.0, 660.0), (320.0, 420.0))
+        );
+    }
+
+    /// Single 1920x1080 monitor at the origin shared by the restore tests.
+    fn single_monitor() -> Vec<MonitorRect> {
+        vec![MonitorRect {
+            x: 0.0,
+            y: 0.0,
+            width: 1920.0,
+            height: 1080.0,
+        }]
+    }
+
+    /// The Full boot-mode floor, so below-floor tests pin the live mapping
+    /// instead of a hardcoded copy.
+    fn full_floor() -> (f64, f64) {
+        boot_geometry_for_ui_mode(&UiMode::Full).1
+    }
+
+    /// Boot fallback for tests: the Full boot size at the origin.
+    fn test_fallback() -> SavedPlacement {
+        let ((boot_w, boot_h), _) = boot_geometry_for_ui_mode(&UiMode::Full);
+        SavedPlacement {
+            x: 0.0,
+            y: 0.0,
+            width: boot_w,
+            height: boot_h,
+        }
+    }
+
+    /// A saved rectangle fully on the monitor restores unchanged.
+    #[test]
+    fn restored_placement_on_monitor_is_kept() {
+        let saved = SavedPlacement {
+            x: 100.0,
+            y: 100.0,
+            width: 960.0,
+            height: 600.0,
+        };
+        let monitors = single_monitor();
+        assert!(is_usable_window_placement(saved, &monitors, full_floor()));
+        assert_eq!(
+            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
+            saved
+        );
+    }
+
+    /// A rectangle entirely off every monitor falls back to boot geometry.
+    #[test]
+    fn restored_placement_off_all_monitors_falls_back() {
+        let saved = SavedPlacement {
+            x: 3000.0,
+            y: 2000.0,
+            width: 960.0,
+            height: 600.0,
+        };
+        let monitors = single_monitor();
+        assert!(!is_usable_window_placement(
+            saved,
+            &monitors,
+            full_floor()
+        ));
+        assert_eq!(
+            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
+            test_fallback()
+        );
+    }
+
+    /// The Windows minimized sentinel is never a real placement.
+    #[test]
+    fn restored_placement_minimized_sentinel_falls_back() {
+        let saved = SavedPlacement {
+            x: -32000.0,
+            y: -32000.0,
+            width: 960.0,
+            height: 600.0,
+        };
+        let monitors = single_monitor();
+        assert!(!is_usable_window_placement(
+            saved,
+            &monitors,
+            full_floor()
+        ));
+        assert_eq!(
+            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
+            test_fallback()
+        );
+    }
+
+    /// Non-finite sizes are rejected even at an on-screen position.
+    #[test]
+    fn restored_placement_non_finite_size_falls_back() {
+        let monitors = single_monitor();
+        for bad in [
+            SavedPlacement {
+                x: 100.0,
+                y: 100.0,
+                width: f64::NAN,
+                height: 600.0,
+            },
+            SavedPlacement {
+                x: 100.0,
+                y: 100.0,
+                width: 960.0,
+                height: f64::INFINITY,
+            },
+        ] {
+            assert!(!is_usable_window_placement(bad, &monitors, full_floor()));
+            assert_eq!(
+                resolve_window_placement(bad, &monitors, full_floor(), test_fallback()),
+                test_fallback()
+            );
+        }
+    }
+
+    /// Degenerate (zero or negative) sizes are rejected.
+    #[test]
+    fn restored_placement_negative_size_falls_back() {
+        let monitors = single_monitor();
+        for width in [-100.0, 0.0] {
+            let saved = SavedPlacement {
+                x: 100.0,
+                y: 100.0,
+                width,
+                height: 600.0,
+            };
+            assert!(!is_usable_window_placement(
+                saved,
+                &monitors,
+                full_floor()
+            ));
+            assert_eq!(
+                resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
+                test_fallback()
+            );
+        }
+    }
+
+    /// A saved size below the current mode floor is rejected even on-monitor.
+    #[test]
+    fn restored_placement_below_floor_falls_back() {
+        let saved = SavedPlacement {
+            x: 100.0,
+            y: 100.0,
+            width: 400.0,
+            height: 300.0,
+        };
+        let monitors = single_monitor();
+        assert!(!is_usable_window_placement(
+            saved,
+            &monitors,
+            full_floor()
+        ));
+        assert_eq!(
+            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
+            test_fallback()
+        );
+    }
+
+    /// A rectangle only partially on a monitor is kept unchanged: the visible
+    /// part keeps the window reachable, so user intent is preserved.
+    #[test]
+    fn restored_placement_partial_overlap_is_kept() {
+        let saved = SavedPlacement {
+            x: 1800.0,
+            y: 900.0,
+            width: 960.0,
+            height: 600.0,
+        };
+        let monitors = single_monitor();
+        assert!(is_usable_window_placement(saved, &monitors, full_floor()));
+        assert_eq!(
+            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
+            saved
         );
     }
 }

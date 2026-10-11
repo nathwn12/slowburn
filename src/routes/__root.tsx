@@ -3,7 +3,7 @@ import * as stylex from '@stylexjs/stylex';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createRootRoute, Outlet, useLocation } from '@tanstack/react-router';
 import { info } from '@tauri-apps/plugin-log';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import SettingsAPI from '../api/SettingsAPI';
 import AppEvents from '../components/AppEvents';
@@ -27,7 +27,11 @@ import Toasts from '../components/Toasts';
 import { useViewStack } from '../components/view-stack';
 import useInvalidate from '../hooks/useInvalidate';
 import { usePlayerState } from '../hooks/usePlayer';
-import { enterMiniWindow, exitMiniWindow } from '../lib/mini-window';
+import {
+  enterMiniWindow,
+  exitMiniWindow,
+  shouldRunFullRestore,
+} from '../lib/mini-window';
 import { configQuery } from '../lib/queries';
 import queryClient from '../lib/query-client';
 import { logAndNotifyError } from '../lib/utils';
@@ -67,6 +71,7 @@ function isViewRoute(pathname: string): boolean {
     pathname.startsWith('/library') ||
     pathname.startsWith('/artists') ||
     pathname.startsWith('/playlists') ||
+    pathname.startsWith('/history') ||
     pathname.startsWith('/tracks')
   );
 }
@@ -97,12 +102,20 @@ function ViewRoot() {
   // the window stays freely resizable in both modes. Both toggle sites (the
   // header button and Ctrl+M) flip `ui_mode`, so reacting here covers both.
   // No-op outside Tauri (browser tests).
+  //
+  // The native side owns the boot size: it restores the saved SIZE/POSITION
+  // (or its boot fallback with the mode floor) before the frontend mounts,
+  // so a boot mount in Full/Minimal must not run the Full restore - it would
+  // overwrite the restored size with the Full default. Only a genuine
+  // leave-mini transition restores (see `shouldRunFullRestore`).
+  const wasMiniRef = useRef(isMiniMode);
   useEffect(() => {
     if (isMiniMode) {
       void enterMiniWindow();
-    } else {
+    } else if (shouldRunFullRestore(wasMiniRef.current)) {
       void exitMiniWindow();
     }
+    wasMiniRef.current = isMiniMode;
   }, [isMiniMode]);
 
   useSavedLoopsSync();

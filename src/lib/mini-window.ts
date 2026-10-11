@@ -148,6 +148,19 @@ export async function enterMiniWindow(): Promise<void> {
 }
 
 /**
+ * Boot guard for the non-mini mount effect in `__root.tsx`: that effect runs
+ * on every non-mini mount, including the very first one, but on a boot mount
+ * the native side already restored the saved SIZE/POSITION - or deliberately
+ * fell back to the boot geometry with the mode floor - before the frontend
+ * mounted. Running the Full restore there would overwrite the restored size
+ * with the Full default, so only a genuine leave-mini transition restores;
+ * a mount that was never Mini leaves the native window alone.
+ */
+export function shouldRunFullRestore(wasMiniMode: boolean): boolean {
+  return wasMiniMode;
+}
+
+/**
  * Restore the Full-mode floor and resizability, then always land at
  * Full-mode geometry: the exact pre-Mini size when the saved size is a
  * valid Full-mode size (at or above the Full-mode floor in both
