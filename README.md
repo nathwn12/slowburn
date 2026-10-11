@@ -118,7 +118,7 @@ This is a personal fork, offered as-is.
 
 - Upstream: **[Museeks](https://github.com/martpie/museeks)** by **Pierre-Louis Maugin (martpie)** and contributors.
 - Slowburn is not affiliated with or endorsed by the Museeks authors — everything good inherited here is their work.
-- This fork's `package.json` carries `author: Pierre de la Martinière` and `repository: https://github.com/martpie/museeks`; the `LICENSE` file carries `Copyright (c) 2015 Pierre de la Martinière` under the **MIT licence** (`"license": "MIT"`).
+- This fork's `package.json` carries `author: nathwn12` and `repository: https://github.com/nathwn12/slowburn`, with the upstream author preserved in `contributors: ["Pierre de la Martinière <pierre.de.la.martiniere@gmail.com>"]`; the `LICENSE` file keeps `Copyright (c) 2015 Pierre de la Martinière` under the **MIT licence** (`"license": "MIT"`).
 - Slowburn-specific work (Slow/Reverb UX, A-B repeat, skins, mini mode, queue, multi-folder UX, title bar) is the fork owner's, on top of the Museeks base. If you like the base player, star and support upstream.
 
 ## License
