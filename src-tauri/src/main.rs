@@ -133,22 +133,6 @@ fn is_usable_window_placement(
     })
 }
 
-/// Validated restore: the saved placement unchanged when it is usable, else
-/// the caller-provided fallback (the boot geometry). Pure so the guard is
-/// unit-testable; the single runtime caller is `enforce_restored_geometry`.
-fn resolve_window_placement(
-    saved: SavedPlacement,
-    monitors: &[MonitorRect],
-    min_size: (f64, f64),
-    fallback: SavedPlacement,
-) -> SavedPlacement {
-    if is_usable_window_placement(saved, monitors, min_size) {
-        saved
-    } else {
-        fallback
-    }
-}
-
 /// State restored from disk. VISIBLE stays excluded: the window is born
 /// hidden and shown later by `showWindow`. DECORATIONS stays excluded:
 /// restoring it would re-apply the OS title bar over the custom TitleBar
@@ -451,17 +435,6 @@ mod window_floor_tests {
         boot_geometry_for_ui_mode(&UiMode::Full).1
     }
 
-    /// Boot fallback for tests: the Full boot size at the origin.
-    fn test_fallback() -> SavedPlacement {
-        let ((boot_w, boot_h), _) = boot_geometry_for_ui_mode(&UiMode::Full);
-        SavedPlacement {
-            x: 0.0,
-            y: 0.0,
-            width: boot_w,
-            height: boot_h,
-        }
-    }
-
     /// A saved rectangle fully on the monitor restores unchanged.
     #[test]
     fn restored_placement_on_monitor_is_kept() {
@@ -473,10 +446,6 @@ mod window_floor_tests {
         };
         let monitors = single_monitor();
         assert!(is_usable_window_placement(saved, &monitors, full_floor()));
-        assert_eq!(
-            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
-            saved
-        );
     }
 
     /// A rectangle entirely off every monitor falls back to boot geometry.
@@ -494,10 +463,6 @@ mod window_floor_tests {
             &monitors,
             full_floor()
         ));
-        assert_eq!(
-            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
-            test_fallback()
-        );
     }
 
     /// The Windows minimized sentinel is never a real placement.
@@ -515,10 +480,6 @@ mod window_floor_tests {
             &monitors,
             full_floor()
         ));
-        assert_eq!(
-            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
-            test_fallback()
-        );
     }
 
     /// Non-finite sizes are rejected even at an on-screen position.
@@ -540,10 +501,6 @@ mod window_floor_tests {
             },
         ] {
             assert!(!is_usable_window_placement(bad, &monitors, full_floor()));
-            assert_eq!(
-                resolve_window_placement(bad, &monitors, full_floor(), test_fallback()),
-                test_fallback()
-            );
         }
     }
 
@@ -563,10 +520,6 @@ mod window_floor_tests {
                 &monitors,
                 full_floor()
             ));
-            assert_eq!(
-                resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
-                test_fallback()
-            );
         }
     }
 
@@ -585,10 +538,6 @@ mod window_floor_tests {
             &monitors,
             full_floor()
         ));
-        assert_eq!(
-            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
-            test_fallback()
-        );
     }
 
     /// A rectangle only partially on a monitor is kept unchanged: the visible
@@ -603,9 +552,51 @@ mod window_floor_tests {
         };
         let monitors = single_monitor();
         assert!(is_usable_window_placement(saved, &monitors, full_floor()));
-        assert_eq!(
-            resolve_window_placement(saved, &monitors, full_floor(), test_fallback()),
-            saved
-        );
+    }
+
+    /// `enforce_restored_geometry` scales the boot floor by the window scale
+    /// factor because saved geometry and monitor rects are physical pixels.
+    /// A saved size that clears the logical floor but not the scaled floor
+    /// is unusable: dropping the scaling would wrongly keep a below-floor
+    /// window on a HiDPI monitor.
+    #[test]
+    fn restored_placement_hidpi_scaled_floor_falls_back() {
+        let saved = SavedPlacement {
+            x: 100.0,
+            y: 100.0,
+            width: 960.0,
+            height: 600.0,
+        };
+        let monitors = single_monitor();
+        let (floor_w, floor_h) = full_floor();
+        let scale = 2.0;
+        assert!(is_usable_window_placement(
+            saved,
+            &monitors,
+            (floor_w, floor_h)
+        ));
+        assert!(!is_usable_window_placement(
+            saved,
+            &monitors,
+            (floor_w * scale, floor_h * scale)
+        ));
+    }
+
+    /// No available monitors (all unplugged) never restores: the placement
+    /// overlaps nothing, so the boot geometry fallback must run.
+    #[test]
+    fn restored_placement_no_monitors_falls_back() {
+        let saved = SavedPlacement {
+            x: 100.0,
+            y: 100.0,
+            width: 960.0,
+            height: 600.0,
+        };
+        let monitors: Vec<MonitorRect> = vec![];
+        assert!(!is_usable_window_placement(
+            saved,
+            &monitors,
+            full_floor()
+        ));
     }
 }
