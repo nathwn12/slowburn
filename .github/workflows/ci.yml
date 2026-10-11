@@ -1,0 +1,38 @@
+# nathwn12 house CI — stack: tauri (pnpm frontend + cargo backend, copy to .github/workflows/ci.yml)
+#
+# Windows-only Tauri app. The pnpm leg honours the repo's `packageManager` pin
+# and installs with --frozen-lockfile; the cargo leg keys off
+# src-tauri/Cargo.toml. There is deliberately NO `tauri build` / bundling step:
+# bundling needs signing/NSIS and does not belong in a build+test gate.
+name: ci
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.9
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Frontend typings
+        run: pnpm run test:typings
+      - name: Rust build
+        run: cargo build --locked --manifest-path src-tauri/Cargo.toml
+      - name: Rust test
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
