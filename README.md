@@ -39,15 +39,16 @@ Slowburn is built for musicians who practise, not just press play. Two tools do 
 ## Install
 
 1. Requirements: Windows 10/11, 64-bit. No macOS or Linux builds come from this fork.
-2. Build the installer on a Windows machine:
+2. Get the `vp` CLI: install it globally (PowerShell `irm https://vite.plus/ps1 | iex`, then open a new shell) or skip the global install and run the project-local CLI through pnpm (`pnpm exec vp ...`).
+3. Build the installer on a Windows machine:
 
 ```text
 vp install
 vp run tauri build
 ```
 
-3. Run the NSIS installer from `src-tauri/target/release/bundle/nsis/`.
-4. Launch Slowburn, add one or more library folders in Settings -> Library, press play.
+4. Run the NSIS installer from `src-tauri/target/release/bundle/nsis/`.
+5. Launch Slowburn, add one or more library folders in Settings -> Library, press play.
 
 ## Usage
 
@@ -79,7 +80,7 @@ Every shortcut below is real — press `?` any time inside the app to see them a
 
 ## Build from source
 
-Requires Node + pnpm (via `vp`) and a Rust toolchain (stable) on Windows.
+Requires the `vp` CLI (global install, or the project-local CLI via `pnpm exec vp`), Node + pnpm, and a Rust toolchain (stable) on Windows.
 
 ```text
 vp install            # install dependencies
