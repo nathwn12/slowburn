@@ -149,44 +149,60 @@ class DattorroReverbProcessor extends AudioWorkletProcessor {
     this.damping = [0, 0];
     this.hpf = 0;
     this.wetLpf = [0, 0];
+    // Pre-delay ring: 0.1*sr slots, which covers the longest delay the params
+    // can ask for (preDelay 0.54 -> 0.054*sr), so a read cannot lap the write.
     this.preBuf = new Float32Array(Math.ceil(sampleRate * 0.1));
     this.preIdx = 0;
 
+    // Dattorro's published delay lengths are sample counts at his 29761 Hz
+    // rate, so they are only that long at 29761 Hz. Go through the paper's
+    // milliseconds and re-scale to the live rate to keep the physical plate.
+    const ms = (v) => Math.round((v * sampleRate) / 1000);
+    const apLine = (delayMs) => {
+      const d = ms(delayMs);
+      const size = this.np2(d);
+      return { buf: new Float32Array(size), mask: size - 1, off: size - d };
+    };
+
     this.inDiff = [
-      { buf: new Float32Array(this.np2(142)), mask: this.np2(142) - 1, off: this.np2(142) - 142 },
-      { buf: new Float32Array(this.np2(107)), mask: this.np2(107) - 1, off: this.np2(107) - 107 },
-      { buf: new Float32Array(this.np2(379)), mask: this.np2(379) - 1, off: this.np2(379) - 379 },
-      { buf: new Float32Array(this.np2(277)), mask: this.np2(277) - 1, off: this.np2(277) - 277 },
+      apLine(4.771345),
+      apLine(3.595309),
+      apLine(12.734787),
+      apLine(9.307483),
     ];
 
-    this.modDelay1 = new DelayLine(672);
-    this.modDelay2 = new DelayLine(908);
-    // Base offsets for the delay-line modulation triangle (samples).
+    const modDepth = 8;
+    this.modDelay1 = new DelayLine(ms(22.579886) + modDepth);
+    this.modDelay2 = new DelayLine(ms(30.509727) + modDepth);
+    // Nominal delay stays the paper's length; the spare slots are the triangle
+    // LFO's sweep, so the modulated read (base +/- modDepth) stays in-buffer.
+    this.modDepth = modDepth;
+    this.modDelay1.offset += modDepth;
+    this.modDelay2.offset += modDepth;
     this.modDelay1.base = this.modDelay1.offset;
     this.modDelay2.base = this.modDelay2.offset;
-    this.modDepth = 8;
     this.modPhase = 0;
     this.modDir = 1;
 
-    this.preDampDL = [new DelayLine(4453), new DelayLine(4217)];
-    this.preDampDL[0].setTap('out1', 353);
-    this.preDampDL[0].setTap('out2', 3627);
-    this.preDampDL[0].setTap('out3', 1990);
-    this.preDampDL[1].setTap('out1', 266);
-    this.preDampDL[1].setTap('out2', 2974);
-    this.preDampDL[1].setTap('out3', 2111);
+    this.preDampDL = [new DelayLine(ms(149.625349)), new DelayLine(ms(141.695508))];
+    this.preDampDL[0].setTap('out1', ms(11.861161));
+    this.preDampDL[0].setTap('out2', ms(121.870905));
+    this.preDampDL[0].setTap('out3', ms(66.866033));
+    this.preDampDL[1].setTap('out1', ms(8.937872));
+    this.preDampDL[1].setTap('out2', ms(99.929438));
+    this.preDampDL[1].setTap('out3', ms(70.931756));
 
-    this.decayDiff2 = [new DelayLine(1800), new DelayLine(2656)];
-    this.decayDiff2[0].setTap('out1', 187);
-    this.decayDiff2[0].setTap('out2', 1228);
-    this.decayDiff2[1].setTap('out1', 335);
-    this.decayDiff2[1].setTap('out2', 1913);
+    this.decayDiff2 = [new DelayLine(ms(60.481839)), new DelayLine(ms(89.244313))];
+    this.decayDiff2[0].setTap('out1', ms(6.283391));
+    this.decayDiff2[0].setTap('out2', ms(41.262054));
+    this.decayDiff2[1].setTap('out1', ms(11.256342));
+    this.decayDiff2[1].setTap('out2', ms(64.278754));
 
-    this.postDampDL = [new DelayLine(3720), new DelayLine(3163)];
-    this.postDampDL[0].setTap('out1', 1066);
-    this.postDampDL[0].setTap('out2', 2673);
-    this.postDampDL[1].setTap('out1', 121);
-    this.postDampDL[1].setTap('out2', 1996);
+    this.postDampDL = [new DelayLine(ms(124.9958)), new DelayLine(ms(106.280031))];
+    this.postDampDL[0].setTap('out1', ms(35.818689));
+    this.postDampDL[0].setTap('out2', ms(89.81553));
+    this.postDampDL[1].setTap('out1', ms(4.065724));
+    this.postDampDL[1].setTap('out2', ms(67.067639));
   }
 
   allpassAp(buf, mask, off, gain, x) {
