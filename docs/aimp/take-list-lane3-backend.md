@@ -3,7 +3,7 @@
 Clean-room ARCHITECTURE and BEHAVIOUR extraction only. No AIMP algorithm, code, skin, icon, language file or verbatim string is reproduced as a source; AIMP strings appear solely as labelled evidence with file:line. This document is a take-list for possible Slowburn-native implementation, not a copy plan.
 
 - Target: AIMP `v5.40.2727 (08.09.2026)`, build/`VersionBuild` 2727, `Version=5400`.
-- Install root: `<AIMP install root>` (Scoop `current` siblings are junctions; `Plugins` and `Profile` under it are junctions to `<Scoop persist root>`).
+- Install root: `<AIMP install root>` (Scoop `current` siblings are junctions; `Plugins` and `Profile` under it are junctions to `<Scoop persist root>\aimp`).
 - Date of extraction: 2026-10-11. Read-only on the install tree; the running AIMP process (PID 14352) was not touched.
 - Scope: (a) output pipeline, (b) gain staging / replay-gain, (c) library indexing and background scan, (d) plugin contract surface, (e) startup and lazy init. DSP algorithms, AIMP's slow/playback effect, reverb and A-B loop are out of scope by rule.
 
