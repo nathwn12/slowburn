@@ -26,6 +26,11 @@ type Fixture = {
 
 function makeFixture(fixture: Fixture): string {
   const dir = mkdtempSync(join(tmpdir(), 'i18n-check-'));
+  // The real build output lives under the project root, whose package.json is
+  // `"type": "module"`, so the guard's `import()` loads the emitted en chunk as
+  // ESM. Mirror that here: without a package.json the temp dir defaults to
+  // CommonJS and the chunk's `export` fails to parse.
+  writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
   const en = fixture.en ?? { [ID]: ['Slowburn'] };
   const writeEn = fixture.enPo == null && (fixture.writeEn ?? true);
   const writeAssets = fixture.writeAssets ?? true;
