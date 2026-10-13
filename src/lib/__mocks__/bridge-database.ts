@@ -7,7 +7,8 @@ import type {
 } from '../../generated/typings';
 import type { DatabaseBridgeInterface } from '../bridge-database';
 
-// Thank you Pixabay for the copyright-free tracks
+// Fixture audio is locally synthesized (see src/__tests__/assets/PROVENANCE.md);
+// track metadata below is fictional test data.
 const MOCK_TRACKS: Array<Track> = [
   {
     id: '0',
