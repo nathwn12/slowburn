@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.svg" width="120" height="120" alt="Slowburn icon" />
+  <img src="src-tauri/icons/icon.png" width="120" height="120" alt="Slowburn icon" />
 </p>
 <h1 align="center">Slowburn</h1>
 <p align="center"><strong>Your music room: a Windows player with studio-grade Slow + Reverb and an A-B loop built for practice.</strong></p>
