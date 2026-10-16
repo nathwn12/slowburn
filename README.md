@@ -179,15 +179,15 @@ Issues are welcome. This is a personal fork offered as-is, so please keep contri
 3. Run the checks your change touches: `vp check` for UI, `cargo test` in `src-tauri/` for Rust.
 4. Never hand-edit `src/generated` and never touch existing migration files — regenerate instead.
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 ## Credits
 
 - Upstream: **[Museeks](https://github.com/martpie/museeks)** by **Pierre-Louis Maugin (martpie)** and contributors. Slowburn is not affiliated with or endorsed by the Museeks authors — everything good inherited here is their work.
 - This fork's `package.json` carries `author: nathwn12` and `repository: https://github.com/nathwn12/slowburn`, with the upstream author preserved in `contributors`; the `LICENSE` file keeps `Copyright (c) 2015 Pierre de la Martinière` under MIT.
 - Slowburn-specific work (Slow/Reverb UX, A-B repeat, skins, mini mode, queue, multi-folder UX, title bar) is the fork owner's, on top of the Museeks base. If you like the base player, star and support upstream.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
 
 <!-- nathwn12 house footer: identical in every repo. Do not edit. -->
 <p align="center">
