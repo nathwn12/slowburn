@@ -9,14 +9,14 @@
   <img src="https://img.shields.io/badge/platform-windows--64bit-2b3137?logo=windows&logoColor=white" alt="Platform" />
 </p>
 
-## Project Name and Description
+## Project name and description
 
 **Slowburn** (v0.23.7) is a Windows-only desktop music player built for practice, not just playback. It pairs studio-grade Slow + Reverb with an A-B loop that is saved per track, wrapped in a four-skin theme gallery, an explicit queue, a mini mode, and a multi-folder library. No telemetry, no account, no network needed for playback: your files stay yours, on your machine.
 
 > [!NOTE]
 > Slowburn is a diverged personal fork of [Museeks](https://github.com/martpie/museeks). Windows 10/11 64-bit is the only target — no macOS or Linux builds come from this fork.
 
-## Technology Stack
+## Technology stack
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
@@ -34,7 +34,7 @@
 | Dev toolchain | Vite+ (`vp` CLI: Vite, Vitest, Oxlint, Oxfmt) | Node 24.14.0, pnpm 11.0.9 |
 | Type bridge | `ts-rs` (Rust → TS types) | 12.0.1 |
 
-## Project Architecture
+## Architecture
 
 Tauri v2 split: a React/TypeScript frontend talks to a Rust backend over Tauri IPC commands — never `invoke` from components directly; all IPC goes through the `bridge-*.ts` helpers in `src/lib`.
 
@@ -47,7 +47,7 @@ React frontend (src/) ── bridge-*.ts ──▶ Tauri IPC commands ──▶ 
 
 Audio plays through a singleton `EventEmitter`-based player (`src/lib/player.ts`). New Tauri commands are declared in `src-tauri/build.rs` and allowed in `src-tauri/capabilities/main.json`. The bundle target is NSIS (`src-tauri/target/release/bundle/nsis/`), app category Music, identifier `com.nathwn.slowburn`, with file associations for mp3, flac, ogg/opus, m4a, wav, aac, 3gp, and weba.
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
@@ -80,7 +80,7 @@ Space     play / pause
 
 Every shortcut is real — press `?` any time inside the app to see them all (`Ctrl+M` flips full/mini mode, `Alt` toggles the menu bar, `Esc` closes the shortcuts panel).
 
-## Project Structure
+## Project structure
 
 ```text
 src/                     # React/TypeScript frontend
@@ -109,7 +109,7 @@ src-tauri/               # Rust/Tauri backend
   tauri.conf.json
 ```
 
-## Key Features
+## Key features
 
 - Slow effect + Reverb intensity in fine steps, with one-click reset to dry and per-track memory
 - A-B loop right on the seek bar, with saved per-track loops that auto-apply on reopen
@@ -125,7 +125,7 @@ src-tauri/               # Rust/Tauri backend
 - Custom frameless window with its own title bar and menu bar, plus full/mini modes
 - Sleep blocker, desktop notifications, and an automatic update checker
 
-## Development Workflow
+## Development workflow
 
 ```text
 vp install            # install dependencies
@@ -146,7 +146,7 @@ vp run gen:translations  # extract i18n strings to .po files
 
 Further reading: [Mini-mode and sorting spec](docs/specs/minimal-mode-and-sorting.md), [CHANGELOG.md](CHANGELOG.md).
 
-## Coding Standards
+## Coding standards
 
 - Optimize for readability and cognitive load, not line count or cleverness, unless code is performance-sensitive.
 - Keep logic co-located: one file per business concern over spreading it across many.
