@@ -1,6 +1,8 @@
-# Slowburn
-
-**Slow down the hard part of a track and loop it until you can play it.**
+<p align="center">
+  <img src="src-tauri/icons/icon.png" width="120" height="120" alt="Slowburn icon" />
+</p>
+<h1 align="center">Slowburn</h1>
+<p align="center"><strong>Slow down the hard part of a track and loop it until you can play it.</strong></p>
 
 Slowburn is a Windows music player for practice. Open a track, slow it down, add reverb, and repeat one passage with an A-B loop.
 
@@ -65,3 +67,11 @@ Ctrl+M    switch between full and mini mode
 - Issues: https://github.com/nathwn12/slowburn/issues
 - License: MIT, see LICENSE
 - Upstream player this fork builds on: https://github.com/martpie/museeks
+
+<!-- nathwn12 house footer: identical in every repo. Do not edit. -->
+<p align="center">
+  <a href="https://github.com/nathwn12"><img src="assets/signature.svg" width="96" alt="nathwn12" /></a>
+</p>
+<p align="center">
+  <sub>Built by <a href="https://github.com/nathwn12">nathwn12</a> · <a href="https://github.com/nathwn12?tab=repositories">All projects</a></sub>
+</p>
