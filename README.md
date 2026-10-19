@@ -17,14 +17,6 @@ vp run tauri build
 
 Run the NSIS installer from `src-tauri/target/release/bundle/nsis/`, launch Slowburn, and add a music folder. You need Windows 10/11, 64-bit.
 
-### Or let your AI install it
-
-```text
-Clone https://github.com/nathwn12/slowburn.git, then run `vp install` and `vp run tauri build` on Windows 10/11 64-bit.
-Launch the built app, add a music folder, and press Space to confirm a track plays.
-Report the built installer path under src-tauri/target/release/bundle/nsis/ and whether audio played.
-```
-
 ### Offline or pinned
 
 No release is published to pin. Build from the checked-in 0.23.7 sources with the commands above; `package.json` and `src-tauri/tauri.conf.json` both carry version 0.23.7.
