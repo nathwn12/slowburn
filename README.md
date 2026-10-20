@@ -65,8 +65,8 @@ Ctrl+M    switch between full and mini mode
 
 - Repository: https://github.com/nathwn12/slowburn
 - Issues: https://github.com/nathwn12/slowburn/issues
-- License: MIT, see LICENSE
 - Upstream player this fork builds on: https://github.com/martpie/museeks
+- License: MIT, see [LICENSE](LICENSE)
 
 <!-- nathwn12 house footer: identical in every repo. Do not edit. -->
 <p align="center">
