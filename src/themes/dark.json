@@ -65,7 +65,7 @@
     "--border-soft": "#343434",
 
     "--text-dim": "#9ca3af",
-    "--text-faint": "#6b7280",
+    "--text-faint": "#9ca3af",
     "--text-bright": "#f3f4f6",
 
     "--accent": "#ff1493",
