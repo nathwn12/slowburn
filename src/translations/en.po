@@ -321,14 +321,14 @@ msgstr "HISTORY"
 
 #: src/components/History.tsx:58
 #: src/components/Queue.tsx:180
-#: src/components/StatusBar.tsx:90
+#: src/components/StatusBar.tsx:115
 #: src/routes/settings.library.tsx:113
 msgid "track"
 msgstr "track"
 
 #: src/components/History.tsx:58
 #: src/components/Queue.tsx:180
-#: src/components/StatusBar.tsx:90
+#: src/components/StatusBar.tsx:115
 #: src/routes/settings.library.tsx:113
 msgid "tracks"
 msgstr "tracks"
@@ -693,28 +693,27 @@ msgstr "Stop after current"
 msgid "Stop after the current track instead of playing the next one"
 msgstr "Stop after the current track instead of playing the next one"
 
-#: src/components/PlayingBarInfo.tsx:100
+#: src/components/PlayingBarInfo.tsx:116
 msgid "Technical format information"
 msgstr "Technical format information"
 
-#: src/components/PlayingBarInfo.tsx:137
+#: src/components/PlayingBarInfo.tsx:153
 msgid "A-B loop state for this file"
 msgstr "A-B loop state for this file"
 
-#: src/components/PlayingBarInfo.tsx:140
+#: src/components/PlayingBarInfo.tsx:156
 msgid "A–B loop saved"
 msgstr "A–B loop saved"
 
-#: src/components/PlayingBarInfo.tsx:140
+#: src/components/PlayingBarInfo.tsx:156
 msgid "No loop for this track"
 msgstr "No loop for this track"
 
-#: src/components/PlayingBarInfo.tsx:144
+#: src/components/PlayingBarInfo.tsx:160
 msgid "Slow and reverb state"
 msgstr "Slow and reverb state"
 
-#: src/components/PlayingBarInfo.tsx:149
-#: src/components/StatusBar.tsx:77
+#: src/components/PlayingBarInfo.tsx:165
 msgid "Effects neutral (1.00× · dry)"
 msgstr "Effects neutral (1.00× · dry)"
 
@@ -911,51 +910,55 @@ msgstr "Close"
 msgid "Press ? any time to reopen"
 msgstr "Press ? any time to reopen"
 
-#: src/components/StatusBar.tsx:59
+#: src/components/StatusBar.tsx:64
 msgid "lossless"
 msgstr "lossless"
 
-#: src/components/StatusBar.tsx:59
+#: src/components/StatusBar.tsx:64
 msgid "lossy"
 msgstr "lossy"
 
-#: src/components/StatusBar.tsx:81
-msgid "A–B saved · looping"
-msgstr "A–B saved · looping"
+#: src/components/StatusBar.tsx:102
+msgid "Effects neutral (1.00× . dry)"
+msgstr "Effects neutral (1.00× . dry)"
 
-#: src/components/StatusBar.tsx:82
-msgid "A–B saved · armed"
-msgstr "A–B saved · armed"
+#: src/components/StatusBar.tsx:106
+msgid "A–B saved . looping"
+msgstr "A–B saved . looping"
 
-#: src/components/StatusBar.tsx:83
+#: src/components/StatusBar.tsx:107
+msgid "A–B saved . armed"
+msgstr "A–B saved . armed"
+
+#: src/components/StatusBar.tsx:108
 msgid "No A–B loop"
 msgstr "No A–B loop"
 
-#: src/components/StatusBar.tsx:86
+#: src/components/StatusBar.tsx:111
 msgid "Status bar"
 msgstr "Status bar"
 
-#: src/components/StatusBar.tsx:89
+#: src/components/StatusBar.tsx:114
 msgid "scanning tracks..."
 msgstr "scanning tracks..."
 
-#: src/components/StatusBar.tsx:95
+#: src/components/StatusBar.tsx:120
 msgid "Format of the playing track"
 msgstr "Format of the playing track"
 
-#: src/components/StatusBar.tsx:113
+#: src/components/StatusBar.tsx:138
 msgid "Effects engaged"
 msgstr "Effects engaged"
 
-#: src/components/StatusBar.tsx:113
+#: src/components/StatusBar.tsx:138
 msgid "Effects neutral"
 msgstr "Effects neutral"
 
-#: src/components/StatusBar.tsx:136
+#: src/components/StatusBar.tsx:161
 msgid "This webview renders through the operating system's default output device."
 msgstr "This webview renders through the operating system's default output device."
 
-#: src/components/StatusBar.tsx:139
+#: src/components/StatusBar.tsx:164
 msgid "Output: system default"
 msgstr "Output: system default"
 
@@ -1110,7 +1113,7 @@ msgid "Cancel"
 msgstr "Cancel"
 
 #: src/components/TrackList.tsx:393
-#: src/components/TrackListHeader.tsx:511
+#: src/components/TrackListHeader.tsx:509
 #: src/routes/settings.library.tsx:95
 msgid "Remove"
 msgstr "Remove"
@@ -1209,14 +1212,14 @@ msgid "Sort: {baseLabel}"
 msgstr "Sort: {baseLabel}"
 
 #: src/components/TrackListHeader.tsx:258
-#: src/components/TrackListHeader.tsx:450
-#: src/components/TrackListHeader.tsx:472
+#: src/components/TrackListHeader.tsx:448
+#: src/components/TrackListHeader.tsx:470
 msgid "Ascending"
 msgstr "Ascending"
 
 #: src/components/TrackListHeader.tsx:258
-#: src/components/TrackListHeader.tsx:450
-#: src/components/TrackListHeader.tsx:472
+#: src/components/TrackListHeader.tsx:448
+#: src/components/TrackListHeader.tsx:470
 msgid "Descending"
 msgstr "Descending"
 
@@ -1232,67 +1235,67 @@ msgstr "Sort presets"
 msgid "Presets"
 msgstr "Presets"
 
-#: src/components/TrackListHeader.tsx:427
+#: src/components/TrackListHeader.tsx:425
 msgid "Sort by field"
 msgstr "Sort by field"
 
-#: src/components/TrackListHeader.tsx:429
+#: src/components/TrackListHeader.tsx:427
 msgid "Fields"
 msgstr "Fields"
 
-#: src/components/TrackListHeader.tsx:440
+#: src/components/TrackListHeader.tsx:438
 msgid "Shift-click to add as another sort level"
 msgstr "Shift-click to add as another sort level"
 
-#: src/components/TrackListHeader.tsx:458
+#: src/components/TrackListHeader.tsx:456
 msgid "Sort levels"
 msgstr "Sort levels"
 
-#: src/components/TrackListHeader.tsx:460
+#: src/components/TrackListHeader.tsx:458
 msgid "Levels"
 msgstr "Levels"
 
-#: src/components/TrackListHeader.tsx:463
+#: src/components/TrackListHeader.tsx:461
 msgid "Manual order"
 msgstr "Manual order"
 
-#: src/components/TrackListHeader.tsx:479
+#: src/components/TrackListHeader.tsx:477
 msgid "{name}: ascending. Activate to sort descending."
 msgstr "{name}: ascending. Activate to sort descending."
 
-#: src/components/TrackListHeader.tsx:480
+#: src/components/TrackListHeader.tsx:478
 msgid "{name}: descending. Activate to sort ascending."
 msgstr "{name}: descending. Activate to sort ascending."
 
-#: src/components/TrackListHeader.tsx:485
+#: src/components/TrackListHeader.tsx:483
 msgid "Sort descending"
 msgstr "Sort descending"
 
-#: src/components/TrackListHeader.tsx:485
+#: src/components/TrackListHeader.tsx:483
 msgid "Sort ascending"
 msgstr "Sort ascending"
 
-#: src/components/TrackListHeader.tsx:490
+#: src/components/TrackListHeader.tsx:488
 msgid "Move {name} up"
 msgstr "Move {name} up"
 
-#: src/components/TrackListHeader.tsx:494
+#: src/components/TrackListHeader.tsx:492
 msgid "Move up"
 msgstr "Move up"
 
-#: src/components/TrackListHeader.tsx:499
+#: src/components/TrackListHeader.tsx:497
 msgid "Move {name} down"
 msgstr "Move {name} down"
 
-#: src/components/TrackListHeader.tsx:503
+#: src/components/TrackListHeader.tsx:501
 msgid "Move down"
 msgstr "Move down"
 
-#: src/components/TrackListHeader.tsx:507
+#: src/components/TrackListHeader.tsx:505
 msgid "Remove {name} from the sort"
 msgstr "Remove {name} from the sort"
 
-#: src/components/TrackListHeader.tsx:519
+#: src/components/TrackListHeader.tsx:517
 msgid "Shift-click a field above to add it as another level."
 msgstr "Shift-click a field above to add it as another level."
 
