@@ -16,6 +16,10 @@ import {
   formatSampleRate,
   isLosslessFormat,
 } from '../lib/dense-format';
+import {
+  PITCH_DEFAULT_SEMITONES,
+  TEMPO_DEFAULT_PERCENT,
+} from '../lib/effects-core/tempo-pitch';
 import TrackProgress from './TrackProgress';
 
 type Props = {
@@ -46,11 +50,23 @@ export default function PlayingBarInfo(props: Props) {
     const reverbPct = Math.round(effects.reverbIntensity * 100);
     const slowEngaged = Math.abs(slow - 1) > 0.0001;
     const reverbEngaged = reverbPct > 0;
-    const effectsEngaged = slowEngaged || reverbEngaged;
+    // Tempo and pitch are effects too: the same engaged criteria the Burn
+    // strip and the status ledger use (EffectControls / StatusBar), so the
+    // chip never reads neutral while one of them is doing work.
+    const tempoEngaged = effects.tempo !== TEMPO_DEFAULT_PERCENT;
+    const pitchEngaged = effects.pitch !== PITCH_DEFAULT_SEMITONES;
+    const effectsEngaged =
+      slowEngaged || reverbEngaged || tempoEngaged || pitchEngaged;
 
     const effectsBits: string[] = [];
     if (slowEngaged) effectsBits.push(`Slow ${slow.toFixed(2)}×`);
     if (reverbEngaged) effectsBits.push(`Reverb ${reverbPct}%`);
+    if (tempoEngaged) {
+      effectsBits.push(`Tempo ${(effects.tempo / 100).toFixed(2)}×`);
+    }
+    if (pitchEngaged) {
+      effectsBits.push(`Pitch ${effects.pitch > 0 ? '+' : ''}${effects.pitch}`);
+    }
 
     const albumMeta: string[] = [];
     if (trackPlaying.year != null) albumMeta.push(String(trackPlaying.year));

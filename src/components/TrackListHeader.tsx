@@ -415,9 +415,7 @@ export function SortMenu({
                 {presetLabels[preset.id] ?? preset.labelKey}
               </span>
               {checked && (
-                <span aria-hidden="true" {...stylex.props(styles.menuCheck)}>
-                  :white_check_mark:
-                </span>
+                <span aria-hidden="true" {...stylex.props(styles.menuCheck)} />
               )}
             </button>
           );
@@ -666,8 +664,19 @@ const styles = stylex.create({
     fontSize: '11px',
   },
   menuCheck: {
+    // Check glyph drawn with borders (no icon or text glyph needed): an L
+    // of accent borders rotated 45deg reads as a check mark (the same
+    // pattern as PlayerControls' `.tcheck`).
+    width: '6px',
+    height: '10px',
     flexShrink: 0,
-    fontWeight: 800,
+    borderRightWidth: '2px',
+    borderRightStyle: 'solid',
+    borderRightColor: 'var(--accent)',
+    borderBottomWidth: '2px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'var(--accent)',
+    transform: 'rotate(45deg) translateY(-1px)',
   },
   menuSeparator: {
     borderTopWidth: '1px',

@@ -13,6 +13,10 @@ import {
   formatFileSize,
   isLosslessFormat,
 } from '../lib/dense-format';
+import {
+  PITCH_DEFAULT_SEMITONES,
+  TEMPO_DEFAULT_PERCENT,
+} from '../lib/effects-core/tempo-pitch';
 import { allTracksQuery } from '../lib/queries';
 import useLibraryStore from '../lib/store';
 import Icon from './Icon';
@@ -29,6 +33,7 @@ export default function StatusBar() {
   const trackPlaying = usePlayingTrack();
   const effects = useEffectsConfig();
   const abLoop = usePlayerState((state) => state.abLoop);
+  const isPaused = usePlayerState((state) => state.isPaused);
 
   const totalDuration = useMemo(
     () => (allTracks ?? []).reduce((acc, track) => acc + track.duration, 0),
@@ -56,7 +61,7 @@ export default function StatusBar() {
           sampleRateShort != null && bitDepthShort != null
             ? `${sampleRateShort}/${bitDepthShort}`
             : (sampleRateShort ?? null),
-          `· ${lossless ? t`lossless` : t`lossy`}`,
+          `. ${lossless ? t`lossless` : t`lossy`}`,
         ]
           .filter((part): part is string => part != null)
           .join(' ');
@@ -64,22 +69,42 @@ export default function StatusBar() {
   const slowEngaged = Math.abs(effects.slow - 1) > 0.0001;
   const reverbPct = Math.round(effects.reverbIntensity * 100);
   const reverbEngaged = reverbPct > 0;
-  const effectsEngaged = slowEngaged || reverbEngaged;
+  // Tempo and pitch are effects too: the same engaged criteria the Burn strip
+  // uses (EffectControls), so the ledger never reads neutral while one of
+  // them is doing work.
+  const tempoEngaged = effects.tempo !== TEMPO_DEFAULT_PERCENT;
+  const pitchEngaged = effects.pitch !== PITCH_DEFAULT_SEMITONES;
+  const effectsEngaged =
+    slowEngaged || reverbEngaged || tempoEngaged || pitchEngaged;
 
   const saved = abLoop.startSeconds != null || abLoop.endSeconds != null;
-  const looping = saved && abLoop.active;
+  // The same truth the transport pill uses (LoopControls): a saved region is
+  // only "looping" while it is enabled, spans real time, and playback is not
+  // paused.
+  const looping =
+    abLoop.enabled &&
+    abLoop.startSeconds != null &&
+    abLoop.endSeconds != null &&
+    abLoop.endSeconds - abLoop.startSeconds > 0.05 &&
+    !isPaused;
 
   const effectsBits: string[] = [];
   if (slowEngaged) effectsBits.push(`Slow ${effects.slow.toFixed(2)}×`);
   if (reverbEngaged) effectsBits.push(`Reverb ${reverbPct}%`);
+  if (tempoEngaged) {
+    effectsBits.push(`Tempo ${(effects.tempo / 100).toFixed(2)}×`);
+  }
+  if (pitchEngaged) {
+    effectsBits.push(`Pitch ${effects.pitch > 0 ? '+' : ''}${effects.pitch}`);
+  }
   const effectsText = effectsEngaged
-    ? `${effectsBits.join(' · ')} engaged`
-    : t`Effects neutral (1.00× · dry)`;
+    ? `${effectsBits.join(' . ')} engaged`
+    : t`Effects neutral (1.00× . dry)`;
 
   const loopText = saved
     ? looping
-      ? t`A–B saved · looping`
-      : t`A–B saved · armed`
+      ? t`A–B saved . looping`
+      : t`A–B saved . armed`
     : t`No A–B loop`;
 
   return (
