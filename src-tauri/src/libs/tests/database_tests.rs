@@ -812,3 +812,137 @@ async fn create_playlist_with_non_utf8_path_does_not_panic() {
         Some(path.to_string_lossy().as_ref())
     );
 }
+
+/** ----------------------------------------------------------------------------
+ * Integration Test - Scan-side missing-file reconciliation
+ * -------------------------------------------------------------------------- */
+
+/**
+ * A scan of a readable root must prune the rows whose files are confirmed
+ * missing: the moved-file case that leaves a stale row behind (the toast
+ * "track file could not be found" on a row whose file is gone). The pruned
+ * track's saved A-B region goes with it, and a present file's row - and its
+ * region - stay untouched.
+ */
+#[tokio::test]
+async fn test_reconcile_prunes_missing_files_and_their_loops() {
+    let mut db = get_test_db().await;
+
+    let dir = std::env::temp_dir().join(format!("slowburn_reconcile_test_{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+
+    let kept_path = dir.join("kept.wav");
+    let gone_path = dir.join("gone.wav");
+    write_tagged_wav(&kept_path, 44100, 16, 2, "Kept");
+    write_tagged_wav(&gone_path, 44100, 16, 2, "Gone");
+
+    let kept_id = get_track_id_for_path(&kept_path).unwrap();
+    let gone_id = get_track_id_for_path(&gone_path).unwrap();
+
+    let kept = Track {
+        id: kept_id.clone(),
+        path: kept_path.to_string_lossy().into_owned(),
+        ..sample_track_1()
+    };
+    let gone = Track {
+        id: gone_id.clone(),
+        path: gone_path.to_string_lossy().into_owned(),
+        ..sample_track_2()
+    };
+    db.insert_tracks(vec![kept, gone]).await.unwrap();
+    db.set_ab_loop(&kept_id, Some(1.0), Some(2.0)).await.unwrap();
+    db.set_ab_loop(&gone_id, Some(3.0), Some(4.0)).await.unwrap();
+
+    // The file moves away: its row is stale from here on.
+    std::fs::remove_file(&gone_path).unwrap();
+
+    let removed = db.remove_missing_files(&[dir.clone()]).await.unwrap();
+    assert_eq!(removed, 1, "expected 1 removal, got {}", removed);
+
+    // Only the present file's row survives.
+    let remaining_ids = db
+        .get_all_tracks()
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|track| track.id)
+        .collect::<Vec<String>>();
+    assert_eq!(
+        remaining_ids,
+        vec![kept_id.clone()],
+        "the present file's row must be kept and the missing file's row pruned"
+    );
+
+    // No orphan ab_loops row for the pruned track...
+    assert!(db.get_ab_loop(&gone_id).await.unwrap().is_none());
+    // ...and the present track's region is untouched.
+    let kept_loop = db.get_ab_loop(&kept_id).await.unwrap().unwrap();
+    assert_eq!(kept_loop.start_seconds, Some(1.0));
+    assert_eq!(kept_loop.end_seconds, Some(2.0));
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/**
+ * An import root that cannot be probed - a missing directory, i.e. an
+ * unmounted partition - must keep its rows: the walker's silence under it
+ * is not evidence of absence.
+ */
+#[tokio::test]
+async fn test_reconcile_keeps_rows_of_a_missing_root() {
+    let mut db = get_test_db().await;
+
+    let missing_dir = std::env::temp_dir().join(format!(
+        "slowburn_reconcile_missing_{}",
+        uuid::Uuid::new_v4()
+    ));
+    let orphan = Track {
+        id: "root-gone".to_string(),
+        path: missing_dir.join("track.wav").to_string_lossy().into_owned(),
+        ..sample_track_1()
+    };
+    db.insert_tracks(vec![orphan]).await.unwrap();
+
+    let removed = db.remove_missing_files(&[missing_dir.clone()]).await.unwrap();
+    assert_eq!(
+        removed, 0,
+        "an unprobeable root keeps its rows: expected 0 removals, got {}",
+        removed
+    );
+    assert_eq!(db.get_all_tracks().await.unwrap().len(), 1);
+}
+
+/**
+ * A single-file import (the dropzone sends file paths) must never prune:
+ * only directory roots are reconciled.
+ */
+#[tokio::test]
+async fn test_reconcile_never_prunes_from_a_file_import() {
+    let mut db = get_test_db().await;
+
+    let dir = std::env::temp_dir().join(format!("slowburn_reconcile_file_{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+
+    let file_path = dir.join("dropped.wav");
+    write_tagged_wav(&file_path, 44100, 16, 2, "Dropped");
+    let dropped = Track {
+        id: get_track_id_for_path(&file_path).unwrap(),
+        path: file_path.to_string_lossy().into_owned(),
+        ..sample_track_1()
+    };
+    db.insert_tracks(vec![dropped]).await.unwrap();
+
+    // The dropped file is gone again, but its import root is a file, not a
+    // directory: file imports never trigger a prune.
+    std::fs::remove_file(&file_path).unwrap();
+
+    let removed = db.remove_missing_files(&[file_path.clone()]).await.unwrap();
+    assert_eq!(
+        removed, 0,
+        "a file import must never prune: expected 0 removals, got {}",
+        removed
+    );
+    assert_eq!(db.get_all_tracks().await.unwrap().len(), 1);
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

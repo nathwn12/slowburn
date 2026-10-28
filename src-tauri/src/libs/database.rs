@@ -239,6 +239,55 @@ impl DB {
         Ok(())
     }
 
+    /**
+     * Remove rows whose files are confirmed missing under the given import
+     * roots.
+     *
+     * Only directory roots that can be probed right now are reconciled: a
+     * root that is not a directory, or whose `read_dir` fails (unmounted
+     * partition, permission denied), keeps its rows - the walker's silence
+     * under it is not evidence of absence. A row is pruned only when its
+     * file's metadata fails with `ErrorKind::NotFound`; permission and other
+     * IO errors keep the row. Pruning removes the track and its A-B region
+     * (see `remove_tracks`).
+     *
+     * Returns the number of removed tracks.
+     */
+    pub async fn remove_missing_files(&mut self, import_paths: &[PathBuf]) -> AnyResult<usize> {
+        let readable_roots: Vec<&PathBuf> = import_paths
+            .iter()
+            .filter(|root| root.is_dir() && std::fs::read_dir(root).is_ok())
+            .collect();
+
+        if readable_roots.is_empty() {
+            return Ok(0);
+        }
+
+        let rows = sqlx::query_as::<_, (String, String)>("SELECT id, path FROM tracks")
+            .fetch_all(&mut self.connection)
+            .await?;
+
+        let missing_ids: Vec<String> = rows
+            .into_iter()
+            .filter(|(_, path)| {
+                let path = PathBuf::from(path);
+                readable_roots.iter().any(|root| path.starts_with(root))
+            })
+            .filter(|(_, path)| {
+                matches!(
+                    std::fs::metadata(path),
+                    Err(err) if err.kind() == std::io::ErrorKind::NotFound
+                )
+            })
+            .map(|(id, _)| id)
+            .collect();
+
+        let removed = missing_ids.len();
+        self.remove_tracks(&missing_ids).await?;
+
+        Ok(removed)
+    }
+
     /// Get the saved A-B loop for a track, or `None` when it has none.
     pub async fn get_ab_loop(&mut self, track_id: &str) -> AnyResult<Option<AbLoop>> {
         let loop_region = sqlx::query_as::<_, AbLoop>(
@@ -452,8 +501,9 @@ impl DB {
      * of tracks that are already in the database. It is a no-op when no row
      * still has the `'unknown'` format sentinel, so it is safe to trigger on
      * every startup. History columns are never touched (see `update_tracks`).
-     * Files that no longer exist or no longer probe are simply skipped; the
-     * normal scan owns missing-file cleanup.
+     * Files that no longer exist or no longer probe are simply skipped here;
+     * the scan's missing-file reconciliation (`remove_missing_files`) owns
+     * dropping their rows.
      *
      * Returns the number of tracks refreshed.
      */

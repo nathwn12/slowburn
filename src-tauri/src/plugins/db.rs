@@ -165,6 +165,11 @@ async fn scan_library<R: Runtime>(
     let mut track_paths = scan_dirs(&import_paths, &SUPPORTED_TRACKS_EXTENSIONS);
     let scanned_paths_count = track_paths.len();
 
+    // Reconcile stale rows: files confirmed missing under a readable root are
+    // pruned (an unreadable root - unmounted partition - keeps its rows).
+    let removed_count = db.remove_missing_files(&import_paths).await?;
+    info!("Removed {} tracks whose files are missing", removed_count);
+
     // Remove files that are already in the DB (speedup scan + prevent duplicate errors)
     if !refresh {
         let existing_paths = db
