@@ -135,13 +135,24 @@ test('removing a folder prunes only tracks under it, keeping sibling-prefixed fo
 // current track (the `seeked` guard engages before any `ended`).
 test('stop-after-current holds the current track when a seek jumps past the preemption window', async () => {
   const p = await playFirstTrack();
+  // The synthesized fixtures are 160 s (assets/PROVENANCE.md) while the
+  // shared mock still declares 300 s: re-declare the real length so the
+  // seek below lands inside the 0.5 s preemption window of the real end
+  // instead of clamping past it (which ends the track and auto-advances).
+  const { default: DatabaseBridge } = await import('../lib/bridge-database');
+  const tracks = (await DatabaseBridge.getAllTracks()).map((track) => ({
+    ...track,
+    duration: 160,
+  }));
+  await p.start(tracks, tracks[0]!.id, { type: 'library' });
+  await waitFor(() => !p.getState().isPaused, 5000);
   const { useStopAfterCurrentStore } =
     await import('../components/PlayerEvents');
   useStopAfterCurrentStore.getState().arm();
 
   const cursor = p.getQueueCursor();
   const trackId = p.getTrack()?.id;
-  const duration = p.getTrack()?.duration ?? 300;
+  const duration = p.getTrack()?.duration ?? 160;
   p.setCurrentTime(duration - 0.05);
 
   await waitFor(

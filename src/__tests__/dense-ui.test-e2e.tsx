@@ -494,17 +494,28 @@ test('the status bar restates the effects and the loop state', async () => {
 test('a completed listen is recorded exactly once', async () => {
   await playFirstTrack();
   const p = player();
+  // The synthesized fixtures are 160 s (assets/PROVENANCE.md) while the
+  // shared mock still declares 300 s: re-declare the real length so the
+  // ≥75% credit threshold (120 s) is reachable below the real end instead
+  // of clamping past it (which ends the track and auto-advances).
+  const { default: DatabaseBridge } = await import('../lib/bridge-database');
+  const tracks = (await DatabaseBridge.getAllTracks()).map((track) => ({
+    ...track,
+    duration: 160,
+  }));
+  await p.start(tracks, tracks[0]!.id, { type: 'library' });
+  await waitFor(() => !p.getState().isPaused, 5000);
   const recorded = () =>
     (globalThis as { __MUSEEKS_MOCK_RECORD_PLAYS?: Set<string> })
       .__MUSEEKS_MOCK_RECORD_PLAYS;
 
   // Passing 75% elapsed credits one play (stay below the end so the track
   // does not auto-advance during the test).
-  p.setCurrentTime(240);
+  p.setCurrentTime(130);
   await waitFor(() => recorded()?.has('0') === true, 3000);
 
   // More time updates must not double-count the same listen.
-  p.setCurrentTime(250);
+  p.setCurrentTime(140);
   await sleep(200);
   expect(recorded()?.size).toBe(1);
 });
@@ -800,3 +811,82 @@ test(
     ).toBe('false');
   },
 );
+
+test('the status bar counts tempo and pitch as engaged effects', async () => {
+  // The ledger is a Full-mode surface; the default is now minimal.
+  await setMode('full');
+  await playFirstTrack();
+  const p = player();
+
+  const bar = page.getByRole('contentinfo', { name: 'Status bar' });
+
+  // Tempo alone engages: the cell must not claim neutral while a real effect
+  // is doing work (the old lie: "Effects neutral (1.00× . dry)").
+  p.setEffectsConfig({ slow: 1, reverbIntensity: 0, tempo: 200, pitch: 0 });
+  await expect
+    .element(bar.getByText('Effects engaged'))
+    .toHaveAttribute('title', 'Tempo 2.00× engaged');
+  await expect
+    .element(bar.getByText('Effects neutral'))
+    .not.toBeInTheDocument();
+
+  // Pitch alone engages too, in the signed-semitone format.
+  p.setEffectsConfig({ slow: 1, reverbIntensity: 0, tempo: 100, pitch: 2 });
+  await expect
+    .element(bar.getByText('Effects engaged'))
+    .toHaveAttribute('title', 'Pitch +2 engaged');
+
+  // Back to all-neutral: the claim is truthful in the other direction too.
+  p.setEffectsConfig({ slow: 1, reverbIntensity: 0, tempo: 100, pitch: 0 });
+  await expect
+    .element(bar.getByText('Effects neutral'))
+    .toHaveAttribute('title', 'Effects neutral (1.00× . dry)');
+});
+
+test('the status bar reads armed, not looping, while a saved region is paused', async () => {
+  await setMode('full');
+  await playFirstTrack();
+  const p = player();
+  const bar = page.getByRole('contentinfo', { name: 'Status bar' });
+
+  await p.setAbPoint('A', 3);
+  await p.setAbPoint('B', 6);
+  await waitFor(() => p.getAbLoop().active, 3000);
+
+  // Playing with a live region: looping is the truth here, and the cell says
+  // so.
+  await expect.element(bar.getByText('A–B saved . looping')).toBeVisible();
+
+  // Pausing hides the transport pill, so the ledger must drop back to
+  // "armed" - it must never claim looping while playback is stopped.
+  p.pause();
+  await waitFor(() => p.getState().isPaused, 3000);
+  await expect.element(bar.getByText('A–B saved . armed')).toBeVisible();
+  await expect
+    .element(bar.getByText('A–B saved . looping'))
+    .not.toBeInTheDocument();
+});
+
+test('the now-playing chip counts tempo and pitch as engaged effects', async () => {
+  await playFirstTrack();
+  const p = player();
+
+  // The dense chip is always mounted (no disclosure). Tempo alone engages:
+  // the chip must not claim neutral while a real effect is doing work (the
+  // old lie: "Effects neutral (1.00× · dry)").
+  p.setEffectsConfig({ slow: 1, reverbIntensity: 0, tempo: 200, pitch: 0 });
+  await expect.element(page.getByText('Tempo 2.00× engaged')).toBeVisible();
+  await expect
+    .element(page.getByText('Effects neutral (1.00× · dry)'))
+    .not.toBeInTheDocument();
+
+  // Pitch alone engages too, in the signed-semitone format.
+  p.setEffectsConfig({ slow: 1, reverbIntensity: 0, tempo: 100, pitch: 2 });
+  await expect.element(page.getByText('Pitch +2 engaged')).toBeVisible();
+
+  // Back to all-neutral: the claim is truthful in the other direction too.
+  p.setEffectsConfig({ slow: 1, reverbIntensity: 0, tempo: 100, pitch: 0 });
+  await expect
+    .element(page.getByText('Effects neutral (1.00× · dry)'))
+    .toBeVisible();
+});

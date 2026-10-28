@@ -208,6 +208,32 @@ test('the menu lists every supported field by its full name', async () => {
   }
 });
 
+test('the checked preset renders a drawn check glyph, never the raw shortcode', async () => {
+  await mount([...MOCK_CONFIG.library_sort_keys]);
+
+  await sortTrigger('Sort: Recently modified').click();
+  await expect.element(menu()).toBeVisible();
+
+  // The menu must never paint the markup shortcode as literal text (the
+  // repo's own ux-chrome rule). The checked preset carries the house
+  // border-drawn check glyph instead (PlayerControls' `.tcheck` pattern).
+  expect(menu().element().textContent).not.toContain(':white_check_mark:');
+
+  const glyph = menu()
+    .getByRole('menuitemradio', { name: 'Recently modified', exact: true })
+    .element()
+    .querySelector<HTMLElement>('span[aria-hidden="true"]');
+  expect(glyph).not.toBeNull();
+  expect(glyph?.textContent).toBe('');
+
+  // A real drawn marker, not an empty node: accent borders and the 45deg L.
+  const style = getComputedStyle(glyph as HTMLElement);
+  expect(style.borderRightWidth).toBe('2px');
+  expect(style.borderRightStyle).toBe('solid');
+  expect(style.borderBottomWidth).toBe('2px');
+  expect(style.transform).not.toBe('none');
+});
+
 test('choosing a field applies it, closes the menu, and reorders the list', async () => {
   await mount([...MOCK_CONFIG.library_sort_keys]);
 
