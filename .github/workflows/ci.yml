@@ -31,6 +31,14 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Frontend typings
         run: pnpm run test:typings
+      # AGENTS.md ("Agent Operations Rules"): after UI edits `vp check`
+      # (format, lint, type-check) must pass and the UI checks must run.
+      - name: Frontend checks (vp check)
+        run: pnpm exec vp check
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium
+      - name: UI checks (headless e2e)
+        run: pnpm exec vp test run --project e2e
       - name: Rust build
         run: cargo build --locked --manifest-path src-tauri/Cargo.toml
       - name: Rust test
