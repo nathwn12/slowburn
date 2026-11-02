@@ -71,6 +71,9 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 
 Upstream player this fork builds on: https://github.com/martpie/museeks. Issues: https://github.com/nathwn12/slowburn/issues.
 
-## License
+## Links
 
-MIT. See [LICENSE](LICENSE).
+- [Upstream museeks by martpie](https://github.com/martpie/museeks)
+- [Issues](https://github.com/nathwn12/slowburn/issues)
+- [Releases](https://github.com/nathwn12/slowburn/releases)
+- [MIT](LICENSE)
