@@ -1,14 +1,10 @@
-<p align="center">
-  <img src="src-tauri/icons/icon.png" width="120" height="120" alt="Slowburn icon" />
-</p>
-<h1 align="center">Slowburn</h1>
-<p align="center"><strong>Slow down the hard part of a track and loop it until you can play it.</strong></p>
+# Slowburn
 
-Slowburn is a Windows music player for practice. Open a track, slow it down, add reverb, and repeat one passage with an A-B loop.
+Windows music player for practice: open a track, slow it down, add reverb, and repeat one passage with an A-B loop.
 
 ## Install
 
-There is no downloadable installer yet. The fastest real route is to build it on a Windows machine:
+No installer is published yet. Build on a Windows machine:
 
 ```text
 git clone https://github.com/nathwn12/slowburn.git
@@ -17,13 +13,11 @@ vp install
 vp run tauri build
 ```
 
-Run the NSIS installer from `src-tauri/target/release/bundle/nsis/`, launch Slowburn, and add a music folder. You need Windows 10/11, 64-bit.
-
-### Offline or pinned
+Run the NSIS installer from `src-tauri/target/release/bundle/nsis/`, launch Slowburn, and add a music folder. Requires Windows 10/11, 64-bit.
 
 No release is published to pin. Build from the checked-in 0.23.7 sources with the commands above; `package.json` and `src-tauri/tauri.conf.json` both carry version 0.23.7.
 
-## Use it
+## Usage
 
 Import music and start it:
 
@@ -32,7 +26,7 @@ Ctrl+O    add a folder or files to the library
 Space     play or pause the current track
 ```
 
-Loop the passage you are learning. Your loop, speed, and reverb settings are remembered per file:
+Loop the passage being learned. Loop, speed, and reverb settings are remembered per file:
 
 ```text
 [         set loop point A at the playhead
@@ -48,10 +42,10 @@ Ctrl+M    switch between full and mini mode
 ?         show every shortcut
 ```
 
-## What you get
+## What it does
 
 - Slow and reverb effects that stay set per track, with one-click reset to dry
-- A-B loop on the seek bar; saved loops reapply when you reopen the track
+- A-B loop on the seek bar; saved loops reapply when the track reopens
 - Queue with drag-to-reorder, multi-folder library, and search
 - Four themes: Light, Dark, Dark Warm, AMOLED
 - Plays mp3, flac, ogg, opus, m4a, wav, aac, 3gp, and weba
@@ -66,12 +60,7 @@ Ctrl+M    switch between full and mini mode
 - Repository: https://github.com/nathwn12/slowburn
 - Issues: https://github.com/nathwn12/slowburn/issues
 - Upstream player this fork builds on: https://github.com/martpie/museeks
-- License: MIT, see [LICENSE](LICENSE)
 
-<!-- nathwn12 house footer: identical in every repo. Do not edit. -->
-<p align="center">
-  <a href="https://github.com/nathwn12"><img src="assets/signature.svg" width="96" alt="nathwn12" /></a>
-</p>
-<p align="center">
-  <sub>Built by <a href="https://github.com/nathwn12">nathwn12</a> · <a href="https://github.com/nathwn12?tab=repositories">All projects</a></sub>
-</p>
+## License
+
+MIT. See [LICENSE](LICENSE).
