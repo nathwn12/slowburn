@@ -69,7 +69,7 @@ pnpm exec vp test run --project e2e
 cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
-Upstream player this fork builds on: https://github.com/martpie/museeks. Issues: https://github.com/nathwn12/slowburn/issues.
+Upstream player this fork builds on: museeks by martpie. Issues are tracked in this repository.
 
 ## Links
 
