@@ -71,6 +71,13 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 
 Upstream player this fork builds on: museeks by martpie. Issues are tracked in this repository.
 
+## Status
+
+Experimental and still moving. It works today, but it is not a finished
+product: interfaces may change, features may be improved or removed, and a
+release can break the one before it. This is maintained by one person, not a
+team. If it breaks, open an issue with the command you ran and what you saw.
+
 ## Links
 
 - [Upstream museeks by martpie](https://github.com/martpie/museeks)
