@@ -1,7 +1,7 @@
 {
   "name": "slowburn",
   "version": "0.23.7",
-  "description": "Your music room: a Windows player with studio-grade Slow + Reverb and an A-B loop built for practice.",
+  "description": "A Windows media player with slowed reverb and an A-B loop.",
   "bugs": {
     "url": "https://github.com/nathwn12/slowburn/issues"
   },

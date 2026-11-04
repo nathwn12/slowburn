@@ -30,7 +30,7 @@ Ctrl+O    add a folder or files to the library
 Space     play or pause the current track
 ```
 
-Loop the passage you are learning. Your loop, speed, and reverb settings are remembered per file:
+Loop any passage. Your loop, speed, and reverb settings are remembered per file:
 
 ```text
 [         set loop point A at the playhead

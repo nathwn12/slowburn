@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Practice effects: per-track Slow + Reverb in fine steps with one-click reset to dry.
+- Slow and reverb effects: per-track Slow + Reverb in fine steps with one-click reset to dry.
 - A-B loop on the seek bar with instant entry, per-track saved loops that auto-apply, and a library view of looped tracks.
 - Four-skin theme gallery (Light, Dark, Dark Warm, AMOLED) with a persistent choice that wins over the OS theme.
 - Explicit queue view with drag-to-reorder, mini mode (`Ctrl+M`), custom frameless window with in-app menu bar, and multi-folder library.
