@@ -4,7 +4,7 @@
 
 # Slowburn
 
-Slowburn is a Windows music player for practice. Open a track, slow it down, add reverb, and repeat one passage with an A-B loop.
+Slowburn is a Windows media player with slowed reverb and an A-B loop. Open a track, slow it down, add reverb, and loop a passage.
 
 ## Install
 
