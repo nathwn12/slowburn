@@ -57,15 +57,15 @@ Ctrl+M    switch between full and mini mode
 ## Requirements
 
 - Windows 10/11, 64-bit
-- To build: Node 24.14.0, pnpm 11.0.9, and a stable Rust toolchain
+- To build: Node 24.14.0, bun 1.4.4, and a stable Rust toolchain
 
 ## Development
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm run test:typings
-pnpm exec vp check
-pnpm exec vp test run --project e2e
+bun install --frozen-lockfile
+bun run test:typings
+bunx vp check
+bunx vp test run --project e2e
 cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 

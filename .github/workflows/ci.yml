@@ -1,6 +1,6 @@
-# nathwn12 house CI — stack: tauri (pnpm frontend + cargo backend, copy to .github/workflows/ci.yml)
+# nathwn12 house CI — stack: tauri (bun frontend + cargo backend, copy to .github/workflows/ci.yml)
 #
-# Windows-only Tauri app. The pnpm leg honours the repo's `packageManager` pin
+# Windows-only Tauri app. The bun leg honours the repo's `packageManager` pin
 # and installs with --frozen-lockfile; the cargo leg keys off
 # src-tauri/Cargo.toml. There is deliberately NO `tauri build` / bundling step:
 # bundling needs signing/NSIS and does not belong in a build+test gate.
@@ -16,29 +16,28 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 11.0.9
+          bun-version: 1.4.4
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: pnpm
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
       - name: Frontend typings
-        run: pnpm run test:typings
+        run: bun run test:typings
       # AGENTS.md ("Agent Operations Rules"): after UI edits `vp check`
       # (format, lint, type-check) must pass and the UI checks must run.
       - name: Frontend checks (vp check)
-        run: pnpm exec vp check
+        run: bunx vp check
       - name: Install Playwright Chromium
-        run: pnpm exec playwright install chromium
+        run: bunx playwright install chromium
       - name: UI checks (headless e2e)
-        run: pnpm exec vp test run --project e2e
+        run: bunx vp test run --project e2e
       - name: Rust build
         run: cargo build --locked --manifest-path src-tauri/Cargo.toml
       - name: Rust test

@@ -43,7 +43,7 @@ const files = (() => {
       .filter((name) => name.endsWith('.js'))
       .sort();
   } catch {
-    return fail(`no build output at ${ASSETS} - run \`pnpm run build\` first`);
+    return fail(`no build output at ${ASSETS} - run \`bun run build\` first`);
   }
 })();
 
@@ -217,7 +217,7 @@ if (scanned.size === 0) {
 if (missing.size > 0) {
   fail(
     `${missing.size} message id(s) missing from the en catalog. ` +
-      'Run `pnpm run gen:translations` and rebuild.\n  ' +
+      'Run `bun run gen:translations` and rebuild.\n  ' +
       [...missing].slice(0, 20).join('\n  '),
   );
 }
