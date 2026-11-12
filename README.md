@@ -71,6 +71,22 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 
 Upstream player this fork builds on: museeks by martpie. Issues are tracked in this repository.
 
+## Updating from npm or pnpm
+
+This repo uses [Bun](https://bun.sh) to install dependencies and run scripts; Node still runs the code.
+
+```powershell
+# once, if bun is missing
+scoop install bun        # or: npm i -g bun / winget install Oven-sh.Bun
+
+# in the repo
+Remove-Item package-lock.json,pnpm-lock.yaml -ErrorAction SilentlyContinue
+Remove-Item node_modules -Recurse -Force -ErrorAction SilentlyContinue
+bun install
+```
+
+Use `bun run <script>` from then on. Commit `bun.lock` and never recreate the old lockfile; the repo pins `"packageManager": "bun@1.4.4"`.
+
 ## Status
 
 Experimental and still moving. It works today, but it is not a finished
