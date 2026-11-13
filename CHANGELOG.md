@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.7] - 2026-10-11
+
 ### Added
 
 - Slow and reverb effects: per-track Slow + Reverb in fine steps with one-click reset to dry.
@@ -19,3 +21,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Windows 10/11 64-bit is now the only target; macOS and Linux builds are gone.
 - English-only; other locales removed.
+
+Releases before 0.23.7 are not itemised here; `git log` is the record.
