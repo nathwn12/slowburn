@@ -31,6 +31,7 @@ export default function TrackListGroupedLayout(props: Props) {
   const { t } = useLingui();
 
   const tracks = useAllTracks(trackGroups);
+  const activeTrack = tracks.find((track) => rest.selectedTracks.has(track.id));
 
   const innerScrollableRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +59,10 @@ export default function TrackListGroupedLayout(props: Props) {
       role="listbox"
       aria-label={t`Track list`}
       aria-multiselectable="true"
+      aria-activedescendant={
+        activeTrack == null ? undefined : `track-option-${activeTrack.id}`
+      }
+      tabIndex={0}
     >
       {trackGroups.map((tracksGroup) => {
         return (

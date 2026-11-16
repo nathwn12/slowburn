@@ -6,6 +6,17 @@ import { playwright } from 'vite-plus/test/browser-playwright';
 import { VITE_PLUGINS } from './vite.config';
 import './vitest.global-setup';
 
+// Vitest's default exclude matches the literal `node_modules` segment only, so a
+// renamed dependency tree (`node_modules.pnpm-old`) is collected and walked on
+// every run. Listing the defaults explicitly keeps them while closing that hole.
+const COLLECTION_EXCLUDE = [
+  '**/node_modules/**',
+  '**/node_modules.*/**',
+  '**/.git/**',
+  '**/dist/**',
+  '**/src-tauri/**',
+];
+
 export default defineConfig({
   test: {
     globalSetup: ['./vitest.global-setup.ts'],
@@ -15,12 +26,14 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['**/*.test.ts'],
+          exclude: COLLECTION_EXCLUDE,
         },
       },
       {
         test: {
           name: 'e2e',
           include: ['**/*.test-e2e.ts', '**/*.test-e2e.tsx'],
+          exclude: COLLECTION_EXCLUDE,
           includeTaskLocation: true,
           browser: {
             enabled: true,

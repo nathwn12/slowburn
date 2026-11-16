@@ -354,15 +354,15 @@ const styles = stylex.create({
     borderStyle: 'solid',
     borderColor: 'var(--border-soft)',
     borderRadius: 'var(--radius-lg)',
-    paddingTop: 'var(--space-2)',
-    paddingBottom: '9px',
-    paddingInline: '11px',
+    paddingTop: 'var(--space-3)',
+    paddingBottom: 'var(--space-3)',
+    paddingInline: 'var(--space-3)',
     display: 'grid',
     gridTemplateColumns: {
       default: '1fr 1px 1fr',
       '@media (max-width: 900px)': '1fr',
     },
-    columnGap: 'var(--space-3)',
+    columnGap: 'var(--space-4)',
     rowGap: 'var(--space-3)',
     alignItems: 'center',
     boxShadow: 'var(--shadow-elevated)',
@@ -379,20 +379,18 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     flexWrap: 'wrap',
-    columnGap: '7px',
-    rowGap: '6px',
+    columnGap: 'var(--space-2)',
+    rowGap: 'var(--space-2)',
     minWidth: 0,
   },
-  // Shared label column: a floor both rows hit, so the −/readout/+ group starts
-  // at the same x. All four labels ("SLOW", "REVERB", "TEMPO", "PITCH" incl.
-  // dot+gap) fit under 58px, hence every column measures exactly 58px. A
-  // minWidth (not a fixed width) keeps longer future labels from clipping.
+  // Shared label column: the dot + gap are fixed, and `burnName` below carries
+  // a floor in its own `em`, so every row's label column measures the same
+  // width and the −/readout/+ group starts at the same x in all four rows.
   burnId: {
     display: 'flex',
     alignItems: 'center',
     columnGap: '6px',
     flexShrink: 0,
-    minWidth: '58px',
   },
   burnDot: {
     width: '6px',
@@ -407,10 +405,18 @@ const styles = stylex.create({
     boxShadow: '0 0 7px var(--accent)',
   },
   burnName: {
-    fontSize: '9.5px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 800,
     lineHeight: 1,
     letterSpacing: '.11em',
+    // The shared label column's floor, measured in the label's own `em` so it
+    // tracks `--text-xs` instead of a frozen pixel value (the old 58px was
+    // derived from the 9.5px label). "REVERB", the widest label, is 4.84em;
+    // 5.3em leaves ~10% for font-metric differences and keeps every row's
+    // label column identical, so the −/readout/+ group starts at one x. A
+    // minWidth (not a fixed width) keeps a longer future or translated label
+    // from clipping - it grows that row instead.
+    minWidth: '5.3em',
     color: 'var(--text-faint)',
     transition: 'color .15s ease',
   },
@@ -423,8 +429,8 @@ const styles = stylex.create({
   // 12px glyph was laid out at the content start instead of centred (measured
   // 4px right of the button centre) while the reset glyph centred exactly.
   step: {
-    width: '18px',
-    height: '18px',
+    width: '32px',
+    height: '32px',
     flexShrink: 0,
     borderRadius: '3px',
     display: 'grid',
@@ -449,7 +455,7 @@ const styles = stylex.create({
   },
   readout: {
     fontFamily: 'var(--mono-font)',
-    fontSize: 'var(--text-sm)',
+    fontSize: 'var(--text-md)',
     fontWeight: 700,
     lineHeight: 1,
     letterSpacing: '-.02em',
@@ -475,8 +481,8 @@ const styles = stylex.create({
     whiteSpace: 'nowrap',
   },
   burnReset: {
-    width: '18px',
-    height: '18px',
+    width: '32px',
+    height: '32px',
     flexShrink: 0,
     borderRadius: '3px',
     display: 'grid',
@@ -507,11 +513,12 @@ const styles = stylex.create({
   quality: {
     display: 'flex',
     alignItems: 'center',
-    columnGap: '2px',
+    columnGap: 'var(--space-1)',
     flexShrink: 0,
   },
   qualityBtn: {
-    minHeight: '18px',
+    minWidth: '40px',
+    minHeight: '32px',
     flexShrink: 0,
     borderRadius: '3px',
     display: 'grid',
@@ -528,7 +535,7 @@ const styles = stylex.create({
       default: 'var(--text-faint)',
       ':hover': 'var(--text-bright)',
     },
-    fontSize: '9.5px',
+    fontSize: 'var(--text-xs)',
     fontWeight: 800,
     lineHeight: 1,
     letterSpacing: '.08em',
@@ -546,7 +553,7 @@ const styles = stylex.create({
     alignItems: 'center',
     userSelect: 'none',
     touchAction: 'none',
-    height: 'var(--space-4)',
+    height: '32px',
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: '0%',
@@ -582,8 +589,8 @@ const styles = stylex.create({
   },
   sliderThumb: {
     display: 'block',
-    width: '12px',
-    height: '12px',
+    width: '16px',
+    height: '16px',
     borderRadius: '50%',
     backgroundColor: 'var(--text-bright)',
     borderWidth: '2px',

@@ -159,6 +159,8 @@ export default function TrackList(props: Props) {
   const onKeyEvent = useCallback(
     (event: KeyboardEvent) => {
       // Prevent this from happening when the focus is outside of the track list
+      if (tracks.length === 0) return;
+
       const firstSelectedTrackIndex = tracks.findIndex((track) =>
         selectedTracks.has(track.id),
       );

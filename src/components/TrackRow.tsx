@@ -105,6 +105,7 @@ export default function TrackRow(props: Props) {
       onMouseDown={(e) => onTrackSelect(e, track.id, index)}
       onClick={(e) => onTrackSelect(e, track.id, index)}
       onContextMenu={(e) => onContextMenu(e, track.id, index)}
+      id={`track-option-${track.id}`}
       data-is-playing={props.isPlaying === true}
       data-track-id={track.id}
       // dnd-related props:
