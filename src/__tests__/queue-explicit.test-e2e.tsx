@@ -73,12 +73,18 @@ test('the queue view states the queue-vs-playlist split explicitly', async () =>
   await playFirstTrack();
   await switchView('Queue');
 
-  await expect
-    .element(page.getByRole('heading', { name: 'Up Next' }))
-    .toBeVisible();
+  const upNext = page.getByRole('heading', { name: 'Up Next' });
+  await expect.element(upNext).toBeVisible();
   await expect
     .element(page.getByText(/separate from playlists/i))
     .toBeVisible();
+
+  const copy = page.getByText(/separate from playlists/i);
+  const copyStyle = getComputedStyle(copy.element());
+  expect(copyStyle.fontFamily).not.toContain('Cascadia Mono');
+  expect(Number.parseFloat(copyStyle.lineHeight)).toBeGreaterThanOrEqual(
+    Number.parseFloat(copyStyle.fontSize) * 1.4,
+  );
 });
 
 // S4 origin badge: after playing from a playlist, the queue view names the

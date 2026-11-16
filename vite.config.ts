@@ -83,6 +83,15 @@ export default defineConfig({
         '**/release/**',
         '**/.flatpak-builder/**',
         '**/.tanstack/**',
+        // A second dependency tree (for example a renamed `node_modules.*`)
+        // is not matched by Vite's literal `node_modules` ignore, so it gets
+        // crawled on every run. Keep every such tree out of the watcher.
+        '**/node_modules*/**',
+        '**/dist/**',
+        '**/.vitest-attachments/**',
+        '**/.serena/**',
+        '**/.ruff_cache/**',
+        '**/*.log',
       ],
     },
   },

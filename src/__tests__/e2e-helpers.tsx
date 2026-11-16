@@ -1,7 +1,7 @@
 import { i18n } from '@lingui/core';
 import { beforeEach, vi } from 'vite-plus/test';
+import { page } from 'vite-plus/test/browser';
 import { render } from 'vitest-browser-react';
-import { page } from 'vitest/context';
 
 import { MOCK_CONFIG } from '../lib/__mocks__/bridge-config.ts';
 import { resetMockLibrary } from '../lib/__mocks__/bridge-database.ts';

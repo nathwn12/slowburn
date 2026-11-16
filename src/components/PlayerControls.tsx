@@ -19,110 +19,101 @@ export default function PlayerControls() {
 
   return (
     <div {...stylex.props(styles.transport)}>
-      <button
-        type="button"
-        onClick={() => player.previous()}
-        aria-label={t`Previous`}
-        title={t`Previous`}
-        {...stylex.props(styles.tbtn)}
-      >
-        <Icon name="skipBack" size={18} />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => player.playPause()}
-        aria-label={isPaused ? t`Play` : t`Pause`}
-        title={isPaused ? t`Play` : t`Pause`}
-        {...stylex.props(styles.tplay)}
-      >
-        <Icon name={isPaused ? 'play' : 'pause'} size={18} />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => player.next()}
-        aria-label={t`Next`}
-        title={t`Next`}
-        {...stylex.props(styles.tbtn)}
-      >
-        <Icon name="skipForward" size={18} />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => player.stop()}
-        aria-label={t`Stop`}
-        title={t`Stop`}
-        {...stylex.props(styles.tbtn)}
-      >
-        <span aria-hidden="true" {...stylex.props(styles.tstop)}>
-          ■
-        </span>
-      </button>
-
-      {/**
-       * S5 stop-after-current: a permanently rendered (never a closed
-       * dropdown) menu so the action is one press away and discoverable
-       * without opening anything. Arming pauses at the end of the current
-       * track instead of auto-advancing (see `PlayerEvents`).
-       */}
-      <div role="menu" aria-label={t`Stop options`}>
-        <div
-          role="menuitem"
-          aria-label={t`Stop after current`}
-          title={t`Stop after the current track instead of playing the next one`}
-          data-on={stopAfterCurrent ? 'true' : 'false'}
-          onClick={() => toggleStopAfterCurrent()}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              toggleStopAfterCurrent();
-            }
-          }}
-          tabIndex={0}
-          {...stylex.props(styles.tstopAfter, stopAfterCurrent && styles.on)}
+      <div {...stylex.props(styles.primaryTransport)}>
+        <button
+          type="button"
+          onClick={() => player.previous()}
+          aria-label={t`Previous`}
+          title={t`Previous`}
+          {...stylex.props(styles.tbtn)}
         >
-          {stopAfterCurrent ? (
-            <>
-              <span>{t`Stop after current`}</span>
-              <span aria-hidden="true" {...stylex.props(styles.tcheck)} />
-            </>
-          ) : (
-            t`Stop after current`
-          )}
-        </div>
+          <Icon name="skipBack" size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => player.playPause()}
+          aria-label={isPaused ? t`Play` : t`Pause`}
+          title={isPaused ? t`Play` : t`Pause`}
+          {...stylex.props(styles.tplay)}
+        >
+          <Icon name={isPaused ? 'play' : 'pause'} size={20} />
+        </button>
+        <button
+          type="button"
+          onClick={() => player.next()}
+          aria-label={t`Next`}
+          title={t`Next`}
+          {...stylex.props(styles.tbtn)}
+        >
+          <Icon name="skipForward" size={18} />
+        </button>
       </div>
 
-      <span {...stylex.props(styles.tsep)} aria-hidden="true" />
-
-      <button
-        type="button"
-        onClick={() => player.toggleShuffle()}
-        aria-label={t`Shuffle`}
-        title={t`Shuffle`}
-        aria-pressed={shuffle}
-        {...stylex.props(styles.tbtn, styles.mode, shuffle && styles.modeOn)}
-      >
-        <Icon name="shuffle" size={16} />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => player.toggleRepeat()}
-        aria-label={t`Repeat`}
-        title={t`Repeat`}
-        aria-pressed={repeat !== 'None'}
-        {...stylex.props(
-          styles.tbtn,
-          styles.mode,
-          repeat !== 'None' && styles.modeOn,
-        )}
-      >
-        <Icon name={repeat === 'One' ? 'repeatOne' : 'repeat'} size={16} />
-      </button>
-
-      <VolumeControl />
+      <div {...stylex.props(styles.secondaryTransport)}>
+        <button
+          type="button"
+          onClick={() => player.stop()}
+          aria-label={t`Stop`}
+          title={t`Stop`}
+          {...stylex.props(styles.tbtn)}
+        >
+          <span aria-hidden="true" {...stylex.props(styles.tstop)}>
+            ■
+          </span>
+        </button>
+        <div role="menu" aria-label={t`Stop options`}>
+          <div
+            role="menuitem"
+            aria-label={t`Stop after current`}
+            title={t`Stop after the current track instead of playing the next one`}
+            data-on={stopAfterCurrent ? 'true' : 'false'}
+            onClick={() => toggleStopAfterCurrent()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleStopAfterCurrent();
+              }
+            }}
+            tabIndex={0}
+            {...stylex.props(styles.tstopAfter, stopAfterCurrent && styles.on)}
+          >
+            {stopAfterCurrent ? (
+              <>
+                <span>{t`Stop after current`}</span>
+                <span aria-hidden="true" {...stylex.props(styles.tcheck)} />
+              </>
+            ) : (
+              t`Stop after current`
+            )}
+          </div>
+        </div>
+        <span {...stylex.props(styles.tsep)} aria-hidden="true" />
+        <button
+          type="button"
+          onClick={() => player.toggleShuffle()}
+          aria-label={t`Shuffle`}
+          title={t`Shuffle`}
+          aria-pressed={shuffle}
+          {...stylex.props(styles.tbtn, styles.mode, shuffle && styles.modeOn)}
+        >
+          <Icon name="shuffle" size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => player.toggleRepeat()}
+          aria-label={t`Repeat`}
+          title={t`Repeat`}
+          aria-pressed={repeat !== 'None'}
+          {...stylex.props(
+            styles.tbtn,
+            styles.mode,
+            repeat !== 'None' && styles.modeOn,
+          )}
+        >
+          <Icon name={repeat === 'One' ? 'repeatOne' : 'repeat'} size={16} />
+        </button>
+        <VolumeControl />
+      </div>
     </div>
   );
 }
@@ -133,12 +124,28 @@ const styles = stylex.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     minWidth: 0,
-    columnGap: '6px',
-    rowGap: '6px',
+    columnGap: 'var(--space-3)',
+    rowGap: 'var(--space-2)',
+  },
+  primaryTransport: {
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: 'var(--space-1)',
+    flexShrink: 0,
+  },
+  secondaryTransport: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    columnGap: 'var(--space-1)',
+    rowGap: 'var(--space-1)',
+    minWidth: 0,
+    flexGrow: 1,
+    flexBasis: 'auto',
   },
   tbtn: {
-    width: '28px',
-    height: '28px',
+    width: '36px',
+    height: '36px',
     flexShrink: 0,
     borderRadius: 'var(--radius)',
     display: 'grid',
@@ -163,8 +170,8 @@ const styles = stylex.create({
     boxShadow: 'var(--glow-hover)',
   },
   tplay: {
-    width: '38px',
-    height: '34px',
+    width: '48px',
+    height: '48px',
     flexShrink: 0,
     borderRadius: '9999px',
     display: 'grid',
@@ -187,7 +194,7 @@ const styles = stylex.create({
   },
   tsep: {
     width: '1px',
-    height: '20px',
+    height: '24px',
     flexShrink: 0,
     backgroundColor: 'var(--border-soft)',
     marginBlock: 0,
@@ -200,10 +207,10 @@ const styles = stylex.create({
   tstopAfter: {
     display: 'inline-flex',
     alignItems: 'center',
-    height: '22px',
+    minHeight: '36px',
     paddingInline: 'var(--space-2)',
     borderRadius: 'var(--radius)',
-    fontSize: 'var(--text-xs)',
+    fontSize: 'var(--text-sm)',
     fontWeight: 600,
     whiteSpace: 'nowrap',
     cursor: 'pointer',

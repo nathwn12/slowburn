@@ -186,6 +186,7 @@ const styles = stylex.create({
     },
   },
   // S8 mini-mode toggle: a compact text affordance beside the settings gear.
+  // One control height with the gear, the switcher and the 28px search pill.
   modeBtn: {
     height: '28px',
     flexShrink: 0,

@@ -590,10 +590,10 @@ const styles = stylex.create({
   explicit: {
     display: 'flex',
     flexDirection: 'column',
-    rowGap: '2px',
+    rowGap: '4px',
     flexShrink: 0,
-    paddingBlock: '6px',
-    paddingInline: '10px',
+    paddingBlock: '8px',
+    paddingInline: '12px',
     borderBottomWidth: '1px',
     borderBottomStyle: 'solid',
     borderBottomColor: 'var(--border)',
@@ -608,10 +608,10 @@ const styles = stylex.create({
   },
   explicitCopy: {
     margin: 0,
-    fontFamily: 'var(--mono-font)',
-    fontSize: 'var(--text-xs)',
-    fontWeight: 600,
-    color: 'var(--text-faint)',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-normal)',
+    lineHeight: 1.45,
+    color: 'var(--text-dim)',
   },
   badge: {
     fontFamily: 'var(--mono-font)',

@@ -5,6 +5,7 @@ import {
   beforeEachSetup,
   getTrackAt,
   getTrackByName,
+  getTrackList,
   setupScannedLibrary,
 } from './e2e-helpers';
 
@@ -127,6 +128,22 @@ test('Tracks should be selectable via keyboard only (after a single selection)',
   await expect.element(firstTrack).toHaveAttribute('aria-selected', 'true');
   await expect.element(secondTrack).toHaveAttribute('aria-selected', 'true');
   await expect.element(thirdTrack).toHaveAttribute('aria-selected', 'true');
+});
+
+test('the track list is a keyboard entry point and exposes its active row', async () => {
+  await setupScannedLibrary();
+
+  const list = getTrackList();
+  expect(list.element().tabIndex).toBe(0);
+  list.element().focus();
+  await userEvent.keyboard('[ArrowDown]');
+
+  const firstTrack = getTrackAt(0);
+  await expect.element(firstTrack).toHaveAttribute('aria-selected', 'true');
+  await expect
+    .element(list)
+    .toHaveAttribute('aria-activedescendant', firstTrack.element().id);
+  expect(document.activeElement).toBe(list.element());
 });
 
 test('Search should filter tracks in the library', async () => {

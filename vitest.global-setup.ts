@@ -13,6 +13,12 @@
  * tracks - and unrefs, so the loop can always drain - only intervals whose
  * creation stack passes through the StyleX unplugin module. Transform
  * behaviour is untouched: the plugin still compiles every test run.
+ *
+ * upstream: @stylexjs/unplugin owns this interval and never clears it under
+ * `vitest run`, because the Vite server it hooks never emits 'close'. Remove
+ * when that plugin clears its poller on teardown, or when Vitest's browser
+ * project stops leaving the main-process loop alive; the teardown below is
+ * then deleted with no other change.
  */
 type PatchState = {
   installed: boolean;

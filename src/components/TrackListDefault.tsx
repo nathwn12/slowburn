@@ -53,6 +53,7 @@ export default function TrackListDefault(props: Props) {
   const { t } = useLingui();
 
   const trackPlayingID = usePlayingTrackID();
+  const activeTrack = tracks.find((track) => selectedTracks.has(track.id));
   const innerScrollableRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
@@ -123,6 +124,10 @@ export default function TrackListDefault(props: Props) {
           role="listbox"
           aria-multiselectable="true"
           aria-label={t`Track list`}
+          aria-activedescendant={
+            activeTrack == null ? undefined : `track-option-${activeTrack.id}`
+          }
+          tabIndex={0}
           {...stylex.props(styles.rows)}
           style={{
             height: `${virtualizer.getTotalSize()}px`,

@@ -116,6 +116,41 @@ export default function NowPlaying() {
     }
   }, [invalidate]);
 
+  /**
+   * The A-B and Details disclosures: two pills that open the panels rendered
+   * right below them. Full mode closes the transport card with them; mini puts
+   * them on the transport/seek line (see `miniSeekRow`) so the condensed strip
+   * stays two lines tall and the queue below keeps the majority of the height.
+   */
+  const disclosures = (
+    <div {...stylex.props(styles.overflowRow)}>
+      <button
+        type="button"
+        onClick={() => setLoopOpen(!loopOpen)}
+        aria-expanded={loopOpen}
+        aria-controls="np-loop-panel"
+        aria-label={t`A-B loop options`}
+        title={t`A-B loop options`}
+        {...stylex.props(styles.overflowBtn, loopOpen && styles.open)}
+      >
+        <Icon name="repeat" size={12} />
+        {t`A-B`}
+      </button>
+      <button
+        type="button"
+        onClick={() => setDetailsOpen(!detailsOpen)}
+        aria-expanded={detailsOpen}
+        aria-controls="np-details-panel"
+        aria-label={t`Details and effects`}
+        title={t`Details and effects`}
+        {...stylex.props(styles.overflowBtn, detailsOpen && styles.open)}
+      >
+        <Icon name={detailsOpen ? 'chevronUp' : 'chevronDown'} size={12} />
+        {t`Details`}
+      </button>
+    </div>
+  );
+
   if (trackPlaying == null) {
     const libraryEmpty = (allTracks?.length ?? 0) === 0;
 
@@ -259,34 +294,9 @@ export default function NowPlaying() {
           <div {...stylex.props(styles.miniSeekGrow)}>
             <TrackProgress trackPlaying={trackPlaying} dense />
           </div>
+          {disclosures}
         </div>
 
-        <div {...stylex.props(styles.overflowRow)}>
-          <button
-            type="button"
-            onClick={() => setLoopOpen(!loopOpen)}
-            aria-expanded={loopOpen}
-            aria-controls="np-loop-panel"
-            aria-label={t`A-B loop options`}
-            title={t`A-B loop options`}
-            {...stylex.props(styles.overflowBtn, loopOpen && styles.open)}
-          >
-            <Icon name="repeat" size={12} />
-            {t`A-B`}
-          </button>
-          <button
-            type="button"
-            onClick={() => setDetailsOpen(!detailsOpen)}
-            aria-expanded={detailsOpen}
-            aria-controls="np-details-panel"
-            aria-label={t`Details and effects`}
-            title={t`Details and effects`}
-            {...stylex.props(styles.overflowBtn, detailsOpen && styles.open)}
-          >
-            <Icon name={detailsOpen ? 'chevronUp' : 'chevronDown'} size={12} />
-            {t`Details`}
-          </button>
-        </div>
         {loopOpen && (
           <section
             id="np-loop-panel"
@@ -325,32 +335,7 @@ export default function NowPlaying() {
       <div {...stylex.props(styles.transportWrap)}>
         <TrackProgress trackPlaying={trackPlaying} dense />
         <PlayerControls />
-        <div {...stylex.props(styles.overflowRow)}>
-          <button
-            type="button"
-            onClick={() => setLoopOpen(!loopOpen)}
-            aria-expanded={loopOpen}
-            aria-controls="np-loop-panel"
-            aria-label={t`A-B loop options`}
-            title={t`A-B loop options`}
-            {...stylex.props(styles.overflowBtn, loopOpen && styles.open)}
-          >
-            <Icon name="repeat" size={12} />
-            {t`A-B`}
-          </button>
-          <button
-            type="button"
-            onClick={() => setDetailsOpen(!detailsOpen)}
-            aria-expanded={detailsOpen}
-            aria-controls="np-details-panel"
-            aria-label={t`Details and effects`}
-            title={t`Details and effects`}
-            {...stylex.props(styles.overflowBtn, detailsOpen && styles.open)}
-          >
-            <Icon name={detailsOpen ? 'chevronUp' : 'chevronDown'} size={12} />
-            {t`Details`}
-          </button>
-        </div>
+        {disclosures}
         {loopOpen && (
           <section
             id="np-loop-panel"

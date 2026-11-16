@@ -244,7 +244,14 @@ const styles = stylex.create({
     display: 'grid',
     // The right column yields as the window narrows (clamp), so the
     // now-playing column is not starved; it also wraps/scrolls.
-    gridTemplateColumns: 'minmax(0, 1fr) clamp(320px, 38vw, 388px)',
+    gridTemplateColumns: {
+      default: 'minmax(0, 1fr) clamp(320px, 38vw, 388px)',
+      '@media (max-width: 640px)': 'minmax(0, 1fr)',
+    },
+    gridTemplateRows: {
+      default: 'minmax(0, 1fr)',
+      '@media (max-width: 640px)': 'minmax(300px, 1.25fr) minmax(180px, 0.8fr)',
+    },
     minHeight: 0,
     overflow: 'hidden',
     backgroundColor: 'var(--bg)',
@@ -289,9 +296,23 @@ const styles = stylex.create({
     minWidth: 0,
     minHeight: 0,
     overflow: 'hidden',
-    borderLeftWidth: '1px',
-    borderLeftStyle: 'solid',
-    borderLeftColor: 'var(--border)',
+    borderLeftWidth: {
+      default: '1px',
+      '@media (max-width: 640px)': 0,
+    },
+    borderLeftStyle: {
+      default: 'solid',
+      '@media (max-width: 640px)': 'none',
+    },
+    borderTopWidth: {
+      default: 0,
+      '@media (max-width: 640px)': '1px',
+    },
+    borderTopStyle: {
+      default: 'none',
+      '@media (max-width: 640px)': 'solid',
+    },
+    borderTopColor: 'var(--border)',
     backgroundColor: 'var(--surface-2)',
   },
   routeSlot: {

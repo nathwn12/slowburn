@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Player, queue and settings share one 28px control height, so the header, transport and sidebar no longer disagree by a few pixels.
+- Mini mode condenses the player card to two lines, leaving the queue the majority of the window; the A-B and Details toggles sit on the transport line instead of their own row.
+- The Burn stepper's label column is measured in `em` off the theme's text size, so SLOW, REVERB, TEMPO and PITCH keep one shared column at every width.
+
+### Fixed
+
+- Track rows are reachable and moveable by keyboard, with the active row tracked through `aria-activedescendant`.
+
+### Performance
+
+- Test runs exclude renamed dependency trees, `dist`, logs and caches from collection and from the watcher. Unit discovery drops from 10.5s to 1.75s, and a full run finishes in about 47s instead of stalling.
+
 ## [0.23.7] - 2026-10-11
 
 ### Added
