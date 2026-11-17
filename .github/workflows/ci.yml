@@ -4,6 +4,7 @@
 # and installs with --frozen-lockfile; the cargo leg keys off
 # src-tauri/Cargo.toml. There is deliberately NO `tauri build` / bundling step:
 # bundling needs signing/NSIS and does not belong in a build+test gate.
+# A docs-only change (*.md, docs/, LICEN[CS]E) keeps the required check green and runs no build.
 name: ci
 on:
   pull_request:
@@ -16,6 +17,28 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the scope step below diffs against the base branch with
+          # `...`, which needs a merge base (and, on a push, the `before` commit).
+          fetch-depth: 0
+      - name: Detect a docs-only change
+        id: scope
+        shell: bash
+        run: |
+          docs='^(.*\.md|docs/.*|LICEN[CS]E(\.md)?)$'
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          elif [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.event.before }}" ]; then
+            changed=$(git diff --name-only "${{ github.event.before }}" HEAD || true)
+          else
+            changed=$(git ls-files)
+          fi
+          if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -qvE "$docs"; then
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Detect Rust changes
         id: changes
         shell: bash
@@ -31,30 +54,42 @@ jobs:
             echo "rust=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Set up Bun
+        if: steps.scope.outputs.code == 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
       - name: Set up Node
+        if: steps.scope.outputs.code == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
       - name: Set up Rust
+        if: steps.scope.outputs.code == 'true'
         uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
+        if: steps.scope.outputs.code == 'true'
         run: bun install --frozen-lockfile
       - name: Frontend typings
+        if: steps.scope.outputs.code == 'true'
         run: bun run test:typings
       # AGENTS.md ("Agent Operations Rules"): after UI edits `vp check`
       # (format, lint, type-check) must pass and the UI checks must run.
       - name: Frontend checks (vp check)
+        if: steps.scope.outputs.code == 'true'
         run: bunx vp check
       - name: Install Playwright Chromium
+        if: steps.scope.outputs.code == 'true'
         run: bunx playwright install chromium
       - name: UI checks (headless e2e)
+        if: steps.scope.outputs.code == 'true'
         run: bunx vp test run --project e2e
       - name: Rust build
-        if: steps.changes.outputs.rust == 'true'
+        if: steps.scope.outputs.code == 'true' && steps.changes.outputs.rust == 'true'
         run: cargo build --locked --manifest-path src-tauri/Cargo.toml
       - name: Rust test
-        if: steps.changes.outputs.rust == 'true'
+        if: steps.scope.outputs.code == 'true' && steps.changes.outputs.rust == 'true'
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+      - name: Scope
+        if: always()
+        run: |
+          echo "scope: ${{ steps.scope.outputs.code == 'true' && 'code changed - the full gate ran' || 'docs-only - build skipped, the check stays green' }}"
