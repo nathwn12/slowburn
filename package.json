@@ -94,7 +94,7 @@
   "workspaces": {
     "catalog": {
       "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-      "vite-plus": "0.1.22",
+      "vite-plus": "1.6.0",
       "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
     }
   },
