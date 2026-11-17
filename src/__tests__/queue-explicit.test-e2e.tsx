@@ -121,7 +121,7 @@ test('play-next inserts after the cursor with a per-row control', async () => {
   const options = queueList.getByRole('option');
   await expect
     .element(options.nth(cursor + 1))
-    .toHaveTextContent(incoming.title);
+    .toMatchTextContent(incoming.title);
 
   // S4 affordance: every upcoming row exposes Play next.
   await expect

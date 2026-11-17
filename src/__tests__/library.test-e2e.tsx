@@ -223,9 +223,9 @@ test('The sort control should sort tracks in the library', async () => {
 
   // The default stack is modified-desc then artist-asc; with no modified times
   // on the fixtures, artist ascending decides the order.
-  await expect.element(firstTrack).toHaveTextContent(track0content);
-  await expect.element(secondTrack).toHaveTextContent(track1content);
-  await expect.element(thirdTrack).toHaveTextContent(track2content);
+  await expect.element(firstTrack).toMatchTextContent(track0content);
+  await expect.element(secondTrack).toMatchTextContent(track1content);
+  await expect.element(thirdTrack).toMatchTextContent(track2content);
 
   // Choosing Artist from the menu sorts by artist alone (ascending), so the
   // visible order is unchanged but the trigger names the custom stack.
@@ -235,27 +235,27 @@ test('The sort control should sort tracks in the library', async () => {
   await sortMenu()
     .getByRole('menuitem', { name: /Artist/ })
     .click();
-  await expect.element(firstTrack).toHaveTextContent(track0content);
-  await expect.element(secondTrack).toHaveTextContent(track1content);
-  await expect.element(thirdTrack).toHaveTextContent(track2content);
+  await expect.element(firstTrack).toMatchTextContent(track0content);
+  await expect.element(secondTrack).toMatchTextContent(track1content);
+  await expect.element(thirdTrack).toMatchTextContent(track2content);
   await expect
     .element(sortGroup.getByRole('button', { name: 'Sort: Custom (1 levels)' }))
     .toBeVisible();
 
   // The direction toggle flips the primary key to descending.
   await sortGroup.getByRole('button', { name: /Sort direction/ }).click();
-  await expect.element(firstTrack).toHaveTextContent(track2content);
-  await expect.element(secondTrack).toHaveTextContent(track1content);
-  await expect.element(thirdTrack).toHaveTextContent(track0content);
+  await expect.element(firstTrack).toMatchTextContent(track2content);
+  await expect.element(secondTrack).toMatchTextContent(track1content);
+  await expect.element(thirdTrack).toMatchTextContent(track0content);
 
   // Choosing Title sorts by title alone (Majestic, Romantic, Whiskey).
   await sortGroup
     .getByRole('button', { name: 'Sort: Custom (1 levels)' })
     .click();
   await sortMenu().getByRole('menuitem', { name: 'Title' }).click();
-  await expect.element(firstTrack).toHaveTextContent(track1content);
-  await expect.element(secondTrack).toHaveTextContent(track2content);
-  await expect.element(thirdTrack).toHaveTextContent(track0content);
+  await expect.element(firstTrack).toMatchTextContent(track1content);
+  await expect.element(secondTrack).toMatchTextContent(track2content);
+  await expect.element(thirdTrack).toMatchTextContent(track0content);
 });
 
 test('a scan that drops unreadable files warns instead of staying silent', async () => {
