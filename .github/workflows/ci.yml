@@ -88,7 +88,13 @@ jobs:
         run: cargo build --locked --manifest-path src-tauri/Cargo.toml
       - name: Rust test
         if: steps.scope.outputs.code == 'true' && steps.changes.outputs.rust == 'true'
-        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+        # One thread, deliberately. The only crash on record (0xC0000005
+        # STATUS_ACCESS_VIOLATION, run 43864314912, and once locally) died
+        # before the parallel harness printed a single test name, so the run
+        # said nothing about where it happened. Serially, the last line is the
+        # test that was running: the next occurrence is diagnosable instead of
+        # being retried blind.
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
       - name: Scope
         if: always()
         run: |
