@@ -39,7 +39,7 @@ dirs = "6.0.0"
 futures = "0.3.32"
 home-config = { version = "0.7.0", features = ["toml"] }
 indexmap = "2.14.0"
-itertools = "0.14.0"
+itertools = "0.15.0"
 log = "0.4.30"
 lofty = "0.25.3"
 m3u = "1.0.0"

@@ -881,7 +881,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 3.0.10",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -2340,15 +2340,6 @@ checksum = "173609498df190136aa7dea1a91db051746d339e18476eed5ca40521f02d7aa5"
 dependencies = [
  "is-docker",
  "once_cell",
-]
-
-[[package]]
-name = "itertools"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
-dependencies = [
- "either",
 ]
 
 [[package]]
@@ -4398,7 +4389,7 @@ dependencies = [
  "futures",
  "home-config",
  "indexmap 2.14.2",
- "itertools 0.14.0",
+ "itertools",
  "lofty",
  "log",
  "m3u",
@@ -5255,7 +5246,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb6b60e3155d15435cea31fd5cdc363de96782646c4b465d874d09746e3032d1"
 dependencies = [
  "bitflags 2.13.2",
- "itertools 0.15.0",
+ "itertools",
  "serde",
  "strum",
  "tauri",
