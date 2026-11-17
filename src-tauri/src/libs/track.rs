@@ -177,7 +177,6 @@ fn civil_from_days(days: i64) -> (i64, u32, u32) {
  */
 pub fn get_track_from_file(path: &PathBuf) -> AnyResult<Track> {
     match Probe::open(path)
-        .map_err(lofty::error::LoftyError::from)
         .and_then(|p| p.options(ParseOptions::new().read_cover_art(false)).read())
     {
         Ok(tagged_file) => {
