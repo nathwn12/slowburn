@@ -41,4 +41,4 @@ jobs:
       - name: Rust build
         run: cargo build --locked --manifest-path src-tauri/Cargo.toml
       - name: Rust test
-        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
