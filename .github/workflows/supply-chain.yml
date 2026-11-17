@@ -13,7 +13,7 @@ on:
   schedule:
     # Weekly, Monday 03:30 Asia/Manila (UTC+8) — the same slot as the Dependabot
     # runs, which is 19:30 UTC on Sunday.
-    - cron: "30 19 * * 0"
+    - cron: '30 19 * * 0'
   workflow_dispatch:
 permissions:
   contents: read

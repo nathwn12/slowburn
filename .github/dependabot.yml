@@ -10,41 +10,41 @@
 # in supply-chain.yml exists rather than being redundant with this file.
 version: 2
 updates:
-  - package-ecosystem: "bun"
-    directory: "/"
+  - package-ecosystem: 'bun'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "03:30"
-      timezone: "Asia/Manila"
+      interval: 'weekly'
+      day: 'monday'
+      time: '03:30'
+      timezone: 'Asia/Manila'
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+        patterns: ['*']
+        update-types: ['minor', 'patch']
 
-  - package-ecosystem: "cargo"
-    directory: "/src-tauri"
+  - package-ecosystem: 'cargo'
+    directory: '/src-tauri'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "03:30"
-      timezone: "Asia/Manila"
+      interval: 'weekly'
+      day: 'monday'
+      time: '03:30'
+      timezone: 'Asia/Manila'
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+        patterns: ['*']
+        update-types: ['minor', 'patch']
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "03:30"
-      timezone: "Asia/Manila"
+      interval: 'weekly'
+      day: 'monday'
+      time: '03:30'
+      timezone: 'Asia/Manila'
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+        patterns: ['*']
+        update-types: ['minor', 'patch']
