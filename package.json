@@ -60,7 +60,7 @@
     "zustand": "5.0.13"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-decorators": "7.29.7",
+    "@babel/plugin-proposal-decorators": "8.0.2",
     "@lingui/babel-plugin-lingui-macro": "6.1.0",
     "@lingui/cli": "6.1.0",
     "@lingui/vite-plugin": "6.1.0",
