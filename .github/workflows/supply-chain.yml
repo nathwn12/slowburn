@@ -1,0 +1,49 @@
+# Free-tier supply-chain audit. Two legs, both read-only, no secrets, no paid
+# service: `bun audit` for the JavaScript tree and `cargo audit` (RustSec) for
+# the Rust tree.
+#
+# Why the bun leg exists at all: Dependabot covers version updates for the `bun`
+# ecosystem but not security updates, so nothing else would ever report a known
+# advisory in package.json. Why the cargo leg is `cargo audit` and not the
+# RustSec action: rustsec/audit-check reports by opening a GitHub issue, which
+# needs contents: write; this workflow is deliberately contents: read, so the
+# job fails instead of writing.
+name: supply-chain
+on:
+  schedule:
+    # Weekly, Monday 03:30 Asia/Manila (UTC+8) — the same slot as the Dependabot
+    # runs, which is 19:30 UTC on Sunday.
+    - cron: '30 19 * * 0'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: supply-chain
+  cancel-in-progress: true
+jobs:
+  bun-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Install frozen dependencies
+        # --ignore-scripts: an audit has no reason to run a dependency's
+        # lifecycle scripts, and the lockfile is all `bun audit` needs.
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Audit JavaScript dependencies
+        run: bun audit --audit-level=high
+  cargo-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: Audit Rust dependencies
+        run: cargo audit --file src-tauri/Cargo.lock
