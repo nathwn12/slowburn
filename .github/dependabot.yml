@@ -1,0 +1,50 @@
+# Free-tier dependency upkeep. Dependabot is native to GitHub and costs nothing.
+#
+# Three ecosystems, all weekly in the same slot (Monday 03:30 Asia/Manila) so the
+# PRs, the CI run and the supply-chain audit land together instead of trickling.
+# Minor and patch bumps arrive grouped and capped at 5 open PRs; a major bump
+# still comes alone, because it needs to be read.
+#
+# Note: Dependabot opens *version* updates for `bun` but not security updates
+# (GitHub lists Bun as version-updates only), which is why the dependency audit
+# in supply-chain.yml exists rather than being redundant with this file.
+version: 2
+updates:
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:30"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:30"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:30"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
