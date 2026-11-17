@@ -2,62 +2,69 @@
   <img src="src-tauri/icons/icon.png" width="120" height="120" alt="Slowburn icon" />
 </p>
 
-# Slowburn
+<h1 align="center">Slowburn</h1>
 
-Slowburn is a Windows media player with slowed reverb and an A-B loop. Open a track, slow it down, add reverb, and loop a passage.
+**A Windows media player with slowed playback, reverb, and a saved A-B loop for every track.**
 
 ## Install
 
-There is no downloadable installer yet. The fastest real route is to build it on a Windows machine:
+No installer is published yet, so build it on Windows:
 
-```text
+```powershell
 git clone https://github.com/nathwn12/slowburn.git
 cd slowburn
-vp install
-vp run tauri build
+bun install --frozen-lockfile
+bun run tauri build
 ```
 
-Run the NSIS installer from `src-tauri/target/release/bundle/nsis/`, launch Slowburn, and add a music folder. You need Windows 10/11, 64-bit.
+Then run the NSIS installer from `src-tauri\target\release\bundle\nsis\`.
 
-No release is published to pin. Build from the checked-in 0.23.7 sources with the commands above; `package.json` and `src-tauri/tauri.conf.json` both carry version 0.23.7.
+## Use it
 
-## Usage
-
-Import music and start it:
+Add music with `Ctrl+O`, then press `Space` to play. The header switches the right column between Library, Queue, and Playlists.
 
 ```text
-Ctrl+O    add a folder or files to the library
-Space     play or pause the current track
-```
-
-Loop any passage. Your loop, speed, and reverb settings are remembered per file:
-
-```text
-[         set loop point A at the playhead
-]         set loop point B at the playhead
-\         clear the loop
-```
-
-Shape the sound, then shrink the window:
-
-```text
-Open Effects, move the slow and reverb sliders, reset to dry when done
-Ctrl+M    switch between full and mini mode
+Ctrl+O    add folders or files
+Ctrl+K    focus search
+Space     play or pause
+Ctrl+M    toggle mini mode
 ?         show every shortcut
 ```
 
-## What it does
+Set a loop on the seek bar; it is saved per track and reapplied when you reopen the track.
 
-- Slow and reverb effects that stay set per track, with one-click reset to dry
-- A-B loop on the seek bar; saved loops reapply when you reopen the track
-- Queue with drag-to-reorder, multi-folder library, and search
-- Four themes: Light, Dark, Dark Warm, AMOLED
-- Plays mp3, flac, ogg, opus, m4a, wav, aac, 3gp, and weba
+```text
+[         set loop point A
+]         set loop point B
+\         clear the loop
+```
+
+The effects strip under the transport sets SLOW, REVERB, TEMPO, and PITCH. Each control has its own reset, and the settings survive a restart.
+
+## Configure it
+
+Settings has five panes: Library, Audio, Interface, About, and Advanced.
+
+| Setting                    | Default   | Pane      |
+| -------------------------- | --------- | --------- |
+| Theme                      | System    | Interface |
+| Mode                       | Full      | Interface |
+| Accent color               | `#459ce7` | Interface |
+| Tint accent from cover art | Off       | Interface |
+| Notifications              | Off       | Interface |
+| Stream server              | Off       | Advanced  |
+| Refresh library on startup | Off       | Advanced  |
+
+```text
+Settings > Interface > Theme: Dark
+Settings > Interface > Mode: Mini
+Settings > Interface > Accent color: #459ce7
+```
 
 ## Requirements
 
-- Windows 10/11, 64-bit
-- To build: Node 24.14.0, bun 1.4.4, and a stable Rust toolchain
+- Windows 10/11, 64-bit, with the WebView2 runtime (preinstalled on Windows 11)
+- To build: Node 24.14.0, bun 1.4.4, and a stable Rust toolchain with the MSVC target
 
 ## Development
 
@@ -69,34 +76,15 @@ bunx vp test run --project e2e
 cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
-Upstream player this fork builds on: museeks by martpie. Issues are tracked in this repository.
-
-## Updating from npm or pnpm
-
-This repo uses [Bun](https://bun.sh) to install dependencies and run scripts; Node still runs the code.
-
-```powershell
-# once, if bun is missing
-scoop install bun        # or: npm i -g bun / winget install Oven-sh.Bun
-
-# in the repo
-Remove-Item package-lock.json,pnpm-lock.yaml -ErrorAction SilentlyContinue
-Remove-Item node_modules -Recurse -Force -ErrorAction SilentlyContinue
-bun install
-```
-
-Use `bun run <script>` from then on. Commit `bun.lock` and never recreate the old lockfile; the repo pins `"packageManager": "bun@1.4.4"`.
+CI runs the same steps on Windows. The repo pins bun 1.4.4 and commits `bun.lock`; install with bun so an npm or pnpm tree never replaces the lockfile.
 
 ## Status
 
-Experimental and still moving. It works today, but it is not a finished
-product: interfaces may change, features may be improved or removed, and a
-release can break the one before it. This is maintained by one person, not a
-team. If it breaks, open an issue with the command you ran and what you saw.
+**Experimental** — pre-release; interfaces may change.
 
 ## Links
 
-- [Upstream museeks by martpie](https://github.com/martpie/museeks)
 - [Issues](https://github.com/nathwn12/slowburn/issues)
 - [Releases](https://github.com/nathwn12/slowburn/releases)
+- [Upstream: museeks by martpie](https://github.com/martpie/museeks)
 - [MIT](LICENSE)
