@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use lofty::error::LoftyError;
+use lofty::error::FileParseError;
 use log::error;
 use serde::{Serialize, ser::Serializer};
 use tauri::Runtime;
@@ -23,7 +23,7 @@ pub enum MuseeksError {
     Tauri(#[from] tauri::Error),
 
     #[error(transparent)]
-    Lofty(#[from] LoftyError),
+    Lofty(#[from] FileParseError),
 
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
