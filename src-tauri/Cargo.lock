@@ -4393,7 +4393,7 @@ version = "0.23.7"
 dependencies = [
  "anyhow",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "dirs 6.0.0",
  "futures",
  "home-config",
