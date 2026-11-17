@@ -93,13 +93,13 @@ test('played tracks render newest-first with their play facts', async () => {
 
   // Newest play first; the unplayed track never appears.
   const rows = historyRows();
-  await expect.element(rows.nth(0)).toHaveTextContent(/Whiskey Blues/);
-  await expect.element(rows.nth(1)).toHaveTextContent(/Majestic Blues/);
+  await expect.element(rows.nth(0)).toMatchTextContent(/Whiskey Blues/);
+  await expect.element(rows.nth(1)).toMatchTextContent(/Majestic Blues/);
   await expect.element(rows.nth(2)).not.toBeInTheDocument();
 
   // Each row carries its dense play fact: count plus relative last play.
-  await expect.element(rows.nth(0)).toHaveTextContent(/5 times · yesterday/);
-  await expect.element(rows.nth(1)).toHaveTextContent(/2 times · 3 days ago/);
+  await expect.element(rows.nth(0)).toMatchTextContent(/5 times · yesterday/);
+  await expect.element(rows.nth(1)).toMatchTextContent(/2 times · 3 days ago/);
 
   // Rows expose listbox position metadata like the other track surfaces.
   await expect.element(rows.nth(0)).toHaveAttribute('aria-posinset', '1');

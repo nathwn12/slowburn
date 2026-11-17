@@ -157,7 +157,7 @@ test('the header is one readable control, not a chip strip', async () => {
   // The control names the active sort in full words.
   const trigger = sortTrigger('Sort: Recently modified');
   await expect.element(trigger).toBeVisible();
-  await expect.element(trigger).toHaveTextContent('Sort: Recently modified');
+  await expect.element(trigger).toMatchTextContent('Sort: Recently modified');
 
   // The old chip strip is gone: no preset combobox, no per-field buttons.
   await expect
@@ -238,9 +238,9 @@ test('choosing a field applies it, closes the menu, and reorders the list', asyn
   await mount([...MOCK_CONFIG.library_sort_keys]);
 
   // Default stack (modified desc): Whiskey, Alpha, Zulu.
-  await expect.element(probeAt(0)).toHaveTextContent('Whiskey');
-  await expect.element(probeAt(1)).toHaveTextContent('Alpha');
-  await expect.element(probeAt(2)).toHaveTextContent('Zulu');
+  await expect.element(probeAt(0)).toMatchTextContent('Whiskey');
+  await expect.element(probeAt(1)).toMatchTextContent('Alpha');
+  await expect.element(probeAt(2)).toMatchTextContent('Zulu');
 
   await sortTrigger('Sort: Recently modified').click();
   await menu().getByRole('menuitem', { name: 'Title' }).click();
@@ -251,9 +251,9 @@ test('choosing a field applies it, closes the menu, and reorders the list', asyn
     .toStrictEqual([{ field: 'title', direction: 'Asc' }]);
 
   // Title asc: Alpha, Whiskey, Zulu - and the trigger names the custom stack.
-  await expect.element(probeAt(0)).toHaveTextContent('Alpha');
-  await expect.element(probeAt(1)).toHaveTextContent('Whiskey');
-  await expect.element(probeAt(2)).toHaveTextContent('Zulu');
+  await expect.element(probeAt(0)).toMatchTextContent('Alpha');
+  await expect.element(probeAt(1)).toMatchTextContent('Whiskey');
+  await expect.element(probeAt(2)).toMatchTextContent('Zulu');
   await expect.element(sortTrigger('Sort: Custom (1 levels)')).toBeVisible();
 });
 
@@ -264,11 +264,11 @@ test('the direction toggle flips the order and names itself', async () => {
     'Sort direction: ascending. Activate to sort descending.',
   );
   await expect.element(ascending).toBeVisible();
-  await expect.element(ascending).toHaveTextContent('Ascending');
+  await expect.element(ascending).toMatchTextContent('Ascending');
 
   // Artist asc: Alpha, Zulu, Whiskey.
-  await expect.element(probeAt(0)).toHaveTextContent('Alpha');
-  await expect.element(probeAt(2)).toHaveTextContent('Whiskey');
+  await expect.element(probeAt(0)).toMatchTextContent('Alpha');
+  await expect.element(probeAt(2)).toMatchTextContent('Whiskey');
 
   await ascending.click();
 
@@ -279,11 +279,11 @@ test('the direction toggle flips the order and names itself', async () => {
     'Sort direction: descending. Activate to sort ascending.',
   );
   await expect.element(descending).toBeVisible();
-  await expect.element(descending).toHaveTextContent('Descending');
+  await expect.element(descending).toMatchTextContent('Descending');
 
   // Artist desc: Whiskey, Zulu, Alpha.
-  await expect.element(probeAt(0)).toHaveTextContent('Whiskey');
-  await expect.element(probeAt(2)).toHaveTextContent('Alpha');
+  await expect.element(probeAt(0)).toMatchTextContent('Whiskey');
+  await expect.element(probeAt(2)).toMatchTextContent('Alpha');
 });
 
 test('multi-key editing lives in the menu with priorities', async () => {

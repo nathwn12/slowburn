@@ -445,7 +445,7 @@ test('a saved loop pins the row with the ◆ mark', async () => {
   await p.setAbPoint('A', 3);
   await p.setAbPoint('B', 6);
 
-  await expect.element(getTrackByName(/Whiskey Blues/)).toHaveTextContent('◆');
+  await expect.element(getTrackByName(/Whiskey Blues/)).toMatchTextContent('◆');
 });
 
 test('the playing row is magenta and the cursor selection is info blue', async () => {

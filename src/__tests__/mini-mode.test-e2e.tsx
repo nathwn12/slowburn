@@ -178,7 +178,7 @@ test('mini stacks the condensed player above the queue', async () => {
     name: 'Seek bar with A-B loop region',
   });
   await expect.element(seek).toBeVisible();
-  await expect.element(seek).toHaveTextContent(/\d+:\d+/);
+  await expect.element(seek).toMatchTextContent(/\d+:\d+/);
 
   // The bottom half reuses the queue surface: listbox, playing track, count.
   await expect.element(queueList()).toBeVisible();

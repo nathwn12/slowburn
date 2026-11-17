@@ -15,7 +15,7 @@ test('The UI renders English with no language selector', async () => {
   await expect.element(viewMessage).toBeVisible();
   await expect
     .element(viewMessage)
-    .toHaveTextContent(
+    .toMatchTextContent(
       'There is no music in your libraryyou can add your music here',
     );
 

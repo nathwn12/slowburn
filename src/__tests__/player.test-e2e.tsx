@@ -34,8 +34,8 @@ test('Double click on a track should play it and display its metadata', async ()
   // duplicates it).
   const nowPlaying = page.getByRole('region', { name: 'Now playing' });
   await expect.element(nowPlaying.getByText('Whiskey Blues')).toBeVisible();
-  await expect.element(nowPlaying).toHaveTextContent('Captain_Sleepy');
-  await expect.element(nowPlaying).toHaveTextContent('Another Album');
+  await expect.element(nowPlaying).toMatchTextContent('Captain_Sleepy');
+  await expect.element(nowPlaying).toMatchTextContent('Another Album');
 
   // Click on another one
   await getTrackByName(/Romantic Blues/).dblClick();
@@ -48,8 +48,8 @@ test('Double click on a track should play it and display its metadata', async ()
 
   // Check the new track info is there
   await expect.element(nowPlaying.getByText('Romantic Blues')).toBeVisible();
-  await expect.element(nowPlaying).toHaveTextContent('Jean-Paul-V');
-  await expect.element(nowPlaying).toHaveTextContent('Pixabay');
+  await expect.element(nowPlaying).toMatchTextContent('Jean-Paul-V');
+  await expect.element(nowPlaying).toMatchTextContent('Pixabay');
 
   // Pause
   await page.getByRole('button', { name: 'Pause' }).click();
