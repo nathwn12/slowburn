@@ -42,3 +42,4 @@ src/components/__tests__/__screenshots__/
 
 # Deferred partial capture: hero screenshot draft, not ready to publish
 docs/screenshots/
+.vitest/

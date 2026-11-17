@@ -80,11 +80,12 @@
     "playwright": "1.60.0",
     "simple-git-hooks": "2.13.1",
     "typescript": "6.0.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.22",
+    "vite": "catalog:",
     "vite-plugin-svgr": "5.2.0",
     "vite-plus": "catalog:",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.22",
-    "vitest-browser-react": "2.2.0"
+    "vitest": "catalog:",
+    "vitest-browser-react": "2.2.0",
+    "@vitest/browser-playwright": "5.1.0"
   },
   "simple-git-hooks": {
     "pre-commit": "if [ -f \"$HOME/.config/git/hooks/pre-commit\" ]; then sh \"$HOME/.config/git/hooks/pre-commit\" || exit 1; fi; cd \"$(git rev-parse --show-toplevel)\" || exit 1; [ -x node_modules/.bin/lingui ] || { echo '[pre-commit] lingui CLI not installed - run bun install' >&2; exit 1; }; node_modules/.bin/lingui extract --clean --overwrite || exit 1; git add src/translations"
@@ -93,9 +94,9 @@
   "productName": "Slowburn",
   "workspaces": {
     "catalog": {
-      "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-      "vite-plus": "0.1.22",
-      "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+      "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
+      "vite-plus": "1.6.0",
+      "vitest": "5.1.0"
     }
   },
   "overrides": {

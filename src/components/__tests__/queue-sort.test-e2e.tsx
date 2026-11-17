@@ -120,7 +120,7 @@ test('most-played ordering considers the whole queue, not the first page', async
   // Row 0 is the playing track (queue index 0); rows 1.. are upcoming.
   // Before "Most played" is on, the upcoming order is the queue order, and
   // the trigger button names the Manual order.
-  await expect.element(rowAt(1)).toHaveTextContent('Track 1');
+  await expect.element(rowAt(1)).toMatchTextContent('Track 1');
   await expect
     .element(page.getByRole('button', { name: 'Sort: Manual' }))
     .toBeVisible();
@@ -131,8 +131,8 @@ test('most-played ordering considers the whole queue, not the first page', async
 
   // Track 24 has the highest play_count and sits *after* the first page. If the
   // sort runs after pagination it never reaches this row.
-  await expect.element(rowAt(1)).toHaveTextContent('Track 24');
-  await expect.element(rowAt(2)).toHaveTextContent('Track 23');
+  await expect.element(rowAt(1)).toMatchTextContent('Track 24');
+  await expect.element(rowAt(2)).toMatchTextContent('Track 23');
 
   // Review Focus 5: the label and the behaviour move together. The old
   // static `sorted: most played` span is gone; the state is now announced
@@ -170,7 +170,7 @@ test('the sort menu offers exactly the two orders the queue honours', async () =
   // trigger that still names the Manual order.
   await menu.getByRole('menuitemradio', { name: 'Manual' }).click();
   await expect.element(menu).not.toBeInTheDocument();
-  await expect.element(rowAt(1)).toHaveTextContent('Track 1');
+  await expect.element(rowAt(1)).toMatchTextContent('Track 1');
   await expect
     .element(page.getByRole('button', { name: 'Sort: Manual' }))
     .toBeVisible();
