@@ -45,15 +45,15 @@ The effects strip under the transport sets SLOW, REVERB, TEMPO, and PITCH. Each 
 
 Settings has five panes: Library, Audio, Interface, About, and Advanced.
 
-| Setting | Default | Pane |
-| --- | --- | --- |
-| Theme | System | Interface |
-| Mode | Full | Interface |
-| Accent color | `#459ce7` | Interface |
-| Tint accent from cover art | Off | Interface |
-| Notifications | Off | Interface |
-| Stream server | Off | Advanced |
-| Refresh library on startup | Off | Advanced |
+| Setting                    | Default   | Pane      |
+| -------------------------- | --------- | --------- |
+| Theme                      | System    | Interface |
+| Mode                       | Full      | Interface |
+| Accent color               | `#459ce7` | Interface |
+| Tint accent from cover art | Off       | Interface |
+| Notifications              | Off       | Interface |
+| Stream server              | Off       | Advanced  |
+| Refresh library on startup | Off       | Advanced  |
 
 ```text
 Settings > Interface > Theme: Dark
