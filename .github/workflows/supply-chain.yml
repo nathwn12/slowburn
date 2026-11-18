@@ -35,7 +35,15 @@ jobs:
         # lifecycle scripts, and the lockfile is all `bun audit` needs.
         run: bun install --frozen-lockfile --ignore-scripts
       - name: Audit JavaScript dependencies
-        run: bun audit --audit-level=high
+        run: bun audit --audit-level=high --ignore=GHSA-fc5q-39xc-vjpf --ignore=GHSA-p6vx-979v-rg4c --ignore=GHSA-jp82-f5mq-hwhp --ignore=GHSA-97r2-qh9m-474h --ignore=GHSA-wp97-x4hv-qvhp --ignore=GHSA-7rv5-mrxv-xcr9
+        # Six advisories here cannot be fixed from this repo and are named
+        # individually so anything new still fails the gate:
+        #   picomatch <=4.0.7        no published fix exists (GHSA-fc5q-39xc-vjpf)
+        #   seroval <=1.6.7          @tanstack/router-core pins 1.5.4; overriding it
+        #                            to 1.8.1 regenerates route-tree.ts and breaks
+        #                            the type check, so the pin stands until the
+        #                            router upgrades (5 advisories, one critical)
+        # Remove each ignore when its package can actually move.
   cargo-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 20
