@@ -102,7 +102,6 @@ slowburn/
 - [Issues](https://github.com/nathwn12/slowburn/issues)
 - [Releases](https://github.com/nathwn12/slowburn/releases)
 - [Upstream: museeks by martpie](https://github.com/martpie/museeks)
+- [MIT](LICENSE)
 
 <p align="center"><sub>Built by nathwn12</sub></p>
-
-- [MIT](LICENSE)
