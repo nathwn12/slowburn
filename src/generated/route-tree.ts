@@ -9,40 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './../routes/__root'
-import { Route as SettingsRouteImport } from './../routes/settings'
-import { Route as QueueRouteImport } from './../routes/queue'
-import { Route as PlaylistsRouteImport } from './../routes/playlists'
-import { Route as LibraryRouteImport } from './../routes/library'
-import { Route as HistoryRouteImport } from './../routes/history'
 import { Route as ArtistsRouteImport } from './../routes/artists'
-import { Route as TracksTrackIDRouteImport } from './../routes/tracks.$trackID'
-import { Route as SettingsUiRouteImport } from './../routes/settings.ui'
-import { Route as SettingsLibraryRouteImport } from './../routes/settings.library'
-import { Route as SettingsAudioRouteImport } from './../routes/settings.audio'
-import { Route as SettingsAdvancedRouteImport } from './../routes/settings.advanced'
-import { Route as SettingsAboutRouteImport } from './../routes/settings.about'
-import { Route as PlaylistsPlaylistIDRouteImport } from './../routes/playlists.$playlistID'
+import { Route as HistoryRouteImport } from './../routes/history'
+import { Route as LibraryRouteImport } from './../routes/library'
+import { Route as PlaylistsRouteImport } from './../routes/playlists'
+import { Route as QueueRouteImport } from './../routes/queue'
+import { Route as SettingsRouteImport } from './../routes/settings'
 import { Route as ArtistsArtistIDRouteImport } from './../routes/artists.$artistID'
+import { Route as PlaylistsPlaylistIDRouteImport } from './../routes/playlists.$playlistID'
+import { Route as SettingsAboutRouteImport } from './../routes/settings.about'
+import { Route as SettingsAdvancedRouteImport } from './../routes/settings.advanced'
+import { Route as SettingsAudioRouteImport } from './../routes/settings.audio'
+import { Route as SettingsLibraryRouteImport } from './../routes/settings.library'
+import { Route as SettingsUiRouteImport } from './../routes/settings.ui'
+import { Route as TracksTrackIDRouteImport } from './../routes/tracks.$trackID'
 import { Route as ArtistsPresetsCompilationsRouteImport } from './../routes/artists.presets.compilations'
 
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QueueRoute = QueueRouteImport.update({
-  id: '/queue',
-  path: '/queue',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlaylistsRoute = PlaylistsRouteImport.update({
-  id: '/playlists',
-  path: '/playlists',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LibraryRoute = LibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
+const ArtistsRoute = ArtistsRouteImport.update({
+  id: '/artists',
+  path: '/artists',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -50,29 +35,39 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ArtistsRoute = ArtistsRouteImport.update({
-  id: '/artists',
-  path: '/artists',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TracksTrackIDRoute = TracksTrackIDRouteImport.update({
-  id: '/tracks/$trackID',
-  path: '/tracks/$trackID',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsUiRoute = SettingsUiRouteImport.update({
-  id: '/ui',
-  path: '/ui',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsLibraryRoute = SettingsLibraryRouteImport.update({
+const LibraryRoute = LibraryRouteImport.update({
   id: '/library',
   path: '/library',
-  getParentRoute: () => SettingsRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsAudioRoute = SettingsAudioRouteImport.update({
-  id: '/audio',
-  path: '/audio',
+const PlaylistsRoute = PlaylistsRouteImport.update({
+  id: '/playlists',
+  path: '/playlists',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QueueRoute = QueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtistsArtistIDRoute = ArtistsArtistIDRouteImport.update({
+  id: '/$artistID',
+  path: '/$artistID',
+  getParentRoute: () => ArtistsRoute,
+} as any)
+const PlaylistsPlaylistIDRoute = PlaylistsPlaylistIDRouteImport.update({
+  id: '/$playlistID',
+  path: '/$playlistID',
+  getParentRoute: () => PlaylistsRoute,
+} as any)
+const SettingsAboutRoute = SettingsAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsAdvancedRoute = SettingsAdvancedRouteImport.update({
@@ -80,20 +75,25 @@ const SettingsAdvancedRoute = SettingsAdvancedRouteImport.update({
   path: '/advanced',
   getParentRoute: () => SettingsRoute,
 } as any)
-const SettingsAboutRoute = SettingsAboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const SettingsAudioRoute = SettingsAudioRouteImport.update({
+  id: '/audio',
+  path: '/audio',
   getParentRoute: () => SettingsRoute,
 } as any)
-const PlaylistsPlaylistIDRoute = PlaylistsPlaylistIDRouteImport.update({
-  id: '/$playlistID',
-  path: '/$playlistID',
-  getParentRoute: () => PlaylistsRoute,
+const SettingsLibraryRoute = SettingsLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => SettingsRoute,
 } as any)
-const ArtistsArtistIDRoute = ArtistsArtistIDRouteImport.update({
-  id: '/$artistID',
-  path: '/$artistID',
-  getParentRoute: () => ArtistsRoute,
+const SettingsUiRoute = SettingsUiRouteImport.update({
+  id: '/ui',
+  path: '/ui',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const TracksTrackIDRoute = TracksTrackIDRouteImport.update({
+  id: '/tracks/$trackID',
+  path: '/tracks/$trackID',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ArtistsPresetsCompilationsRoute =
   ArtistsPresetsCompilationsRouteImport.update({
@@ -220,32 +220,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/queue': {
-      id: '/queue'
-      path: '/queue'
-      fullPath: '/queue'
-      preLoaderRoute: typeof QueueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/playlists': {
-      id: '/playlists'
-      path: '/playlists'
-      fullPath: '/playlists'
-      preLoaderRoute: typeof PlaylistsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/library': {
-      id: '/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof LibraryRouteImport
+    '/artists': {
+      id: '/artists'
+      path: '/artists'
+      fullPath: '/artists'
+      preLoaderRoute: typeof ArtistsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -255,39 +234,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/artists': {
-      id: '/artists'
-      path: '/artists'
-      fullPath: '/artists'
-      preLoaderRoute: typeof ArtistsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tracks/$trackID': {
-      id: '/tracks/$trackID'
-      path: '/tracks/$trackID'
-      fullPath: '/tracks/$trackID'
-      preLoaderRoute: typeof TracksTrackIDRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/ui': {
-      id: '/settings/ui'
-      path: '/ui'
-      fullPath: '/settings/ui'
-      preLoaderRoute: typeof SettingsUiRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/library': {
-      id: '/settings/library'
+    '/library': {
+      id: '/library'
       path: '/library'
-      fullPath: '/settings/library'
-      preLoaderRoute: typeof SettingsLibraryRouteImport
-      parentRoute: typeof SettingsRoute
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/settings/audio': {
-      id: '/settings/audio'
-      path: '/audio'
-      fullPath: '/settings/audio'
-      preLoaderRoute: typeof SettingsAudioRouteImport
+    '/playlists': {
+      id: '/playlists'
+      path: '/playlists'
+      fullPath: '/playlists'
+      preLoaderRoute: typeof PlaylistsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/queue': {
+      id: '/queue'
+      path: '/queue'
+      fullPath: '/queue'
+      preLoaderRoute: typeof QueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artists/$artistID': {
+      id: '/artists/$artistID'
+      path: '/$artistID'
+      fullPath: '/artists/$artistID'
+      preLoaderRoute: typeof ArtistsArtistIDRouteImport
+      parentRoute: typeof ArtistsRoute
+    }
+    '/playlists/$playlistID': {
+      id: '/playlists/$playlistID'
+      path: '/$playlistID'
+      fullPath: '/playlists/$playlistID'
+      preLoaderRoute: typeof PlaylistsPlaylistIDRouteImport
+      parentRoute: typeof PlaylistsRoute
+    }
+    '/settings/about': {
+      id: '/settings/about'
+      path: '/about'
+      fullPath: '/settings/about'
+      preLoaderRoute: typeof SettingsAboutRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/advanced': {
@@ -297,26 +290,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsAdvancedRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/settings/about': {
-      id: '/settings/about'
-      path: '/about'
-      fullPath: '/settings/about'
-      preLoaderRoute: typeof SettingsAboutRouteImport
+    '/settings/audio': {
+      id: '/settings/audio'
+      path: '/audio'
+      fullPath: '/settings/audio'
+      preLoaderRoute: typeof SettingsAudioRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/playlists/$playlistID': {
-      id: '/playlists/$playlistID'
-      path: '/$playlistID'
-      fullPath: '/playlists/$playlistID'
-      preLoaderRoute: typeof PlaylistsPlaylistIDRouteImport
-      parentRoute: typeof PlaylistsRoute
+    '/settings/library': {
+      id: '/settings/library'
+      path: '/library'
+      fullPath: '/settings/library'
+      preLoaderRoute: typeof SettingsLibraryRouteImport
+      parentRoute: typeof SettingsRoute
     }
-    '/artists/$artistID': {
-      id: '/artists/$artistID'
-      path: '/$artistID'
-      fullPath: '/artists/$artistID'
-      preLoaderRoute: typeof ArtistsArtistIDRouteImport
-      parentRoute: typeof ArtistsRoute
+    '/settings/ui': {
+      id: '/settings/ui'
+      path: '/ui'
+      fullPath: '/settings/ui'
+      preLoaderRoute: typeof SettingsUiRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/tracks/$trackID': {
+      id: '/tracks/$trackID'
+      path: '/tracks/$trackID'
+      fullPath: '/tracks/$trackID'
+      preLoaderRoute: typeof TracksTrackIDRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/artists/presets/compilations': {
       id: '/artists/presets/compilations'
