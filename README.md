@@ -5,9 +5,8 @@
 <p align="center"><strong>Slow any track, add reverb, and keep an A-B loop for every song on Windows.</strong></p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/nathwn12/slowburn" alt="License" /></a>
-  <img src="https://img.shields.io/github/languages/top/nathwn12/slowburn" alt="Language" />
-  <img src="https://img.shields.io/badge/platform-windows--64bit-2b3137?logo=windows&logoColor=white" alt="Platform" />
+  <img src="https://img.shields.io/badge/platform-windows%20x64-blue" alt="platform">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
 ## Why
