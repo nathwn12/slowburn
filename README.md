@@ -9,6 +9,10 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
+<p align="center">
+  <img src="assets/screenshot.png" width="720" alt="Slowburn playing a track at reduced speed with reverb and an A-B loop marked" />
+</p>
+
 ## Why
 
 Slowburn plays your local library at reduced speed with reverb, tempo and pitch control. Each track keeps its own A-B loop, so a section you mark is still there when you reopen the song. It is a Tauri desktop app with a React front end. The code is derived from museeks, credited below.
