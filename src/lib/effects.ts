@@ -458,9 +458,6 @@ export class EffectsController {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Internals
-  // -------------------------------------------------------------------------
 
   private isReverbActive(): boolean {
     return this.config.enabled && this.config.reverbEnabled;

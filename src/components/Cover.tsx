@@ -159,7 +159,6 @@ const styles = stylex.create({
     lineHeight: 1,
   },
 
-  // --- Dense tile ---------------------------------------------------------
   denseArt: {
     position: 'relative',
     flexShrink: 0,

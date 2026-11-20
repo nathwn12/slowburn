@@ -836,7 +836,6 @@ for (const mode of MODES) {
           .element(page.getByRole('region', { name: 'Now playing' }))
           .toBeVisible();
 
-        // --- Phase A: empty library -------------------------------------
         expectNoHorizontalOverflow(`${context} empty`);
         expectTextBlocksUnclipped(`${context} empty`);
 

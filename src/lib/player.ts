@@ -382,9 +382,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.state;
   }
 
-  // ============================================================================
-  // Playback controls
-  // ============================================================================
 
   async play() {
     if (!this.audio.src) {
@@ -492,9 +489,6 @@ class Player extends EventEmitter<PlayerEvents> {
     }
   }
 
-  // ============================================================================
-  // Queue management
-  // ============================================================================
 
   /**
    * Start playing a new queue
@@ -632,9 +626,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.queueOrigin;
   }
 
-  // ============================================================================
-  // Shuffle & Repeat
-  // ============================================================================
 
   /**
    * Toggle shuffle mode
@@ -709,9 +700,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.repeat;
   }
 
-  // ============================================================================
-  // Track management
-  // ============================================================================
 
   async setTrack(track: Track) {
     // On Linux, use a local HTTP server for audio streaming because
@@ -738,9 +726,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return null;
   }
 
-  // ============================================================================
-  // Audio controls
-  // ============================================================================
 
   setCurrentTime(time: number) {
     this.audio.currentTime = time;
@@ -814,9 +799,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.audio.playbackRate;
   }
 
-  // ============================================================================
-  // Effects (reverb + slowed playback)
-  // ============================================================================
 
   /** The effects controller owning the Web Audio graph around `audio`. */
   getEffects(): EffectsController {
@@ -834,9 +816,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.effects.getConfig();
   }
 
-  // ============================================================================
-  // A-B section loop
-  // ============================================================================
 
   /**
    * Current A-B loop snapshot for the loaded track. Stable to use with

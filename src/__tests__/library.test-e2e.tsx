@@ -86,11 +86,6 @@ test('Tracks should be selectable via keyboard only (after a single selection)',
   await expect.element(secondTrack).toHaveAttribute('aria-selected', 'false');
   await expect.element(thirdTrack).toHaveAttribute('aria-selected', 'false');
 
-  // Cmd+A should select all tracks
-  // await userEvent.keyboard('{ControlOrMeta>}A{/ControlOrMeta}'); // not working, select the text instead :(
-  // await expect.element(firstTrack).toHaveAttribute('aria-selected', 'true');
-  // await expect.element(secondTrack).toHaveAttribute('aria-selected', 'true');
-  // await expect.element(thirdTrack).toHaveAttribute('aria-selected', 'true');
 
   // Use single arrow-up/down to select the previous/next track
   await userEvent.keyboard('[ArrowDown]');

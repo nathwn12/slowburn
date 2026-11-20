@@ -39,7 +39,6 @@ pub struct Track {
     pub disk_no: Option<u32>,
     pub disk_of: Option<u32>,
     pub is_compilation: bool,
-    // --- Source metadata (migration 05) ---
     /// Lowercase source format ("flac", "mp3", "m4a", ...), never empty: the
     /// `'unknown'` sentinel is used when nothing can be detected.
     pub format: String,
@@ -220,7 +219,6 @@ pub fn get_track_from_file(path: &PathBuf) -> AnyResult<Track> {
                 .get_string(ItemKey::FlagCompilation)
                 .map_or(false, |v| v == "1" || v.eq_ignore_ascii_case("true"));
 
-            // --- Source metadata -------------------------------------------------
             let properties = tagged_file.properties();
 
             let format = format_from_file_type(tagged_file.file_type())
