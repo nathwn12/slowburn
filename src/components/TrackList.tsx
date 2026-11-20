@@ -34,9 +34,6 @@ import type { QueueOrigin, TrackListVirtualizer } from '../types/museeks';
 import TrackListDefault from './TrackListDefault';
 import TrackListGrouped from './TrackListGrouped';
 
-// --------------------------------------------------------------------------
-// TrackList
-// --------------------------------------------------------------------------
 
 type TrackListProps = {
   playlists: Playlist[];

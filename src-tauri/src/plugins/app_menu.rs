@@ -112,9 +112,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .on_window_ready(|window| {
             let app_handle = window.app_handle();
 
-            // -----------------------------------------------------------------
-            // X-menu
-            // -----------------------------------------------------------------
             let package_info = app_handle.package_info();
             let version = package_info.version.to_string().into();
             let icon = try_load_menu_icon(app_handle.path().resource_dir()).unwrap_or(None);
@@ -122,19 +119,12 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             let about_metadata =
                 build_about_metadata(version, vec![package_info.authors.to_string()], icon);
 
-            // -----------------------------------------------------------------
-            // File sub-menu (AIMP-familiar entry point; Quit lives here)
-            // -----------------------------------------------------------------
             let file_menu: tauri::menu::Submenu<R> =
                 SubmenuBuilder::new(app_handle, "File")
                     .quit()
                     .build()
                     .unwrap();
 
-            // -----------------------------------------------------------------
-            // Playback sub-menu: the transport, emitting the same IPC events
-            // the in-app menu bar and the shortcuts drive.
-            // -----------------------------------------------------------------
             let playback_menu: tauri::menu::Submenu<R> =
                 SubmenuBuilder::new(app_handle, "Playback")
                     .item(
@@ -168,9 +158,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                     .build()
                     .unwrap();
 
-            // -----------------------------------------------------------------
-            // Edit sub-menu
-            // -----------------------------------------------------------------
             let edit_menu = SubmenuBuilder::new(app_handle, "Edit")
                 .undo()
                 .redo()
@@ -182,9 +169,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .build()
                 .unwrap();
 
-            // -----------------------------------------------------------------
-            // View sub-menu
-            // -----------------------------------------------------------------
             let view_menu = SubmenuBuilder::new(app_handle, "View")
                 .item(
                     &MenuItemBuilder::new("Jump to playing track")
@@ -233,9 +217,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .build()
                 .unwrap();
 
-            // -----------------------------------------------------------------
-            // Window sub-menu
-            // -----------------------------------------------------------------
             let window_menu: tauri::menu::Submenu<R> = SubmenuBuilder::new(app_handle, "Window")
                 .item(
                     &MenuItemBuilder::new("Minimize")
@@ -247,9 +228,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .build()
                 .unwrap();
 
-            // -----------------------------------------------------------------
-            // Tools sub-menu
-            // -----------------------------------------------------------------
             let tools_menu: tauri::menu::Submenu<R> =
                 SubmenuBuilder::new(app_handle, "Tools")
                     .item(
@@ -261,9 +239,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                     .build()
                     .unwrap();
 
-            // -----------------------------------------------------------------
-            // Help sub-menu
-            // -----------------------------------------------------------------
             let help_menu_builder = {
                 let builder = SubmenuBuilder::new(app_handle, "Help");
 
@@ -280,9 +255,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 .build()
                 .unwrap();
 
-            // -----------------------------------------------------------------
-            // Assembled menu + listeners
-            // -----------------------------------------------------------------
             let menu_builder = {
                 MenuBuilder::new(app_handle)
             };

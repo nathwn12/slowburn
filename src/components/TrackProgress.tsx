@@ -25,9 +25,6 @@ export default function TrackProgress(props: Props) {
   return <CompactProgress trackPlaying={props.trackPlaying} />;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Dense seek (.seek)                                                         */
-/* -------------------------------------------------------------------------- */
 
 function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
   const abLoop = usePlayerState((state) => state.abLoop);
@@ -199,9 +196,6 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Waveform                                                                   */
-/* -------------------------------------------------------------------------- */
 
 /**
  * Parse a CSS color string (`#rgb`, `#rrggbb`, `rgb()/rgba()`) into channels.
@@ -334,9 +328,6 @@ function Waveform({ peaks, progress }: { peaks: Peaks; progress: number }) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Compact seek (header mini-bar, unchanged behaviour)                        */
-/* -------------------------------------------------------------------------- */
 
 function CompactProgress({ trackPlaying }: { trackPlaying: Track }) {
   const elapsed = usePlayingTrackCurrentTime();
@@ -404,7 +395,6 @@ function CompactProgress({ trackPlaying }: { trackPlaying: Track }) {
 }
 
 const styles = stylex.create({
-  // --- Dense seek ---------------------------------------------------------
   seek: {
     display: 'flex',
     flexDirection: 'column',
@@ -520,7 +510,6 @@ const styles = stylex.create({
     boxShadow: 'var(--shadow-elevated), var(--glow-accent)',
   },
 
-  // --- Compact seek -------------------------------------------------------
   trackRoot: {
     position: 'relative',
     display: 'flex',

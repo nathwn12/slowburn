@@ -226,7 +226,6 @@ export default function PlayingBarInfo(props: Props) {
 }
 
 const styles = stylex.create({
-  // --- Dense info (.np-info) ---------------------------------------------
   npInfo: {
     flexGrow: 1,
     flexShrink: 1,
@@ -351,7 +350,6 @@ const styles = stylex.create({
     boxShadow: 'var(--glow-hover)',
   },
 
-  // --- Compact info (header mini-bar, unchanged) --------------------------
   playingBarInfo: {
     flexGrow: 1,
     flexShrink: 1,

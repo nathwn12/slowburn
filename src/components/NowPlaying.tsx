@@ -407,7 +407,6 @@ const styles = stylex.create({
     rowGap: '9px',
   },
 
-  // --- mini condensed strip -------------------------------------------------
   // The same section in mini mode: a compact horizontal card (small cover,
   // title/artist/format, transport + seek on one line) instead of the full
   // vertical column, so the queue below keeps the majority of the height.
@@ -505,7 +504,6 @@ const styles = stylex.create({
     flexBasis: '140px',
     minWidth: 0,
   },
-  // --- mini idle ----------------------------------------------------------
   miniEmptyArt: {
     width: '40px',
     height: '40px',
@@ -535,7 +533,6 @@ const styles = stylex.create({
     color: 'var(--text-faint)',
   },
 
-  // --- overflow toggles + collapsible panels ------------------------------
   // One row of pill toggles under the transport (the queue-filter treatment,
   // at disclosure size): the A-B controls and the details/effects blocks are
   // one click away instead of always on.
@@ -583,7 +580,6 @@ const styles = stylex.create({
     minHeight: 0,
   },
 
-  // --- empty library ------------------------------------------------------
   emptyNp: {
     flexGrow: 1,
     flexShrink: 1,
