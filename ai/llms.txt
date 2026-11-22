@@ -1,0 +1,13 @@
+---
+project: slowburn
+one_line: Slow tracks, add reverb, and save an A-B loop per song on Windows.
+stack: [TypeScript]
+status: draft
+since: 2026-10
+capabilities: []
+limits: []
+updated: 2026-11-22
+draft: true
+---
+
+Slowburn plays your local library at reduced speed with reverb, tempo and pitch control. Each track keeps its own A-B loop, so a section you mark is still there when you reopen the song. It is a Tauri desktop app with a React front end.
