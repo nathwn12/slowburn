@@ -3,9 +3,9 @@
 // Checks: forbidden, versions, generated, checker. No link checking here.
 // Run: node docs-check.mjs [--config docs-check.json] [--report|--strict] [--json]
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
@@ -35,7 +35,12 @@ function fail(message) {
 }
 
 function parseArgs(argv) {
-  const opts = { config: DEFAULT_CONFIG, mode: 'report', json: false, printHash: false };
+  const opts = {
+    config: DEFAULT_CONFIG,
+    mode: 'report',
+    json: false,
+    printHash: false,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--config') {
@@ -45,7 +50,8 @@ function parseArgs(argv) {
     } else if (arg.startsWith('--config=')) {
       opts.config = arg.slice('--config='.length);
     } else if (arg === '--report') {
-      if (opts.mode === 'strict') fail('--report and --strict are mutually exclusive');
+      if (opts.mode === 'strict')
+        fail('--report and --strict are mutually exclusive');
       opts.mode = 'report';
     } else if (arg === '--strict') {
       if (opts.mode === 'strict') fail('--strict specified more than once');
@@ -62,15 +68,22 @@ function parseArgs(argv) {
       fail(`unknown argument: ${arg}`);
     }
   }
-  if (opts.printHash && (opts.json || opts.mode === 'strict' || opts.config !== DEFAULT_CONFIG)) {
+  if (
+    opts.printHash &&
+    (opts.json || opts.mode === 'strict' || opts.config !== DEFAULT_CONFIG)
+  ) {
     fail('--print-hash cannot be combined with other options');
   }
-  if (!opts.config || !opts.config.trim()) fail('--config requires a non-empty file path');
+  if (!opts.config || !opts.config.trim())
+    fail('--config requires a non-empty file path');
   return opts;
 }
 
 function sha256Of(file) {
-  const text = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const text = fs
+    .readFileSync(file, 'utf8')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
   return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
@@ -84,20 +97,29 @@ function isNonEmptyString(value) {
 
 function assertKeys(obj, allowed, where) {
   for (const key of Object.keys(obj)) {
-    if (!allowed.includes(key)) fail(`${where} has unknown key "${key}" (allowed: ${allowed.join(', ')})`);
+    if (!allowed.includes(key))
+      fail(
+        `${where} has unknown key "${key}" (allowed: ${allowed.join(', ')})`,
+      );
   }
 }
 
 function assertStringArray(value, where) {
-  if (!Array.isArray(value) || value.length === 0) fail(`${where} must be a non-empty array of strings`);
+  if (!Array.isArray(value) || value.length === 0)
+    fail(`${where} must be a non-empty array of strings`);
   value.forEach((item, i) => {
-    if (!isNonEmptyString(item)) fail(`${where}[${i}] must be a non-empty string`);
+    if (!isNonEmptyString(item))
+      fail(`${where}[${i}] must be a non-empty string`);
   });
 }
 
 function validateConfig(data) {
   if (!isPlainObject(data)) fail('config root must be a JSON object');
-  assertKeys(data, ['versions', 'generated', 'forbidden', 'checker'], 'config root');
+  assertKeys(
+    data,
+    ['versions', 'generated', 'forbidden', 'checker'],
+    'config root',
+  );
 
   if (data.versions !== undefined) {
     if (!Array.isArray(data.versions)) fail('config.versions must be an array');
@@ -105,27 +127,34 @@ function validateConfig(data) {
       const where = `config.versions[${i}]`;
       if (!isPlainObject(group)) fail(`${where} must be an object`);
       assertKeys(group, ['name', 'sources'], where);
-      if (group.name !== undefined && !isNonEmptyString(group.name)) fail(`${where}.name must be a non-empty string`);
+      if (group.name !== undefined && !isNonEmptyString(group.name))
+        fail(`${where}.name must be a non-empty string`);
       if (group.sources === undefined) fail(`${where}.sources is required`);
       assertStringArray(group.sources, `${where}.sources`);
     });
   }
 
   if (data.generated !== undefined) {
-    if (!Array.isArray(data.generated)) fail('config.generated must be an array');
+    if (!Array.isArray(data.generated))
+      fail('config.generated must be an array');
     data.generated.forEach((entry, i) => {
       const where = `config.generated[${i}]`;
       if (!isPlainObject(entry)) fail(`${where} must be an object`);
       assertKeys(entry, ['file', 'block', 'renderer', 'context'], where);
-      if (!isNonEmptyString(entry.file)) fail(`${where}.file must be a non-empty string`);
-      if (!isNonEmptyString(entry.renderer)) fail(`${where}.renderer must be a non-empty string`);
-      if (entry.block !== undefined && !isNonEmptyString(entry.block)) fail(`${where}.block must be a non-empty string`);
-      if (entry.context !== undefined && !isPlainObject(entry.context)) fail(`${where}.context must be an object`);
+      if (!isNonEmptyString(entry.file))
+        fail(`${where}.file must be a non-empty string`);
+      if (!isNonEmptyString(entry.renderer))
+        fail(`${where}.renderer must be a non-empty string`);
+      if (entry.block !== undefined && !isNonEmptyString(entry.block))
+        fail(`${where}.block must be a non-empty string`);
+      if (entry.context !== undefined && !isPlainObject(entry.context))
+        fail(`${where}.context must be an object`);
     });
   }
 
   if (data.forbidden !== undefined) {
-    if (!Array.isArray(data.forbidden)) fail('config.forbidden must be an array');
+    if (!Array.isArray(data.forbidden))
+      fail('config.forbidden must be an array');
     data.forbidden.forEach((entry, i) => {
       const where = `config.forbidden[${i}]`;
       if (!isPlainObject(entry)) fail(`${where} must be an object`);
@@ -138,7 +167,9 @@ function validateConfig(data) {
         try {
           new RegExp(pattern, 'i');
         } catch (error) {
-          fail(`${where}.patterns[${j}] is not a valid regular expression: ${error.message}`);
+          fail(
+            `${where}.patterns[${j}] is not a valid regular expression: ${error.message}`,
+          );
         }
       });
     });
@@ -147,16 +178,22 @@ function validateConfig(data) {
   if (data.checker === undefined) fail('config.checker is required');
   if (!isPlainObject(data.checker)) fail('config.checker must be an object');
   assertKeys(data.checker, ['version', 'sha256'], 'config.checker');
-  if (!isNonEmptyString(data.checker.version)) fail('config.checker.version must be a non-empty string');
-  if (typeof data.checker.sha256 !== 'string' || !/^[0-9a-f]{64}$/i.test(data.checker.sha256)) {
-    fail('config.checker.sha256 must be a 64-character hexadecimal SHA-256 string');
+  if (!isNonEmptyString(data.checker.version))
+    fail('config.checker.version must be a non-empty string');
+  if (
+    typeof data.checker.sha256 !== 'string' ||
+    !/^[0-9a-f]{64}$/i.test(data.checker.sha256)
+  ) {
+    fail(
+      'config.checker.sha256 must be a 64-character hexadecimal SHA-256 string',
+    );
   }
 
   return {
     versions: data.versions ?? [],
     generated: data.generated ?? [],
     forbidden: data.forbidden ?? [],
-    checker: data.checker
+    checker: data.checker,
   };
 }
 
@@ -218,8 +255,10 @@ function walk(dir, root, out) {
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      const isFixtureDir = entry.name === 'fixtures' && path.basename(dir) === 'test';
-      if (['.git', 'node_modules', 'dist'].includes(entry.name) || isFixtureDir) continue;
+      const isFixtureDir =
+        entry.name === 'fixtures' && path.basename(dir) === 'test';
+      if (['.git', 'node_modules', 'dist'].includes(entry.name) || isFixtureDir)
+        continue;
       walk(full, root, out);
     } else if (entry.isFile()) {
       out.push(path.relative(root, full).split(path.sep).join('/'));
@@ -255,9 +294,9 @@ const DEFAULT_FORBIDDEN = [
       String.raw`\b[A-Za-z]:[\\/]`,
       String.raw`\\\\[^\\\s]+`,
       String.raw`%LOCALAPPDATA%`,
-      String.raw`\b(?:npm|pnpm|yarn)\s+(?:install|i|add)\b`
-    ]
-  }
+      String.raw`\b(?:npm|pnpm|yarn)\s+(?:install|i|add)\b`,
+    ],
+  },
 ];
 
 function checkForbidden(config, root, add) {
@@ -274,7 +313,12 @@ function checkForbidden(config, root, add) {
         for (const source of group.patterns) {
           const regex = new RegExp(source, 'i');
           if (regex.test(line)) {
-            add(file, index + 1, 'forbidden', `forbidden pattern /${source}/i matched: ${line.trim()}`);
+            add(
+              file,
+              index + 1,
+              'forbidden',
+              `forbidden pattern /${source}/i matched: ${line.trim()}`,
+            );
           }
         }
       });
@@ -287,7 +331,8 @@ function readVersionSource(spec, root, groupIndex, sourceIndex) {
   const hashAt = spec.indexOf('#');
   const pathPart = hashAt < 0 ? spec : spec.slice(0, hashAt);
   const pointer = hashAt < 0 ? null : spec.slice(hashAt + 1);
-  if (hashAt >= 0 && !pointer) fail(`${where}: JSON pointer is empty in "${spec}"`);
+  if (hashAt >= 0 && !pointer)
+    fail(`${where}: JSON pointer is empty in "${spec}"`);
   const absolute = path.resolve(root, pathPart);
   const relative = path.relative(root, absolute).split(path.sep).join('/');
   let text;
@@ -312,7 +357,9 @@ function readVersionSource(spec, root, groupIndex, sourceIndex) {
       value = value[segment];
     }
     if (typeof value !== 'string' && typeof value !== 'number') {
-      fail(`${where}: JSON pointer "${pointer}" in ${pathPart} is not a string or number`);
+      fail(
+        `${where}: JSON pointer "${pointer}" in ${pathPart} is not a string or number`,
+      );
     }
     return { file: relative, line: 1, value: String(value) };
   }
@@ -328,13 +375,20 @@ function checkVersions(config, root, add) {
   config.versions.forEach((group, groupIndex) => {
     const name = group.name ?? `versions[${groupIndex}]`;
     const values = group.sources.map((spec, sourceIndex) =>
-      readVersionSource(spec, root, groupIndex, sourceIndex)
+      readVersionSource(spec, root, groupIndex, sourceIndex),
     );
-    const allValues = values.map((item) => `${item.file}=${item.value}`).join(', ');
+    const allValues = values
+      .map((item) => `${item.file}=${item.value}`)
+      .join(', ');
     const expected = values[0].value;
     for (const item of values) {
       if (item.value !== expected) {
-        add(item.file, item.line, 'versions', `version mismatch in group "${name}": ${allValues}`);
+        add(
+          item.file,
+          item.line,
+          'versions',
+          `version mismatch in group "${name}": ${allValues}`,
+        );
       }
     }
   });
@@ -358,34 +412,50 @@ async function checkGenerated(config, root, add) {
   for (let i = 0; i < config.generated.length; i += 1) {
     const entry = config.generated[i];
     const where = `config.generated[${i}]`;
-    const rendererPath = path.isAbsolute(entry.renderer) ? entry.renderer : path.resolve(root, entry.renderer);
+    const rendererPath = path.isAbsolute(entry.renderer)
+      ? entry.renderer
+      : path.resolve(root, entry.renderer);
     let module;
     try {
       module = await import(pathToFileURL(rendererPath).href);
     } catch (error) {
-      fail(`${where}: cannot load renderer ${entry.renderer}: ${error.message}`);
+      fail(
+        `${where}: cannot load renderer ${entry.renderer}: ${error.message}`,
+      );
     }
-    if (typeof module.render !== 'function') fail(`${where}: renderer ${entry.renderer} must export render(context)`);
+    if (typeof module.render !== 'function')
+      fail(`${where}: renderer ${entry.renderer} must export render(context)`);
     let rendered;
     try {
       rendered = await module.render(entry.context ?? {});
     } catch (error) {
       fail(`${where}: render(context) failed: ${error.message}`);
     }
-    if (typeof rendered !== 'string') fail(`${where}: render(context) must return a string`);
+    if (typeof rendered !== 'string')
+      fail(`${where}: render(context) must return a string`);
 
     const absolute = path.resolve(root, entry.file);
     let actual;
     try {
       actual = fs.readFileSync(absolute, 'utf8');
     } catch (error) {
-      add(entry.file, 1, 'generated', `generated file is missing: ${error.message}`);
+      add(
+        entry.file,
+        1,
+        'generated',
+        `generated file is missing: ${error.message}`,
+      );
       continue;
     }
 
     if (entry.block === undefined) {
       if (actual !== rendered) {
-        add(entry.file, firstDiffLine(actual, rendered), 'generated', `whole-file output drift from ${entry.renderer}`);
+        add(
+          entry.file,
+          firstDiffLine(actual, rendered),
+          'generated',
+          `whole-file output drift from ${entry.renderer}`,
+        );
       }
       continue;
     }
@@ -393,20 +463,36 @@ async function checkGenerated(config, root, add) {
     const open = `<!-- docs:${entry.block} -->`;
     const close = `<!-- /docs:${entry.block} -->`;
     const openAt = actual.indexOf(open);
-    const closeAt = openAt < 0 ? -1 : actual.indexOf(close, openAt + open.length);
+    const closeAt =
+      openAt < 0 ? -1 : actual.indexOf(close, openAt + open.length);
     if (openAt < 0 || closeAt < 0) {
-      add(entry.file, 1, 'generated', `marked block "${entry.block}" markers are missing`);
+      add(
+        entry.file,
+        1,
+        'generated',
+        `marked block "${entry.block}" markers are missing`,
+      );
       continue;
     }
     const bodyStart = actual.indexOf('\n', openAt + open.length);
     if (bodyStart < 0 || bodyStart >= closeAt) {
-      add(entry.file, lineAt(actual, openAt), 'generated', `marked block "${entry.block}" has no body line`);
+      add(
+        entry.file,
+        lineAt(actual, openAt),
+        'generated',
+        `marked block "${entry.block}" has no body line`,
+      );
       continue;
     }
     const body = actual.slice(bodyStart + 1, closeAt);
     const expected = rendered.endsWith('\n') ? rendered : `${rendered}\n`;
     if (body !== expected) {
-      add(entry.file, lineAt(actual, bodyStart + 1), 'generated', `marked block "${entry.block}" drift from ${entry.renderer}`);
+      add(
+        entry.file,
+        lineAt(actual, bodyStart + 1),
+        'generated',
+        `marked block "${entry.block}" drift from ${entry.renderer}`,
+      );
     }
   }
 }
@@ -419,10 +505,20 @@ function checkChecker(config, add) {
     fail(`cannot hash running checker: ${error.message}`);
   }
   if (config.checker.version !== CHECKER_VERSION) {
-    add('docs-check.mjs', 1, 'checker', `checker version mismatch: config pins ${config.checker.version}, running script is ${CHECKER_VERSION}`);
+    add(
+      'docs-check.mjs',
+      1,
+      'checker',
+      `checker version mismatch: config pins ${config.checker.version}, running script is ${CHECKER_VERSION}`,
+    );
   }
   if (actual.toLowerCase() !== config.checker.sha256.toLowerCase()) {
-    add('docs-check.mjs', 1, 'checker', `checker SHA-256 mismatch: config pins ${config.checker.sha256}, running script is ${actual}`);
+    add(
+      'docs-check.mjs',
+      1,
+      'checker',
+      `checker SHA-256 mismatch: config pins ${config.checker.sha256}, running script is ${actual}`,
+    );
   }
 }
 
@@ -443,18 +539,25 @@ async function main() {
   await checkGenerated(config, root, add);
   checkChecker(config, add);
 
-  findings.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.check.localeCompare(b.check));
+  findings.sort(
+    (a, b) =>
+      a.file.localeCompare(b.file) ||
+      a.line - b.line ||
+      a.check.localeCompare(b.check),
+  );
 
   if (opts.json) {
     const payload = {
       mode: opts.mode,
       findings,
-      summary: { count: findings.length, mode: opts.mode }
+      summary: { count: findings.length, mode: opts.mode },
     };
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
   } else {
     for (const finding of findings) {
-      process.stdout.write(`${finding.file}:${finding.line} [${finding.check}] ${finding.message}\n`);
+      process.stdout.write(
+        `${finding.file}:${finding.line} [${finding.check}] ${finding.message}\n`,
+      );
     }
     process.stdout.write(`${findings.length} findings (${opts.mode})\n`);
   }
@@ -467,5 +570,5 @@ main().then(
   },
   (error) => {
     fail(`unexpected checker error: ${error?.stack ?? error}`);
-  }
+  },
 );
