@@ -74,7 +74,7 @@ Settings > Interface > Mode: Mini
 ## Requirements
 
 - Windows 10 or 11, 64-bit, with the WebView2 runtime (preinstalled on Windows 11).
-- To build: Node 24.14.0, bun 1.4.4 and a stable Rust toolchain with the MSVC target.
+- To build: Node per `.nvmrc` (`lts/*`), bun 1.4.4 and a stable Rust toolchain with the MSVC target.
 
 ## Development
 
