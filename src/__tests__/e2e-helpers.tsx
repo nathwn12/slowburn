@@ -76,14 +76,19 @@ export function beforeEachSetup() {
     // (rows, no empty state) instead of starting empty.
     window.__MUSEEKS_PLAYER?.stop();
 
-    // Initial Location
-    window.location.hash = '#/library';
-
     // Render the app
     const { app } = await import('../main.tsx');
     await render(app, {
       wrapper: ({ children }) => <div id="wrap">{children}</div>,
     });
+
+    // Initial location. The router is a singleton shared by every test in a
+    // file, and it only subscribes to history once RouterProvider mounts.
+    // Assigning `location.hash` directly changes the URL but never notifies
+    // createHashHistory, so the router keeps the previous test's route (a
+    // prior test ends on /settings). Go through the patched history API
+    // after mount so the router publishes /library to its subscribers.
+    window.history.replaceState(null, '', '#/library');
   });
 }
 
