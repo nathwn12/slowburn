@@ -85,7 +85,7 @@
     "vite-plus": "catalog:",
     "vitest": "catalog:",
     "vitest-browser-react": "2.3.0",
-    "@vitest/browser-playwright": "5.1.1"
+    "@vitest/browser-playwright": "5.1.0"
   },
   "simple-git-hooks": {
     "pre-commit": "if [ -f \"$HOME/.config/git/hooks/pre-commit\" ]; then sh \"$HOME/.config/git/hooks/pre-commit\" || exit 1; fi; cd \"$(git rev-parse --show-toplevel)\" || exit 1; [ -x node_modules/.bin/lingui ] || { echo '[pre-commit] lingui CLI not installed - run bun install' >&2; exit 1; }; node_modules/.bin/lingui extract --clean --overwrite || exit 1; git add src/translations"
@@ -95,8 +95,8 @@
   "workspaces": {
     "catalog": {
       "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
-      "vite-plus": "1.7.0",
-      "vitest": "5.1.1"
+      "vite-plus": "1.6.0",
+      "vitest": "5.1.0"
     }
   },
   "overrides": {
