@@ -86,7 +86,6 @@ test('Tracks should be selectable via keyboard only (after a single selection)',
   await expect.element(secondTrack).toHaveAttribute('aria-selected', 'false');
   await expect.element(thirdTrack).toHaveAttribute('aria-selected', 'false');
 
-
   // Use single arrow-up/down to select the previous/next track
   await userEvent.keyboard('[ArrowDown]');
   await expect.element(firstTrack).toHaveAttribute('aria-selected', 'false');

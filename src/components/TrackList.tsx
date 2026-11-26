@@ -34,7 +34,6 @@ import type { QueueOrigin, TrackListVirtualizer } from '../types/museeks';
 import TrackListDefault from './TrackListDefault';
 import TrackListGrouped from './TrackListGrouped';
 
-
 type TrackListProps = {
   playlists: Playlist[];
   tracksDensity: Config['track_view_density'];

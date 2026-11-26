@@ -45,7 +45,6 @@ export interface DatabaseBridgeInterface {
  * Grouped here so they're easier to mock in E2E tests.
  */
 class DatabaseBridge implements DatabaseBridgeInterface {
-
   @LogExecutionTime
   async getAllTracks(): Promise<Array<Track>> {
     return invoke<Array<Track>>('plugin:database|get_all_tracks');
@@ -110,7 +109,6 @@ class DatabaseBridge implements DatabaseBridgeInterface {
     return invoke('plugin:database|get_compilation_albums');
   }
 
-
   @LogExecutionTime
   async getAllPlaylists(): Promise<Array<Playlist>> {
     return invoke('plugin:database|get_all_playlists');
@@ -163,7 +161,6 @@ class DatabaseBridge implements DatabaseBridgeInterface {
       id,
     });
   }
-
 
   @LogExecutionTime
   async getAbLoop(trackID: string): Promise<AbLoop | null> {

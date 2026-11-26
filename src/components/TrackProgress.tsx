@@ -25,7 +25,6 @@ export default function TrackProgress(props: Props) {
   return <CompactProgress trackPlaying={props.trackPlaying} />;
 }
 
-
 function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
   const abLoop = usePlayerState((state) => state.abLoop);
   const elapsed = usePlayingTrackCurrentTime();
@@ -196,7 +195,6 @@ function DenseSeek({ trackPlaying }: { trackPlaying: Track }) {
   );
 }
 
-
 /**
  * Parse a CSS color string (`#rgb`, `#rrggbb`, `rgb()/rgba()`) into channels.
  * Returns `null` when the format is not recognized; callers fall back to the
@@ -327,7 +325,6 @@ function Waveform({ peaks, progress }: { peaks: Peaks; progress: number }) {
     <canvas ref={ref} aria-hidden="true" {...stylex.props(styles.waveCanvas)} />
   );
 }
-
 
 function CompactProgress({ trackPlaying }: { trackPlaying: Track }) {
   const elapsed = usePlayingTrackCurrentTime();

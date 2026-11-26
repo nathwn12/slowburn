@@ -382,7 +382,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.state;
   }
 
-
   async play() {
     if (!this.audio.src) {
       throw new Error('Trying to play a track but no audio.src is defined');
@@ -488,7 +487,6 @@ class Player extends EventEmitter<PlayerEvents> {
       this.stop();
     }
   }
-
 
   /**
    * Start playing a new queue
@@ -626,7 +624,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.queueOrigin;
   }
 
-
   /**
    * Toggle shuffle mode
    */
@@ -700,7 +697,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.repeat;
   }
 
-
   async setTrack(track: Track) {
     // On Linux, use a local HTTP server for audio streaming because
     // WebKitGTK's asset protocol doesn't support media streaming properly.
@@ -725,7 +721,6 @@ class Player extends EventEmitter<PlayerEvents> {
     }
     return null;
   }
-
 
   setCurrentTime(time: number) {
     this.audio.currentTime = time;
@@ -799,7 +794,6 @@ class Player extends EventEmitter<PlayerEvents> {
     return this.audio.playbackRate;
   }
 
-
   /** The effects controller owning the Web Audio graph around `audio`. */
   getEffects(): EffectsController {
     return this.effects;
@@ -815,7 +809,6 @@ class Player extends EventEmitter<PlayerEvents> {
   getEffectsConfig(): EffectsConfig {
     return this.effects.getConfig();
   }
-
 
   /**
    * Current A-B loop snapshot for the loaded track. Stable to use with
