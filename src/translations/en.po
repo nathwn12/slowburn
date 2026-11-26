@@ -835,7 +835,7 @@ msgstr "Drag to reorder"
 
 #: src/components/QueueListItem.tsx:129
 #: src/components/QueueListItem.tsx:130
-#: src/components/TrackList.tsx:310
+#: src/components/TrackList.tsx:309
 msgid "Play next"
 msgstr "Play next"
 
@@ -862,7 +862,7 @@ msgid "Clear the loop"
 msgstr "Clear the loop"
 
 #: src/components/ShortcutsPanel.tsx:47
-#: src/components/TrackProgress.tsx:146
+#: src/components/TrackProgress.tsx:145
 msgid "Seek"
 msgstr "Seek"
 
@@ -1039,74 +1039,74 @@ msgstr "B"
 msgid "Length"
 msgstr "Length"
 
-#: src/components/TrackList.tsx:242
+#: src/components/TrackList.tsx:241
 msgid "Create new playlist..."
 msgstr "Create new playlist..."
 
-#: src/components/TrackList.tsx:245
+#: src/components/TrackList.tsx:244
 #: src/routes/playlists.tsx:40
 msgid "New playlist"
 msgstr "New playlist"
 
-#: src/components/TrackList.tsx:258
+#: src/components/TrackList.tsx:257
 msgid "No playlists"
 msgstr "No playlists"
 
 #. placeholder {0}: selectedTracks.size
 #. placeholder {1}: playlist.name
-#: src/components/TrackList.tsx:272
+#: src/components/TrackList.tsx:271
 msgid "{0} track(s) were added to \"{1}\""
 msgstr "{0} track(s) were added to \"{1}\""
 
-#: src/components/TrackList.tsx:290
+#: src/components/TrackList.tsx:289
 msgid "{selectedCount, plural, one {# track selected} other {# tracks selected}}"
 msgstr "{selectedCount, plural, one {# track selected} other {# tracks selected}}"
 
-#: src/components/TrackList.tsx:302
+#: src/components/TrackList.tsx:301
 msgid "Add to queue"
 msgstr "Add to queue"
 
-#: src/components/TrackList.tsx:322
+#: src/components/TrackList.tsx:321
 msgid "Add to playlist"
 msgstr "Add to playlist"
 
-#: src/components/TrackList.tsx:332
+#: src/components/TrackList.tsx:331
 msgid "Search for \"{item}\""
 msgstr "Search for \"{item}\""
 
-#: src/components/TrackList.tsx:345
+#: src/components/TrackList.tsx:344
 msgid "Copy \"{item}\""
 msgstr "Copy \"{item}\""
 
-#: src/components/TrackList.tsx:368
+#: src/components/TrackList.tsx:367
 msgid "Edit track"
 msgstr "Edit track"
 
-#: src/components/TrackList.tsx:378
+#: src/components/TrackList.tsx:377
 msgid "Show in file manager"
 msgstr "Show in file manager"
 
-#: src/components/TrackList.tsx:384
+#: src/components/TrackList.tsx:383
 msgid "Remove from library"
 msgstr "Remove from library"
 
 #. placeholder {0}: selectedTracks.size
-#: src/components/TrackList.tsx:387
+#: src/components/TrackList.tsx:386
 msgid "Are you sure you want to remove {0} track(s) from your library?"
 msgstr "Are you sure you want to remove {0} track(s) from your library?"
 
-#: src/components/TrackList.tsx:389
+#: src/components/TrackList.tsx:388
 msgid "Remove tracks"
 msgstr "Remove tracks"
 
-#: src/components/TrackList.tsx:391
+#: src/components/TrackList.tsx:390
 #: src/routes/settings.advanced.tsx:143
 #: src/routes/settings.library.tsx:143
 #: src/routes/tracks.$trackID.tsx:254
 msgid "Cancel"
 msgstr "Cancel"
 
-#: src/components/TrackList.tsx:392
+#: src/components/TrackList.tsx:391
 #: src/components/TrackListHeader.tsx:509
 #: src/routes/settings.library.tsx:95
 msgid "Remove"
@@ -1322,7 +1322,7 @@ msgstr "Your search returned no results"
 msgid "Show all tracks"
 msgstr "Show all tracks"
 
-#: src/components/TrackProgress.tsx:131
+#: src/components/TrackProgress.tsx:130
 msgid "Seek bar with A-B loop region"
 msgstr "Seek bar with A-B loop region"
 
