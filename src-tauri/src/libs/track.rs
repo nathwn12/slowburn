@@ -184,7 +184,7 @@ pub fn get_track_from_file(path: &PathBuf) -> AnyResult<Track> {
                 MuseeksError::ID3NoTags(path.clone())
             })?;
 
-            // Lots of tags are missing eaither TrackArtist or AlbumArtist, so instead
+            // Lots of tags are missing either TrackArtist or AlbumArtist, so instead
             // of being correct, we'll swap them if needed.
             // IMPROVE ME: Is there a more idiomatic way of doing the following?
             let mut artists: Vec<String> = tag

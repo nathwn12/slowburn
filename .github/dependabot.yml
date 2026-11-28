@@ -10,41 +10,70 @@
 # in supply-chain.yml exists rather than being redundant with this file.
 version: 2
 updates:
-  - package-ecosystem: 'bun'
-    directory: '/'
+  - package-ecosystem: "bun"
+    directory: "/"
     schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '03:30'
-      timezone: 'Asia/Manila'
+      interval: "weekly"
+      day: "monday"
+      time: "03:30"
+      timezone: "Asia/Manila"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+    rebase-strategy: "auto"
     groups:
       minor-and-patch:
-        patterns: ['*']
-        update-types: ['minor', 'patch']
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
-  - package-ecosystem: 'cargo'
-    directory: '/src-tauri'
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
     schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '03:30'
-      timezone: 'Asia/Manila'
+      interval: "weekly"
+      day: "monday"
+      time: "03:30"
+      timezone: "Asia/Manila"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+    rebase-strategy: "auto"
     groups:
       minor-and-patch:
-        patterns: ['*']
-        update-types: ['minor', 'patch']
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Upstream ships branch refs that are not real Rust releases (1.120.0).
+      # Dependabot reads them as versions and rustup 404s, so the toolchain pin
+      # is held by hand against the crate MSRV instead.
+      - dependency-name: "dtolnay/rust-toolchain"
 
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '03:30'
-      timezone: 'Asia/Manila'
+      interval: "weekly"
+      day: "monday"
+      time: "03:30"
+      timezone: "Asia/Manila"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+    rebase-strategy: "auto"
     groups:
       minor-and-patch:
-        patterns: ['*']
-        update-types: ['minor', 'patch']
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

@@ -5,7 +5,7 @@
 <p align="center"><strong>Slow any track, add reverb, and keep an A-B loop for every song on Windows.</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-windows%20x64-blue" alt="platform">
+  <img src="https://img.shields.io/badge/platform-Windows%20x64-blue" alt="platform">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
@@ -88,7 +88,7 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 
 CI runs the same steps on Windows. The repo pins bun 1.4.4 and commits `bun.lock`.
 
-```
+```text
 slowburn/
 ├── src/          React UI and colocated tests
 ├── src-tauri/    Rust shell and icons

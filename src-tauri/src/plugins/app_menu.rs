@@ -313,7 +313,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 "reload" => {
                     let webview = win.get_webview_window("main").unwrap();
                     webview
-                        .navigate(webview.url().expect("webview should havea a URL"))
+                        .navigate(webview.url().expect("webview should have a URL"))
                         .unwrap();
                 }
                 "toggle_devtools" => {

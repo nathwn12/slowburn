@@ -219,7 +219,7 @@ function escapeRegExp(text) {
 }
 
 function globToRegExp(glob) {
-  let pattern = glob.replace(/\\/g, '/');
+  const pattern = glob.replace(/\\/g, '/');
   let source = '^';
   for (let i = 0; i < pattern.length; i += 1) {
     const char = pattern[i];

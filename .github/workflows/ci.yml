@@ -1,103 +1,181 @@
-# nathwn12 house CI — stack: tauri (bun frontend + cargo backend, copy to .github/workflows/ci.yml)
+# nathwn12 house CI - stack: tauri (bun frontend + cargo backend)
 #
-# Windows-only Tauri app. The bun leg honours the repo's `packageManager` pin
-# and installs with --frozen-lockfile; the cargo leg keys off
-# src-tauri/Cargo.toml. There is deliberately NO `tauri build` / bundling step:
-# bundling needs signing/NSIS and does not belong in a build+test gate.
-# A docs-only change (*.md, docs/, LICEN[CS]E) keeps the required check green and runs no build.
+# Required check on main is the JOB NAME `build` - do not rename it. `static`
+# runs the cheap typings/lint gate first; `build` runs the browser and cargo
+# legs. No bundling here: signing/NSIS belongs in a release workflow.
+#
+# Pushes are NEVER cancelled: the old `cancel-in-progress: true` let a new
+# push to main kill the run testing the previous push (runs 45844507935 and
+# 45836320686 were cancelled exactly when the next main push started).
+# A docs-only change keeps the required check green; scope is API-based.
 name: ci
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
+permissions:
+  contents: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name != 'push' }}
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: always
+
 jobs:
-  build:
+  static:
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # Full history: the scope step below diffs against the base branch with
-          # `...`, which needs a merge base (and, on a push, the `before` commit).
-          fetch-depth: 0
-      - name: Detect a docs-only change
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Scope from the GitHub API
         id: scope
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
         run: |
+          set -euo pipefail
           docs='^(.*\.md|docs/.*|LICEN[CS]E(\.md)?)$'
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch --no-tags origin "${{ github.base_ref }}"
-            changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
-          elif [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.event.before }}" ]; then
-            changed=$(git diff --name-only "${{ github.event.before }}" HEAD || true)
-          else
-            changed=$(git ls-files)
+          files=""
+          if [ "$EVENT" = "pull_request" ] && [ -n "$PR" ]; then
+            files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[].filename' || true)
+          elif [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            files=$(gh api "repos/$REPO/compare/$BEFORE...$AFTER" --paginate --jq '.files[].filename' || true)
           fi
-          if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -qvE "$docs"; then
+          if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE "$docs"; then
             echo "code=false" >> "$GITHUB_OUTPUT"
           else
             echo "code=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Detect Rust changes
-        id: changes
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch --no-tags origin "${{ github.base_ref }}"
-            if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -q '^src-tauri/'; then
-              echo "rust=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "rust=false" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "rust=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Set up Bun
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         if: steps.scope.outputs.code == 'true'
-        uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
-      - name: Set up Node
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: steps.scope.outputs.code == 'true'
-        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-      - name: Set up Rust
+      - name: Cache bun install
         if: steps.scope.outputs.code == 'true'
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
       - name: Install dependencies
         if: steps.scope.outputs.code == 'true'
         run: bun install --frozen-lockfile
       - name: Frontend typings
         if: steps.scope.outputs.code == 'true'
         run: bun run test:typings
-      # AGENTS.md ("Agent Operations Rules"): after UI edits `vp check`
-      # (format, lint, type-check) must pass and the UI checks must run.
+      # AGENTS.md: after UI edits `vp check` (format, lint, type-check) must pass
+      # and the UI checks must run. The UI checks are in the build job below.
       - name: Frontend checks (vp check)
         if: steps.scope.outputs.code == 'true'
         run: bunx vp check
-      - name: Install Playwright Chromium
+      - name: Scope
+        if: always()
+        run: |
+          echo "scope: ${{ steps.scope.outputs.code == 'true' && 'code changed - the full gate ran' || 'docs-only - the required check stays green' }}"
+
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Scope from the GitHub API
+        id: scope
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+        run: |
+          set -euo pipefail
+          docs='^(.*\.md|docs/.*|LICEN[CS]E(\.md)?)$'
+          files=""
+          if [ "$EVENT" = "pull_request" ] && [ -n "$PR" ]; then
+            files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[].filename' || true)
+          elif [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            files=$(gh api "repos/$REPO/compare/$BEFORE...$AFTER" --paginate --jq '.files[].filename' || true)
+          fi
+          if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE "$docs"; then
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          fi
+          # Slice: a PR touching only src-tauri/ skips the browser e2e leg;
+          # a PR touching only frontend files skips cargo. push/main runs both.
+          if [ -z "$files" ] || [ "$EVENT" = "push" ]; then
+            rust=true
+            frontend=true
+          else
+            if printf '%s\n' "$files" | grep -q '^src-tauri/'; then rust=true; else rust=false; fi
+            if printf '%s\n' "$files" | grep -qv '^src-tauri/'; then frontend=true; else frontend=false; fi
+          fi
+          echo "rust=$rust" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         if: steps.scope.outputs.code == 'true'
+        with:
+          bun-version: 1.4.4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: steps.scope.outputs.code == 'true'
+        with:
+          node-version-file: .nvmrc
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        if: steps.scope.outputs.code == 'true' && steps.scope.outputs.rust == 'true'
+      - name: Cache bun install
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+      - name: Cache cargo (src-tauri only)
+        if: steps.scope.outputs.code == 'true' && steps.scope.outputs.rust == 'true'
+        uses: Swatinem/rust-cache@e9d7b9f1e587218970671bac74e5511ed9506e6a # v2
+        with:
+          workspaces: src-tauri
+          shared-key: slowburn-ci
+      - name: Install dependencies
+        if: steps.scope.outputs.code == 'true'
+        run: bun install --frozen-lockfile
+      - name: Install Playwright Chromium
+        if: steps.scope.outputs.code == 'true' && steps.scope.outputs.frontend == 'true'
         run: bunx playwright install chromium
       - name: UI checks (headless e2e)
-        if: steps.scope.outputs.code == 'true'
+        if: steps.scope.outputs.code == 'true' && steps.scope.outputs.frontend == 'true'
         run: bunx vp test run --project e2e
       - name: Rust build
-        if: steps.scope.outputs.code == 'true' && steps.changes.outputs.rust == 'true'
+        if: steps.scope.outputs.code == 'true' && steps.scope.outputs.rust == 'true'
         run: cargo build --locked --manifest-path src-tauri/Cargo.toml
       - name: Rust test
-        if: steps.scope.outputs.code == 'true' && steps.changes.outputs.rust == 'true'
+        if: steps.scope.outputs.code == 'true' && steps.scope.outputs.rust == 'true'
         # One thread, deliberately. The only crash on record (0xC0000005
         # STATUS_ACCESS_VIOLATION, run 43864314912, and once locally) died
         # before the parallel harness printed a single test name, so the run
         # said nothing about where it happened. Serially, the last line is the
-        # test that was running: the next occurrence is diagnosable instead of
-        # being retried blind.
+        # test that was running: the next occurrence is diagnosable.
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
       - name: Scope
         if: always()
         run: |
-          echo "scope: ${{ steps.scope.outputs.code == 'true' && 'code changed - the full gate ran' || 'docs-only - build skipped, the check stays green' }}"
+          echo "scope: ${{ steps.scope.outputs.code == 'true' && 'code changed - the full gate ran' || 'docs-only - the required check stays green' }}"

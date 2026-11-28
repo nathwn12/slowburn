@@ -401,17 +401,17 @@ function expectCtaInViewport(cta: HTMLElement, context: string): void {
       `size=${ctaW.toFixed(2)}x${ctaH.toFixed(2)} vs viewport ${vw}x${vh}`;
     // (b) A non-scrolling ancestor between the CTA and its scroller that
     // clips it means scrolling can never reveal it - fail.
-    for (const anc of intermediates) {
-      const style = getComputedStyle(anc);
+    for (const ancestor of intermediates) {
+      const style = getComputedStyle(ancestor);
       const clipsX = style.overflowX === 'hidden' || style.overflowX === 'clip';
       const clipsY = style.overflowY === 'hidden' || style.overflowY === 'clip';
       if (!clipsX && !clipsY) continue;
-      const ar = rectOf(anc);
+      const ar = rectOf(ancestor);
       const outsideX = r.left < ar.left - 1 || r.right > ar.right + 1;
       const outsideY = r.top < ar.top - 1 || r.bottom > ar.bottom + 1;
       if ((clipsX && outsideX) || (clipsY && outsideY)) {
         violations.push(
-          `${detail} clipped by non-scrolling ancestor ${describeEl(anc)} ${JSON.stringify(ar)} overflow=${style.overflowX}/${style.overflowY}`,
+          `${detail} clipped by non-scrolling ancestor ${describeEl(ancestor)} ${JSON.stringify(ar)} overflow=${style.overflowX}/${style.overflowY}`,
         );
       }
     }

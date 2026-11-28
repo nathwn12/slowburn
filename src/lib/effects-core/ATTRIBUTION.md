@@ -25,7 +25,7 @@ Slowed-speed / reverb-intensity clamps and settings. Host-agnostic subset of
 A-B section-loop engine and saved-loop persistence, ported from
 `pear-desktop` `player-actions/section-repeat/` (Source A).
 
-```
+```text
 The MIT License (MIT)
 
 Copyright (c) th-ch <th-ch@users.noreply.github.com> (https://github.com/pear-devs/pear-desktop)

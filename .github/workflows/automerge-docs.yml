@@ -12,7 +12,7 @@ name: automerge-docs
 # A job-level trusted-actor gate allows only the owner (nathwn12) or Dependabot
 # to arm auto-merge; no other account can trigger it.
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened, labeled, ready_for_review]
 
 permissions:
@@ -26,7 +26,7 @@ concurrency:
 jobs:
   automerge:
     runs-on: ubuntu-latest
-    if: github.actor == 'nathwn12' || github.actor == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'nathwn12' || github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
       - name: Re-derive the changed files from the API
         id: changed
@@ -58,4 +58,5 @@ jobs:
         if: steps.changed.outputs.docs_only == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}"
+          GITHUB_EVENT_PULL_REQUEST_HTML_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "${GITHUB_EVENT_PULL_REQUEST_HTML_URL}"
